@@ -511,6 +511,9 @@ model Supplier {
   description String?
   website     String?
 
+  contactEmail String?
+  contactName  String?
+
   apiUrl      String?
   apiUsername String?
   apiPassword String?
