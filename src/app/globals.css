@@ -1,26 +1,288 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #090909;
+  --foreground: #ffffff;
+
+  --primary: #ff2e88;
+  --primary-dark: #d81b60;
+
+  --border: #252525;
+  --muted: #9f9f9f;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+
+  background: var(--background);
+  color: var(--foreground);
+
+  font-family: var(--font-inter);
+
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+::selection {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* Scrollbar */
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0a0a0a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* ================================================= */
+/* TYPOGRAPHY */
+/* ================================================= */
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+.text-gradient {
+  background: linear-gradient(
+    135deg,
+    #f3ccd8 0%,
+    #ff2e88 50%,
+    #d1105a 100%
+  );
+
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.newsletter-card {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.75) 0%,
+    rgba(255, 245, 248, 0.65) 25%,
+    rgba(252, 228, 236, 0.55) 50%,
+    rgba(249, 210, 224, 0.60) 75%,
+    rgba(255, 255, 255, 0.70) 100%
+  );
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(209, 16, 90, 0.12);
+  box-shadow: 
+    0 8px 32px rgba(209, 16, 90, 0.06),
+    0 2px 8px rgba(0, 0, 0, 0.03),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  position: relative;
+}
+
+.newsletter-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(209, 16, 90, 0.03) 0%,
+    rgba(255, 46, 136, 0.05) 50%,
+    rgba(209, 16, 90, 0.03) 100%
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.newsletter-card > * {
+  position: relative;
+  z-index: 2;
+}
+
+/* Texto pequeno rosa */
+
+.section-eyebrow {
+  margin-bottom: .75rem;
+
+  font-size: .75rem;
+  font-weight: 600;
+
+  letter-spacing: .30em;
+  text-transform: uppercase;
+
+  color: var(--primary);
+}
+
+/* Título */
+
+.section-title {
+  font-family: var(--font-display);
+
+  font-size: clamp(2.5rem,5vw,4rem);
+
+  font-weight: 700;
+
+  line-height: 1.1;
+
+  color: #fff;
+}
+
+/* Texto abaixo do título */
+
+.section-description {
+  max-width: 700px;
+
+  color: var(--muted);
+
+  font-size: 1.1rem;
+
+  line-height: 1.8;
+}
+
+/* ================================================= */
+/* LAYOUT */
+/* ================================================= */
+
+.container-custom{
+    max-width:1500px;
+    width:100%;
+    padding-inline:40px;
+    margin-inline:auto;
+}
+
+/* ================================================= */
+/* CARDS */
+/* ================================================= */
+
+.card {
+  background: #111;
+
+  border: 1px solid #222;
+
+  border-radius: 20px;
+
+  transition:
+    transform .35s ease,
+    border-color .35s ease;
+}
+
+.card:hover {
+  border-color: var(--primary);
+  transform: translateY(-6px);
+}
+
+/* ================================================= */
+/* BUTTONS */
+/* ================================================= */
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 14px 30px;
+
+  border-radius: 999px;
+
+  background: var(--primary);
+
+  color: #fff;
+
+  font-weight: 600;
+
+  transition: .3s;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  transform: translateY(-2px);
+}
+
+.btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 14px 30px;
+
+  border-radius: 999px;
+
+  border: 1px solid #444;
+
+  color: #fff;
+
+  transition: .3s;
+}
+
+.btn-outline:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* ================================================= */
+/* ANIMATIONS */
+/* ================================================= */
+
+.fade-up {
+  opacity: 0;
+  transform: translateY(40px);
+  animation: fadeUp .8s forwards;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.arabesque-bg {
+  background-color: #ffffff;
+  background-image: url("data:image/svg+xml,%3Csvg width='180' height='180' viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' stroke='%23f3ccd8' stroke-width='0.8' opacity='0.75'%3E%3Cpath d='M-20 35 C20 5 55 5 75 30 C95 55 75 80 50 75 C25 70 20 45 35 30 C50 15 75 20 85 40'/%3E%3Cpath d='M105 -15 C125 5 145 10 165 0 C185 -10 195 5 180 25 C165 45 140 35 135 20 C130 5 145 -5 160 0'/%3E%3Cpath d='M95 95 C120 75 150 80 165 100 C180 120 170 145 150 150 C130 155 115 140 120 120 C125 100 150 95 165 110 C180 125 180 150 175 170'/%3E%3Cpath d='M0 115 C20 95 45 100 55 120 C65 140 55 160 35 165 C15 170 0 155 5 135 C10 115 30 110 45 125'/%3E%3Cpath d='M70 160 C90 145 110 150 120 170 C130 190 115 200 95 195 C75 190 65 175 70 160'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 180px 180px;
 }
