@@ -26,8 +26,8 @@ export default async function SettingsPage() {
 
           <SettingsForm
             defaultValues={{
-              firstName: user.firstName,
-              lastName: user.lastName,
+              firstName: user.firstName ?? "",
+              lastName: user.lastName ?? "",
               email: user.email,
               phone: user.phone ?? "",
               birthDate: "",

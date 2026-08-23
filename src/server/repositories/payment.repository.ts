@@ -30,7 +30,10 @@ export class PaymentRepository {
     }
 
     if (options?.orderId) {
-      where.orderId = options.orderId;
+      // Usar a relação "order" em vez de "orderId"
+      where.order = {
+        id: options.orderId,
+      };
     }
 
     const [data, total] = await Promise.all([
@@ -115,9 +118,11 @@ export class PaymentRepository {
   }
 
   async findByOrderId(orderId: string) {
-    return prisma.payment.findUnique({
+    return prisma.payment.findFirst({
       where: {
-        orderId,
+        order: {
+          id: orderId,
+        },
       },
 
       include: {

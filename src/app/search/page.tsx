@@ -69,7 +69,7 @@ export default function SearchPage() {
 
         <div className="mt-20">
 
-          <ProductGrid />
+          <ProductGrid products={[]} />
 
         </div>
 
