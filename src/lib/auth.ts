@@ -84,22 +84,28 @@ export const auth = betterAuth({
   },
 
   trustedOrigins: [
-    process.env.BETTER_AUTH_URL!,
+    "https://feticheshop-opal.vercel.app",
+    "http://localhost:3000",
   ],
 });
 
 export async function getCurrentUser() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
 
-  if (!session?.user) {
+    if (!session?.user) {
+      return null;
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+    });
+
+    return user;
+  } catch (error) {
+    console.error("Erro ao obter sessão:", error);
     return null;
   }
-
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-  });
-
-  return user;
 }
