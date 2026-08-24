@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack",
-    "build": "npm run prisma:generate && next build",
+    "build": "prisma generate && next build",
     "start": "next start",
-    "postinstall": "npm run prisma:generate",
+    "postinstall": "prisma generate",
     "dreamlove:categories": "tsx scripts/sync-dreamlove-categories.ts",
     "dreamlove:products": "tsx scripts/sync-dreamlove-products.ts",
     "dreamlove:stock": "tsx scripts/sync-dreamlove-stock.ts",
