@@ -1,13 +1,22 @@
 import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 import {
   syncDreamlove,
 } from "@/actions/supplier/supplier-actions";
 
-let running = false;
-
 export async function POST() {
-  if (running) {
+  // Verificar no banco se há sincronização em execução
+  const existingSync = await prisma.supplierSync.findFirst({
+    where: {
+      status: "RUNNING",
+      startedAt: {
+        gte: new Date(Date.now() - 10 * 60 * 1000), // últimos 10 minutos
+      },
+    },
+  });
+
+  if (existingSync) {
     return NextResponse.json(
       {
         success: false,
@@ -20,17 +29,28 @@ export async function POST() {
     );
   }
 
-  running = true;
+  // Limpar sincronizações antigas
+  await prisma.supplierSync.updateMany({
+    where: {
+      status: "RUNNING",
+      startedAt: {
+        lt: new Date(Date.now() - 10 * 60 * 1000),
+      },
+    },
+    data: {
+      status: "FAILED",
+      message: "Reset automático - sincronização presa",
+      finishedAt: new Date(),
+    },
+  });
 
+  // Iniciar sincronização
   syncDreamlove()
     .catch((error) => {
       console.error(
         "Erro na sincronização Dreamlove:",
         error
       );
-    })
-    .finally(() => {
-      running = false;
     });
 
   return NextResponse.json({
