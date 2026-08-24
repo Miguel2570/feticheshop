@@ -8,7 +8,6 @@ const USERNAME = process.env.DREAMLOVE_USERNAME!;
 const PASSWORD = process.env.DREAMLOVE_PASSWORD!;
 const PORTUGUESE_LANGUAGE_ID = 55;
 
-// Tipos
 type DreamloveCategory = {
   id: number;
   name: string;
