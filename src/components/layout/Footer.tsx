@@ -35,7 +35,7 @@ const socialLinks: SocialLink[] = [
 ];
 
 const paymentMethods: PaymentMethod[] = [
-  { src: "/images/MB_WAY.JPG", alt: "MB WAY" },
+  { src: "/images/MB_WAY.jpg", alt: "MB WAY" },
   { src: "/images/Multibanco.svg", alt: "Multibanco" },
 ];
 
