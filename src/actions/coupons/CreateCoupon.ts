@@ -7,7 +7,7 @@ import { prisma } from "@/lib/prisma";
 
 import {
   createCouponSchema,
-} from "@/schemas/Coupon";
+} from "@/validations/coupon";
 
 export async function CreateCoupon(
   formData: FormData,
