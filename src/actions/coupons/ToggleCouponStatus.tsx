@@ -1,19 +1,30 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+
 import { prisma } from "@/lib/prisma";
 
-export async function ToggleCouponStatus(id: string) {
-  const coupon = await prisma.coupon.findUnique({
-    where: { id },
-  });
+export async function ToggleCouponStatus(
+  id: string,
+) {
+  const coupon =
+    await prisma.coupon.findUnique({
+      where: {
+        id,
+      },
+    });
 
   if (!coupon) {
-    throw new Error("Cupão não encontrado.");
+    throw new Error(
+      "Cupão não encontrado."
+    );
   }
 
   await prisma.coupon.update({
-    where: { id },
+    where: {
+      id,
+    },
+
     data: {
       isActive: !coupon.isActive,
     },
@@ -21,4 +32,5 @@ export async function ToggleCouponStatus(id: string) {
 
   revalidatePath("/admin/coupons");
   revalidatePath(`/admin/coupons/${id}`);
+  revalidatePath(`/admin/coupons/${id}/edit`);
 }

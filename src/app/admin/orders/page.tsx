@@ -40,116 +40,508 @@ export default async function OrdersPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-5 sm:space-y-6">
       {/* HEADER */}
+
       <div>
-        <h1 className="text-3xl font-bold" style={{ color: "#18181b" }}>
+        <h1
+          className="
+            text-2xl
+            font-bold
+            sm:text-3xl
+          "
+          style={{ color: "#18181b" }}
+        >
           Encomendas
         </h1>
-        <p style={{ color: "#71717a" }}>
+
+        <p
+          className="
+            mt-1
+            text-sm
+            sm:text-base
+          "
+          style={{ color: "#71717a" }}
+        >
           Gestão de encomendas
         </p>
       </div>
 
-      {/* TABELA */}
-      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="border-b border-zinc-200 bg-zinc-50">
-              <tr className="text-left">
-                <th className="p-4 text-sm font-semibold" style={{ color: "#52525b" }}>Nº</th>
-                <th className="p-4 text-sm font-semibold" style={{ color: "#52525b" }}>Cliente</th>
-                <th className="p-4 text-sm font-semibold" style={{ color: "#52525b" }}>Total</th>
-                <th className="p-4 text-sm font-semibold" style={{ color: "#52525b" }}>Estado</th>
-                <th className="p-4 text-sm font-semibold" style={{ color: "#52525b" }}>Data</th>
-                <th className="p-4 text-right text-sm font-semibold" style={{ color: "#52525b" }}>Ações</th>
-              </tr>
-            </thead>
+      {/* CONTEÚDO */}
 
-            <tbody>
+      <div
+        className="
+          overflow-hidden
+          rounded-2xl
+          border
+          border-zinc-200
+          bg-white
+          shadow-sm
+        "
+      >
+        {/* ===================================================
+            DESKTOP — TABELA
+        =================================================== */}
+
+        <div className="hidden lg:block">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead
+                className="
+                  border-b
+                  border-zinc-200
+                  bg-zinc-50
+                "
+              >
+                <tr className="text-left">
+                  <th
+                    className="p-4 text-sm font-semibold"
+                    style={{ color: "#52525b" }}
+                  >
+                    Nº
+                  </th>
+
+                  <th
+                    className="p-4 text-sm font-semibold"
+                    style={{ color: "#52525b" }}
+                  >
+                    Cliente
+                  </th>
+
+                  <th
+                    className="p-4 text-sm font-semibold"
+                    style={{ color: "#52525b" }}
+                  >
+                    Total
+                  </th>
+
+                  <th
+                    className="p-4 text-sm font-semibold"
+                    style={{ color: "#52525b" }}
+                  >
+                    Estado
+                  </th>
+
+                  <th
+                    className="p-4 text-sm font-semibold"
+                    style={{ color: "#52525b" }}
+                  >
+                    Data
+                  </th>
+
+                  <th
+                    className="
+                      p-4
+                      text-right
+                      text-sm
+                      font-semibold
+                    "
+                    style={{ color: "#52525b" }}
+                  >
+                    Ações
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {orders.map((order) => (
+                  <tr
+                    key={order.id}
+                    className="
+                      border-b
+                      border-zinc-100
+                      transition
+                      hover:bg-pink-50/30
+                    "
+                  >
+                    {/* Nº */}
+
+                    <td
+                      className="
+                        p-4
+                        font-mono
+                        text-sm
+                      "
+                      style={{ color: "#18181b" }}
+                    >
+                      #{order.id.slice(0, 8)}
+                    </td>
+
+                    {/* CLIENTE */}
+
+                    <td className="p-4">
+                      <div className="min-w-0">
+                        <p
+                          className="
+                            truncate
+                            font-medium
+                          "
+                          style={{ color: "#18181b" }}
+                        >
+                          {order.user
+                            ? `${order.user.firstName} ${order.user.lastName}`
+                            : "Sem nome"}
+                        </p>
+
+                        {order.user?.email && (
+                          <p
+                            className="
+                              truncate
+                              text-xs
+                            "
+                            style={{ color: "#a1a1aa" }}
+                          >
+                            {order.user.email}
+                          </p>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* TOTAL */}
+
+                    <td
+                      className="
+                        p-4
+                        whitespace-nowrap
+                        font-semibold
+                      "
+                      style={{ color: "#18181b" }}
+                    >
+                      {Number(order.total).toFixed(2)} €
+                    </td>
+
+                    {/* ESTADO */}
+
+                    <td className="p-4">
+                      <span
+                        className={`
+                          inline-flex
+                          rounded-full
+                          border
+                          px-3
+                          py-1
+                          text-xs
+                          font-semibold
+                          ${
+                            statusBadgeColors[order.status] ??
+                            "bg-zinc-50 text-zinc-500 border-zinc-200"
+                          }
+                        `}
+                      >
+                        {statusLabels[order.status] ??
+                          order.status}
+                      </span>
+                    </td>
+
+                    {/* DATA */}
+
+                    <td
+                      className="
+                        p-4
+                        whitespace-nowrap
+                        text-sm
+                      "
+                      style={{ color: "#71717a" }}
+                    >
+                      {new Date(
+                        order.createdAt
+                      ).toLocaleDateString("pt-PT")}
+                    </td>
+
+                    {/* AÇÕES */}
+
+                    <td className="p-4">
+                      <div className="flex justify-end gap-2">
+                        <Link
+                          href={`/admin/orders/${order.id}`}
+                          className="
+                            inline-flex
+                            h-8
+                            items-center
+                            justify-center
+                            rounded-lg
+                            bg-pink-500
+                            px-4
+                            text-xs
+                            font-semibold
+                            text-white
+                            transition-all
+                            duration-200
+                            hover:bg-pink-600
+                            hover:shadow-lg
+                            hover:shadow-pink-500/25
+                          "
+                        >
+                          Ver
+                        </Link>
+
+                        <button
+                          type="button"
+                          className="
+                            inline-flex
+                            h-8
+                            items-center
+                            justify-center
+                            rounded-lg
+                            bg-pink-500
+                            px-4
+                            text-xs
+                            font-semibold
+                            text-white
+                            transition-all
+                            duration-200
+                            hover:bg-pink-600
+                            hover:shadow-lg
+                            hover:shadow-pink-500/25
+                          "
+                        >
+                          Estado
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+                {/* ===================================================
+            MOBILE / TABLET — CARDS
+        =================================================== */}
+
+        <div className="block lg:hidden">
+          {orders.length > 0 ? (
+            <div className="divide-y divide-zinc-100">
               {orders.map((order) => (
-                <tr
+                <div
                   key={order.id}
-                  className="border-b border-zinc-100 hover:bg-pink-50/30"
+                  className="
+                    p-4
+                    transition
+                    hover:bg-pink-50/20
+                    sm:p-5
+                  "
                 >
-                  <td className="p-4 font-mono text-sm" style={{ color: "#18181b" }}>
-                    #{order.id.slice(0, 8)}
-                  </td>
+                  {/* TOPO */}
 
-                  <td className="p-4">
-                    <div>
-                      <p className="font-medium" style={{ color: "#18181b" }}>
+                  <div
+                    className="
+                      flex
+                      items-start
+                      justify-between
+                      gap-3
+                    "
+                  >
+                    <div className="min-w-0">
+                      <p
+                        className="
+                          font-mono
+                          text-xs
+                          font-semibold
+                          text-zinc-500
+                        "
+                      >
+                        #{order.id.slice(0, 8)}
+                      </p>
+
+                      <p
+                        className="
+                          mt-1
+                          truncate
+                          text-sm
+                          font-semibold
+                          sm:text-base
+                        "
+                        style={{ color: "#18181b" }}
+                      >
                         {order.user
                           ? `${order.user.firstName} ${order.user.lastName}`
                           : "Sem nome"}
                       </p>
-                      <p className="text-xs" style={{ color: "#a1a1aa" }}>
-                        {order.user?.email}
-                      </p>
+
+                      {order.user?.email && (
+                        <p
+                          className="
+                            mt-0.5
+                            truncate
+                            text-xs
+                          "
+                          style={{ color: "#a1a1aa" }}
+                        >
+                          {order.user.email}
+                        </p>
+                      )}
                     </div>
-                  </td>
 
-                  <td className="p-4 font-semibold" style={{ color: "#18181b" }}>
-                    {Number(order.total).toFixed(2)} €
-                  </td>
+                    {/* ESTADO */}
 
-                  <td className="p-4">
                     <span
                       className={`
-                        inline-flex rounded-full border px-3 py-1 text-xs font-semibold
-                        ${statusBadgeColors[order.status] ?? "bg-zinc-50 text-zinc-500 border-zinc-200"}
+                        shrink-0
+                        rounded-full
+                        border
+                        px-2.5
+                        py-1
+                        text-[11px]
+                        font-semibold
+                        ${
+                          statusBadgeColors[order.status] ??
+                          "bg-zinc-50 text-zinc-500 border-zinc-200"
+                        }
                       `}
                     >
-                      {statusLabels[order.status] ?? order.status}
+                      {statusLabels[order.status] ??
+                        order.status}
                     </span>
-                  </td>
+                  </div>
 
-                  <td className="p-4 text-sm" style={{ color: "#71717a" }}>
-                    {new Date(order.createdAt).toLocaleDateString("pt-PT")}
-                  </td>
+                  {/* INFORMAÇÕES */}
 
-                  <td className="p-4">
-                    <div className="flex justify-end gap-2">
-                      {/* VER - rosa sólido */}
-                      <Link
-                        href={`/admin/orders/${order.id}`}
+                  <div
+                    className="
+                      mt-4
+                      grid
+                      grid-cols-2
+                      gap-3
+                    "
+                  >
+                    {/* TOTAL */}
+
+                    <div
+                      className="
+                        rounded-xl
+                        bg-zinc-50
+                        p-3
+                      "
+                    >
+                      <p
                         className="
-                          inline-flex items-center justify-center
-                          h-8 px-4 text-xs font-semibold rounded-lg
-                          transition-all duration-200 cursor-pointer
-                          bg-pink-500 text-white
-                          hover:bg-pink-600 hover:shadow-lg hover:shadow-pink-500/25
+                          text-[11px]
+                          font-medium
+                          uppercase
+                          tracking-wide
+                          text-zinc-400
                         "
                       >
-                        Ver
-                      </Link>
+                        Total
+                      </p>
 
-                      {/* ESTADO - rosa sólido */}
-                      <button
-                        type="button"
+                      <p
                         className="
-                          inline-flex items-center justify-center
-                          h-8 px-4 text-xs font-semibold rounded-lg
-                          transition-all duration-200 cursor-pointer
-                          bg-pink-500 text-white
-                          hover:bg-pink-600 hover:shadow-lg hover:shadow-pink-500/25
+                          mt-1
+                          text-sm
+                          font-bold
                         "
+                        style={{ color: "#18181b" }}
                       >
-                        Estado
-                      </button>
+                        {Number(order.total).toFixed(2)} €
+                      </p>
                     </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
 
-        {orders.length === 0 && (
-          <div className="py-12 text-center" style={{ color: "#71717a" }}>
-            Ainda não existem encomendas.
-          </div>
-        )}
+                    {/* DATA */}
+
+                    <div
+                      className="
+                        rounded-xl
+                        bg-zinc-50
+                        p-3
+                      "
+                    >
+                      <p
+                        className="
+                          text-[11px]
+                          font-medium
+                          uppercase
+                          tracking-wide
+                          text-zinc-400
+                        "
+                      >
+                        Data
+                      </p>
+
+                      <p
+                        className="
+                          mt-1
+                          text-xs
+                          font-medium
+                        "
+                        style={{ color: "#52525b" }}
+                      >
+                        {new Date(
+                          order.createdAt
+                        ).toLocaleDateString("pt-PT")}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* AÇÕES */}
+
+                  <div
+                    className="
+                      mt-4
+                      grid
+                      grid-cols-2
+                      gap-2
+                    "
+                  >
+                    <Link
+                      href={`/admin/orders/${order.id}`}
+                      className="
+                        inline-flex
+                        h-10
+                        items-center
+                        justify-center
+                        rounded-xl
+                        bg-pink-500
+                        px-4
+                        text-xs
+                        font-semibold
+                        text-white
+                        transition
+                        hover:bg-pink-600
+                        sm:text-sm
+                      "
+                    >
+                      Ver
+                    </Link>
+
+                    <button
+                      type="button"
+                      className="
+                        inline-flex
+                        h-10
+                        items-center
+                        justify-center
+                        rounded-xl
+                        bg-pink-500
+                        px-4
+                        text-xs
+                        font-semibold
+                        text-white
+                        transition
+                        hover:bg-pink-600
+                        sm:text-sm
+                      "
+                    >
+                      Estado
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div
+              className="
+                p-10
+                text-center
+                text-sm
+              "
+              style={{ color: "#71717a" }}
+            >
+              Ainda não existem encomendas.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

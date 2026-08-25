@@ -1,487 +1,623 @@
-import Image from "next/image";
-import Link from "next/link";
+// app/admin/products/page.tsx
 
 import { prisma } from "@/lib/prisma";
 import { ProductStatus } from "@prisma/client";
+import { ProductToolbar } from "@/components/admin/products/ProductToolbar";
+import { ProductsTable } from "@/components/admin/products/ProductsTable";
+import { ProductsMobile } from "@/components/admin/products/ProductsMobile";
 
-import { ToggleProductStatusButton } from "@/actions/products/ToggleProductStatusButton";
-import { ToggleFeaturedButton } from "@/actions/products/ToggleFeaturedButton";
-
-import { Button } from "@/components/ui/Button";
-
-// Categorias do frontend
-const FRONTEND_CATEGORY_SLUGS = [
-  "vibradores",
-  "para-ele",
-  "para-ela",
-  "acessorios",
-  "bdsm",
-  "roupa",
-  "essenciais",
-  "cbd",
-];
-
-export default async function ProductsPage({
-  searchParams,
-}: {
+type Props = {
   searchParams: Promise<{
     search?: string;
     category?: string;
     status?: string;
     stock?: string;
     featured?: string;
+    sort?: string;
     page?: string;
   }>;
-}) {
+};
+
+type OrderBy =
+  | { createdAt: "desc" }
+  | { createdAt: "asc" }
+  | { price: "asc" }
+  | { price: "desc" }
+  | { stock: "asc" }
+  | { stock: "desc" }
+  | { name: "asc" };
+
+export default async function ProductsPage({
+  searchParams,
+}: Props) {
   const params = await searchParams;
+
+  // =========================================================
+  // FILTROS
+  // =========================================================
 
   const search = params.search ?? "";
   const category = params.category ?? "";
-  const status = params.status ?? "ACTIVE";
-  const stock = params.stock ?? "in_stock";
+  const status = params.status ?? "";
+  const stock = params.stock ?? "";
   const featured = params.featured ?? "";
-  const page = Math.max(1, Number(params.page ?? "1"));
+  const sort = params.sort ?? "newest";
+
+  const page = Math.max(
+    1,
+    Number(params.page ?? "1")
+  );
+
   const pageSize = 20;
 
-  /*
-   * =========================
-   * CATEGORIAS (só as 8 do frontend)
-   * =========================
-   */
-
-  const categories = await prisma.category.findMany({
-    where: {
-      slug: { in: FRONTEND_CATEGORY_SLUGS },
-    },
-    orderBy: { sortOrder: "asc" },
-    select: { id: true, name: true, slug: true },
-  });
-
-  /*
-   * =========================
-   * WHERE
-   * =========================
-   */
+  // =========================================================
+  // QUERY
+  // =========================================================
 
   const where = {
     ...(search
       ? {
           OR: [
-            { name: { contains: search, mode: "insensitive" as const } },
-            { sku: { contains: search, mode: "insensitive" as const } },
+            {
+              name: {
+                contains: search,
+                mode: "insensitive" as const,
+              },
+            },
+            {
+              sku: {
+                contains: search,
+                mode: "insensitive" as const,
+              },
+            },
           ],
         }
       : {}),
 
     ...(category
-      ? { categories: { some: { categoryId: category } } }
+      ? {
+          categories: {
+            some: {
+              categoryId: category,
+            },
+          },
+        }
       : {}),
 
-    ...(status ? { status: status as ProductStatus } : {}),
+    ...(status
+      ? {
+          status: status as ProductStatus,
+        }
+      : {}),
 
-    ...(stock === "in_stock" ? { stock: { gt: 0 } } : {}),
-    ...(stock === "low_stock" ? { stock: { gt: 0, lte: 3 } } : {}),
-    ...(stock === "out_of_stock" ? { stock: 0 } : {}),
+    ...(stock === "in_stock"
+      ? {
+          stock: {
+            gt: 0,
+          },
+        }
+      : {}),
 
-    ...(featured ? { isFeatured: featured === "true" } : {}),
+    ...(stock === "low_stock"
+      ? {
+          stock: {
+            gt: 0,
+            lte: 3,
+          },
+        }
+      : {}),
+
+    ...(stock === "out_of_stock"
+      ? {
+          stock: 0,
+        }
+      : {}),
+
+    ...(featured
+      ? {
+          isFeatured: featured === "true",
+        }
+      : {}),
   };
 
-  /*
-   * =========================
-   * TOTAL & PRODUTOS
-   * =========================
-   */
+  // =========================================================
+  // ORDENAÇÃO
+  // =========================================================
 
-  const totalProducts = await prisma.product.count({ where });
-  const totalPages = Math.max(1, Math.ceil(totalProducts / pageSize));
-  const currentPage = Math.min(page, totalPages);
+  let orderBy: OrderBy = {
+    createdAt: "desc",
+  };
 
-  const products = await prisma.product.findMany({
+  if (sort === "oldest") {
+    orderBy = {
+      createdAt: "asc",
+    };
+  }
+
+  if (sort === "priceAsc") {
+    orderBy = {
+      price: "asc",
+    };
+  }
+
+  if (sort === "priceDesc") {
+    orderBy = {
+      price: "desc",
+    };
+  }
+
+  if (sort === "stockAsc") {
+    orderBy = {
+      stock: "asc",
+    };
+  }
+
+  if (sort === "stockDesc") {
+    orderBy = {
+      stock: "desc",
+    };
+  }
+
+  if (sort === "name") {
+    orderBy = {
+      name: "asc",
+    };
+  }
+
+  // =========================================================
+  // PAGINAÇÃO
+  // =========================================================
+
+  const totalProducts = await prisma.product.count({
     where,
-    take: pageSize,
-    skip: (currentPage - 1) * pageSize,
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      sku: true,
-      price: true,
-      stock: true,
-      status: true,
-      isFeatured: true,
-      brand: { select: { name: true } },
-      categories: {
-        where: {
-          category: {
-            slug: { in: FRONTEND_CATEGORY_SLUGS },
-          },
-        },
-        take: 1,
-        select: { category: { select: { id: true, name: true, slug: true } } },
-      },
-      images: {
-        where: { isPrimary: true },
-        take: 1,
-        select: { url: true },
-      },
-    },
   });
 
-  /*
-   * =========================
-   * QUERY PAGINAÇÃO
-   * =========================
-   */
+  const totalPages = Math.max(
+    1,
+    Math.ceil(totalProducts / pageSize)
+  );
 
-  const query = new URLSearchParams();
-  if (search) query.set("search", search);
-  if (category) query.set("category", category);
-  if (status) query.set("status", status);
-  if (stock) query.set("stock", stock);
-  if (featured) query.set("featured", featured);
+  const currentPage = Math.min(
+    page,
+    totalPages
+  );
 
-  const statusLabels: Record<string, string> = {
-    ACTIVE: "Ativo",
-    DRAFT: "Rascunho",
-    HIDDEN: "Oculto",
-    OUT_OF_STOCK: "Sem Stock",
-    ARCHIVED: "Arquivado",
+  // =========================================================
+  // PRODUTOS
+  // =========================================================
+
+  const rawProducts =
+    await prisma.product.findMany({
+      where,
+      take: pageSize,
+      skip: (currentPage - 1) * pageSize,
+      orderBy,
+
+      include: {
+        brand: true,
+
+        images: {
+          where: {
+            isPrimary: true,
+          },
+          take: 1,
+        },
+
+        categories: {
+          include: {
+            category: true,
+          },
+        },
+
+        variants: true,
+      },
+    });
+
+  // =========================================================
+  // CONVERTER DECIMAL PARA NUMBER
+  // =========================================================
+
+  const products = rawProducts.map(
+    (product) => ({
+      ...product,
+
+      price: Number(product.price),
+
+      comparePrice: product.comparePrice
+        ? Number(product.comparePrice)
+        : null,
+
+      costPrice: product.costPrice
+        ? Number(product.costPrice)
+        : null,
+    })
+  );
+
+  // =========================================================
+  // QUERY PARAMS
+  // =========================================================
+
+  const queryParams = new URLSearchParams();
+
+  if (search) {
+    queryParams.set("search", search);
+  }
+
+  if (category) {
+    queryParams.set("category", category);
+  }
+
+  if (status) {
+    queryParams.set("status", status);
+  }
+
+  if (stock) {
+    queryParams.set("stock", stock);
+  }
+
+  if (featured) {
+    queryParams.set("featured", featured);
+  }
+
+  if (sort) {
+    queryParams.set("sort", sort);
+  }
+
+  // =========================================================
+  // URL DA PAGINAÇÃO
+  // =========================================================
+
+  const getPageUrl = (
+    pageNumber: number
+  ) => {
+    const params = new URLSearchParams(
+      queryParams
+    );
+
+    params.set(
+      "page",
+      String(pageNumber)
+    );
+
+    return `/admin/products?${params.toString()}`;
   };
 
-  const statusBadgeColors: Record<string, string> = {
-    ACTIVE: "bg-emerald-50 text-emerald-600 border-emerald-200",
-    DRAFT: "bg-zinc-50 text-zinc-600 border-zinc-200",
-    HIDDEN: "bg-yellow-50 text-yellow-600 border-yellow-200",
-    OUT_OF_STOCK: "bg-red-50 text-red-500 border-red-200",
-    ARCHIVED: "bg-slate-50 text-slate-500 border-slate-200",
-  };
+  // =========================================================
+  // UI
+  // =========================================================
 
   return (
-    <div className="space-y-6">
-      {/* HEADER */}
-      <div>
-        <h1 className="text-3xl font-bold" style={{ color: "#18181b" }}>
+    <div
+      className="
+        w-full
+        min-w-0
+        max-w-full
+        overflow-x-hidden
+        space-y-4
+
+        sm:space-y-5
+
+        lg:space-y-6
+      "
+    >
+      {/* =====================================================
+          HEADER
+      ===================================================== */}
+
+      <div className="w-full min-w-0">
+        <h1
+          className="
+            break-words
+            text-xl
+            font-bold
+
+            sm:text-2xl
+
+            lg:text-3xl
+          "
+          style={{
+            color: "#18181b",
+          }}
+        >
           Produtos
         </h1>
-        <p style={{ color: "#71717a" }}>
-          Gestão de produtos da loja
+
+        <p
+          className="
+            mt-1
+            break-words
+            text-sm
+
+            sm:text-base
+          "
+          style={{
+            color: "#71717a",
+          }}
+        >
+          {totalProducts}{" "}
+          {totalProducts === 1
+            ? "produto encontrado"
+            : "produtos encontrados"}
         </p>
       </div>
 
-      {/* FILTROS */}
-      <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <form className="flex flex-wrap items-center gap-3" method="GET">
-          {/* PESQUISA */}
-          <input
-            type="text"
-            name="search"
-            defaultValue={search}
-            placeholder="Pesquisar produto..."
-            className="
-              h-10 min-w-[200px] flex-1
-              rounded-xl border border-zinc-200 bg-zinc-50
-              px-4 text-sm outline-none transition
-              placeholder:text-zinc-400
-              focus:border-pink-500 focus:ring-2 focus:ring-pink-200
-            "
-            style={{ color: "#18181b" }}
-          />
+      {/* =====================================================
+          FILTROS
+      ===================================================== */}
 
-          {/* CATEGORIA - só frontend */}
-          <select
-            name="category"
-            defaultValue={category}
-            className="
-              h-10 rounded-xl border border-zinc-200 bg-white
-              px-3 text-sm outline-none cursor-pointer
-              focus:border-pink-500
-            "
-            style={{ color: "#18181b" }}
-          >
-            <option value="">Todas as categorias</option>
-            {categories.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
-
-          {/* VISIBILIDADE */}
-          <select
-            name="status"
-            defaultValue={status}
-            className="
-              h-10 rounded-xl border border-zinc-200 bg-white
-              px-3 text-sm outline-none cursor-pointer
-              focus:border-pink-500
-            "
-            style={{ color: "#18181b" }}
-          >
-            <option value="">Todos os estados</option>
-            <option value="ACTIVE">Ativos</option>
-            <option value="HIDDEN">Ocultos</option>
-            <option value="DRAFT">Rascunhos</option>
-            <option value="ARCHIVED">Arquivados</option>
-          </select>
-
-          {/* STOCK */}
-          <select
-            name="stock"
-            defaultValue={stock}
-            className="
-              h-10 rounded-xl border border-zinc-200 bg-white
-              px-3 text-sm outline-none cursor-pointer
-              focus:border-pink-500
-            "
-            style={{ color: "#18181b" }}
-          >
-            <option value="">Todo o stock</option>
-            <option value="in_stock">Com stock</option>
-            <option value="low_stock">Stock baixo</option>
-            <option value="out_of_stock">Sem stock</option>
-          </select>
-
-          {/* DESTAQUE */}
-          <select
-            name="featured"
-            defaultValue={featured}
-            className="
-              h-10 rounded-xl border border-zinc-200 bg-white
-              px-3 text-sm outline-none cursor-pointer
-              focus:border-pink-500
-            "
-            style={{ color: "#18181b" }}
-          >
-            <option value="">Todos os produtos</option>
-            <option value="true">Em destaque</option>
-            <option value="false">Sem destaque</option>
-          </select>
-
-          {/* FILTRAR - rosa sólido */}
-          <button
-            type="submit"
-            className="
-              inline-flex items-center justify-center
-              h-10 px-5 text-sm font-semibold rounded-xl
-              transition-all duration-200 cursor-pointer
-              bg-pink-500 text-white
-              hover:bg-pink-600
-            "
-          >
-            Filtrar
-          </button>
-
-          {/* LIMPAR - rosa sólido */}
-          <Link
-            href="/admin/products"
-            className="
-              inline-flex items-center justify-center
-              h-10 px-5 text-sm font-semibold rounded-xl
-              transition-all duration-200 cursor-pointer
-              bg-pink-500 text-white
-              hover:bg-pink-600
-            "
-          >
-            Limpar
-          </Link>
-        </form>
+      <div className="w-full min-w-0">
+        <ProductToolbar />
       </div>
 
-      {/* CONTADOR */}
-      <p style={{ color: "#71717a", fontSize: "14px" }}>
-        {totalProducts} {totalProducts === 1 ? "produto encontrado" : "produtos encontrados"}
-      </p>
+      {/* =====================================================
+          LISTA DE PRODUTOS
+      ===================================================== */}
 
-      {/* TABELA */}
-      <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="border-b border-zinc-200 bg-zinc-50">
-              <tr className="text-left">
-                <th className="p-4 text-sm font-semibold" style={{ color: "#52525b" }}>Produto</th>
-                <th className="p-4 text-sm font-semibold" style={{ color: "#52525b" }}>Categoria</th>
-                <th className="p-4 text-sm font-semibold" style={{ color: "#52525b" }}>Marca</th>
-                <th className="p-4 text-sm font-semibold" style={{ color: "#52525b" }}>Stock</th>
-                <th className="p-4 text-sm font-semibold" style={{ color: "#52525b" }}>Preço</th>
-                <th className="p-4 text-sm font-semibold" style={{ color: "#52525b" }}>Estado</th>
-                <th className="p-4 text-sm font-semibold" style={{ color: "#52525b" }}>Destaque</th>
-                <th className="p-4 text-right text-sm font-semibold" style={{ color: "#52525b" }}>Ações</th>
-              </tr>
-            </thead>
+      <div
+        className="
+          w-full
+          min-w-0
+          max-w-full
+          overflow-hidden
+          rounded-xl
+          border
+          border-zinc-200
+          bg-white
+          shadow-sm
 
-            <tbody>
-              {products.map((product) => (
-                <tr key={product.id} className="border-b border-zinc-100 hover:bg-pink-50/30">
-                  {/* PRODUTO */}
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="relative h-12 w-12 overflow-hidden rounded-xl bg-zinc-100">
-                        {product.images[0]?.url ? (
-                          <Image
-                            src={product.images[0].url}
-                            alt={product.name}
-                            fill
-                            sizes="48px"
-                            className="object-cover"
-                          />
-                        ) : (
-                          <div />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium" style={{ color: "#18181b" }}>
-                          {product.name}
-                        </p>
-                        <p className="text-xs" style={{ color: "#a1a1aa" }}>
-                          {product.sku ?? "Sem SKU"}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
+          sm:rounded-2xl
+        "
+      >
+        {/* DESKTOP — TABELA */}
 
-                  {/* CATEGORIA - filtra para mostrar só a do frontend */}
-                  <td className="p-4 text-sm" style={{ color: "#52525b" }}>
-                    {product.categories[0]?.category.name ?? "-"}
-                  </td>
+        <div
+          className="
+            hidden
+            w-full
+            max-w-full
+            overflow-x-auto
+            lg:block
+          "
+        >
+          <ProductsTable
+            products={products}
+          />
+        </div>
 
-                  {/* MARCA */}
-                  <td className="p-4 text-sm" style={{ color: "#52525b" }}>
-                    {product.brand?.name ?? "-"}
-                  </td>
+        {/* MOBILE + TABLET — CARDS */}
 
-                  {/* STOCK */}
-                  <td className="p-4">
-                    {product.stock === 0 ? (
-                      <span className="font-semibold text-red-500">Sem stock</span>
-                    ) : product.stock <= 3 ? (
-                      <span className="font-semibold text-yellow-600">{product.stock}</span>
-                    ) : (
-                      <span className="font-semibold text-emerald-600">{product.stock}</span>
-                    )}
-                  </td>
+        <div
+          className="
+            block
+            w-full
+            min-w-0
+            max-w-full
+            overflow-hidden
 
-                  {/* PREÇO */}
-                  <td className="p-4 font-semibold" style={{ color: "#18181b" }}>
-                    {Number(product.price).toFixed(2)} €
-                  </td>
-
-                  {/* ESTADO */}
-                  <td className="p-4">
-                    <span
-                      className={`
-                        inline-flex rounded-full border px-3 py-1 text-xs font-semibold
-                        ${statusBadgeColors[product.status] ?? "bg-zinc-50 text-zinc-600 border-zinc-200"}
-                      `}
-                    >
-                      {statusLabels[product.status] ?? product.status}
-                    </span>
-                  </td>
-
-                  {/* DESTAQUE */}
-                  <td className="p-4">
-                    <ToggleFeaturedButton
-                      id={product.id}
-                      featured={product.isFeatured}
-                    />
-                  </td>
-
-                  {/* AÇÕES */}
-                  <td className="p-4">
-                    <div className="flex items-center justify-end gap-2 whitespace-nowrap">
-                      <Link
-                        href={`/admin/products/${product.id}`}
-                        className="
-                          inline-flex items-center justify-center
-                          h-8 px-4 text-xs font-semibold rounded-lg
-                          transition-all duration-200 cursor-pointer
-                          bg-pink-500 text-white
-                          hover:bg-pink-600
-                        "
-                      >
-                        Ver
-                      </Link>
-
-                      <Link
-                        href={`/admin/products/${product.id}/edit`}
-                        className="
-                          inline-flex items-center justify-center
-                          h-8 px-4 text-xs font-semibold rounded-lg
-                          transition-all duration-200 cursor-pointer
-                          bg-pink-500 text-white
-                          hover:bg-pink-600
-                        "
-                      >
-                        Editar
-                      </Link>
-
-                      <ToggleProductStatusButton
-                        id={product.id}
-                        active={product.status === "ACTIVE"}
-                      />
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+            lg:hidden
+          "
+        >
+          <ProductsMobile
+            products={products}
+          />
         </div>
       </div>
 
-      {/* PAGINAÇÃO */}
+      {/* =====================================================
+          PAGINAÇÃO
+      ===================================================== */}
+
       {totalPages > 1 && (
-        <div className="flex justify-center gap-2 border-t border-zinc-200 pt-6">
-          <div className="flex items-center gap-2">
-            <Link
-              href={{
-                pathname: "/admin/products",
-                query: { search, category, status, stock, featured, page: "1" },
-              }}
-            >
-              <Button size="sm" variant="outline" disabled={currentPage === 1}>
-                «
-              </Button>
-            </Link>
+        <div
+          className="
+            flex
+            w-full
+            min-w-0
+            max-w-full
+            flex-wrap
+            items-center
+            justify-center
+            gap-1.5
+            border-t
+            border-zinc-200
+            pt-4
 
-            <Link
-              href={{
-                pathname: "/admin/products",
-                query: { search, category, status, stock, featured, page: String(currentPage - 1) },
-              }}
-            >
-              <Button size="sm" variant="outline" disabled={currentPage === 1}>
-                Anterior
-              </Button>
-            </Link>
+            sm:gap-2
+            sm:pt-6
+          "
+        >
+                    {/* =================================================
+              PRIMEIRA
+          ================================================= */}
 
-            <div
-              className="flex h-8 min-w-10 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-sm font-semibold"
-              style={{ color: "#18181b" }}
-            >
-              {currentPage} / {totalPages}
-            </div>
+          <a
+            href={getPageUrl(1)}
+            className={`
+              inline-flex
+              h-9
+              w-9
+              shrink-0
+              items-center
+              justify-center
+              rounded-lg
+              text-xs
+              font-semibold
+              transition-all
+              duration-200
 
-            <Link
-              href={{
-                pathname: "/admin/products",
-                query: { search, category, status, stock, featured, page: String(currentPage + 1) },
-              }}
-            >
-              <Button size="sm" disabled={currentPage === totalPages}>
-                Seguinte
-              </Button>
-            </Link>
+              sm:h-10
+              sm:w-auto
+              sm:px-3
+              sm:text-sm
 
-            <Link
-              href={{
-                pathname: "/admin/products",
-                query: { search, category, status, stock, featured, page: String(totalPages) },
-              }}
-            >
-              <Button size="sm" variant="outline" disabled={currentPage === totalPages}>
-                »
-              </Button>
-            </Link>
+              ${
+                currentPage === 1
+                  ? "pointer-events-none bg-zinc-100 text-zinc-400"
+                  : "cursor-pointer border-2 border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+              }
+            `}
+          >
+            «
+
+            <span className="hidden sm:inline">
+              &nbsp;Primeira
+            </span>
+          </a>
+
+          {/* =================================================
+              ANTERIOR
+          ================================================= */}
+
+          <a
+            href={getPageUrl(
+              Math.max(
+                1,
+                currentPage - 1
+              )
+            )}
+            className={`
+              inline-flex
+              h-9
+              w-9
+              shrink-0
+              items-center
+              justify-center
+              rounded-lg
+              text-xs
+              font-semibold
+              transition-all
+              duration-200
+
+              sm:h-10
+              sm:w-auto
+              sm:px-3
+              sm:text-sm
+
+              ${
+                currentPage === 1
+                  ? "pointer-events-none bg-zinc-100 text-zinc-400"
+                  : "cursor-pointer border-2 border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+              }
+            `}
+          >
+            ‹
+
+            <span className="hidden sm:inline">
+              &nbsp;Anterior
+            </span>
+          </a>
+
+          {/* =================================================
+              INDICADOR
+          ================================================= */}
+
+          <div
+            className="
+              flex
+              h-9
+              min-w-[68px]
+              shrink-0
+              items-center
+              justify-center
+              rounded-lg
+              bg-pink-500
+              px-2
+              text-xs
+              font-bold
+              text-white
+              shadow-sm
+
+              sm:h-10
+              sm:min-w-[90px]
+              sm:px-4
+              sm:text-sm
+            "
+          >
+            {currentPage} / {totalPages}
           </div>
+
+          {/* =================================================
+              SEGUINTE
+          ================================================= */}
+
+          <a
+            href={getPageUrl(
+              Math.min(
+                totalPages,
+                currentPage + 1
+              )
+            )}
+            className={`
+              inline-flex
+              h-9
+              w-9
+              shrink-0
+              items-center
+              justify-center
+              rounded-lg
+              text-xs
+              font-semibold
+              transition-all
+              duration-200
+
+              sm:h-10
+              sm:w-auto
+              sm:px-3
+              sm:text-sm
+
+              ${
+                currentPage === totalPages
+                  ? "pointer-events-none bg-zinc-100 text-zinc-400"
+                  : "cursor-pointer bg-pink-500 text-white hover:bg-pink-600"
+              }
+            `}
+          >
+            <span className="hidden sm:inline">
+              Seguinte&nbsp;
+            </span>
+
+            ›
+          </a>
+
+          {/* =================================================
+              ÚLTIMA
+          ================================================= */}
+
+          <a
+            href={getPageUrl(
+              totalPages
+            )}
+            className={`
+              inline-flex
+              h-9
+              w-9
+              shrink-0
+              items-center
+              justify-center
+              rounded-lg
+              text-xs
+              font-semibold
+              transition-all
+              duration-200
+
+              sm:h-10
+              sm:w-auto
+              sm:px-3
+              sm:text-sm
+
+              ${
+                currentPage === totalPages
+                  ? "pointer-events-none bg-zinc-100 text-zinc-400"
+                  : "cursor-pointer border-2 border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
+              }
+            `}
+          >
+            »
+
+            <span className="hidden sm:inline">
+              &nbsp;Última
+            </span>
+          </a>
         </div>
       )}
     </div>

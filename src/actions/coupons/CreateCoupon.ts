@@ -5,98 +5,107 @@ import { redirect } from "next/navigation";
 
 import { prisma } from "@/lib/prisma";
 
-export async function CreateCoupon(formData: FormData) {
-  const code = String(formData.get("code") ?? "").trim().toUpperCase();
-  const name = String(formData.get("name") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim();
+import {
+  createCouponSchema,
+} from "@/schemas/Coupon";
 
-  const discountValue = Number(
-    formData.get("discountValue") ?? 0,
-  );
+export async function CreateCoupon(
+  formData: FormData,
+) {
+  const rawData = {
+    code: formData.get("code"),
+    name: formData.get("name"),
+    description:
+      formData.get("description") || undefined,
 
-  const isPercentage =
-    formData.get("isPercentage") === "true";
+    discountValue:
+      formData.get("discountValue"),
 
-  const maximumDiscount =
-    formData.get("maximumDiscount")
-      ? Number(formData.get("maximumDiscount"))
-      : null;
+    isPercentage:
+      formData.get("isPercentage"),
 
-  const minimumAmount =
-    formData.get("minimumAmount")
-      ? Number(formData.get("minimumAmount"))
-      : null;
+    maximumDiscount:
+      formData.get("maximumDiscount") || undefined,
 
-  const usageLimit =
-    formData.get("usageLimit")
-      ? Number(formData.get("usageLimit"))
-      : null;
+    minimumAmount:
+      formData.get("minimumAmount") || undefined,
 
-  const usagePerUser =
-    formData.get("usagePerUser")
-      ? Number(formData.get("usagePerUser"))
-      : 1;
+    usageLimit:
+      formData.get("usageLimit") || undefined,
 
-  const startsAt = formData.get("startsAt")
-    ? new Date(String(formData.get("startsAt")))
-    : null;
+    usagePerUser:
+      formData.get("usagePerUser") || undefined,
 
-  const endsAt = formData.get("endsAt")
-    ? new Date(String(formData.get("endsAt")))
-    : null;
+    startsAt:
+      formData.get("startsAt") || undefined,
 
-  const isActive =
-    formData.get("isActive") === "true";
+    endsAt:
+      formData.get("endsAt") || undefined,
 
-  if (!code) {
-    throw new Error("Código obrigatório.");
-  }
+    isActive:
+      formData.get("isActive"),
+  };
 
-  if (!name) {
-    throw new Error("Nome obrigatório.");
-  }
+  const result =
+    createCouponSchema.safeParse(
+      rawData
+    );
 
-  if (discountValue <= 0) {
+  if (!result.success) {
     throw new Error(
-      "O desconto deve ser superior a 0.",
+      result.error.issues[0]?.message ??
+        "Dados do cupão inválidos."
     );
   }
 
-  const exists = await prisma.coupon.findUnique({
-    where: {
-      code,
-    },
-  });
+  const data = result.data;
+
+  const exists =
+    await prisma.coupon.findUnique({
+      where: {
+        code: data.code,
+      },
+    });
 
   if (exists) {
     throw new Error(
-      "Já existe um cupão com esse código.",
+      "Já existe um cupão com esse código."
     );
   }
 
   await prisma.coupon.create({
     data: {
-      code,
-      name,
-      description: description || null,
+      code: data.code,
+      name: data.name,
+      description:
+        data.description || null,
 
-      discountValue,
+      discountValue:
+        data.discountValue,
 
-      isPercentage,
+      isPercentage:
+        data.isPercentage,
 
-      maximumDiscount,
+      maximumDiscount:
+        data.maximumDiscount ?? null,
 
-      minimumAmount,
+      minimumAmount:
+        data.minimumAmount ?? null,
 
-      usageLimit,
+      usageLimit:
+        data.usageLimit ?? null,
 
-      usagePerUser,
+      usagePerUser:
+        data.usagePerUser ?? 1,
 
-      startsAt,
+      startsAt:
+        data.startsAt ?? null,
 
-      endsAt,
+      endsAt:
+        data.endsAt ?? null,
 
-      isActive,
+      isActive:
+        data.isActive,
     },
   });
 

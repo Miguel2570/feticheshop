@@ -1,80 +1,51 @@
-import { syncEmitter } from "@/lib/sync-emitter";
+import { NextResponse } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const encoder = new TextEncoder();
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const supplierId = searchParams.get("supplierId");
 
-  let heartbeat: NodeJS.Timeout;
-
-  const stream = new ReadableStream({
-    start(controller) {
-      const send = (data: unknown) => {
-        try {
-          controller.enqueue(
-            encoder.encode(
-              `data: ${JSON.stringify(data)}\n\n`
-            )
-          );
-        } catch {
-          // conexão fechada
-        }
-      };
-
-      const listener = (data: unknown) => {
-        send(data);
-      };
-
-      syncEmitter.on(
-        "message",
-        listener
-      );
-
-      heartbeat = setInterval(() => {
-        try {
-          controller.enqueue(
-            encoder.encode(": heartbeat\n\n")
-          );
-        } catch {
-          clearInterval(heartbeat);
-        }
-      }, 15000);
-
-      send({
-        type: "connected",
-        message:
-          "Ligação SSE estabelecida.",
-      });
-
-      const cleanup = () => {
-        syncEmitter.off(
-          "message",
-          listener
-        );
-
-        clearInterval(heartbeat);
-      };
-
-      (
-        controller as unknown as {
-          _cleanup?: () => void;
-        }
-      )._cleanup = cleanup;
-    },
-
-    cancel() {
-      clearInterval(heartbeat);
-    },
+  const sync = await prisma.supplierSync.findFirst({
+    orderBy: { createdAt: "desc" },
   });
 
-  return new Response(stream, {
-    headers: {
-      "Content-Type":
-        "text/event-stream; charset=utf-8",
-      "Cache-Control":
-        "no-cache, no-transform",
-      Connection: "keep-alive",
-      "X-Accel-Buffering": "no",
-    },
+  // Contagem real de produtos na BD
+  const totalInDb = await prisma.product.count();
+
+  if (!sync) {
+    return NextResponse.json({
+      status: "IDLE",
+      progress: 0,
+      message: "Nenhuma sincronização",
+      imported: totalInDb,
+      updated: 0,
+      failed: 0,
+      totalProducts: totalInDb,
+    });
+  }
+
+  const total = sync.totalProducts || 14804;
+  const processed = sync.imported + sync.updated + sync.failed;
+  const progress = sync.totalProducts > 0
+    ? Math.min(100, Math.round((totalInDb / total) * 100))
+    : Math.min(100, Math.round((processed / total) * 100));
+
+  // Mensagem dinâmica que muda com o progresso
+  const message = sync.status === "RUNNING"
+    ? `A sincronizar... ${totalInDb}/${total} produtos na BD`
+    : sync.message || `Concluída: ${totalInDb} produtos`;
+
+  return NextResponse.json({
+    status: sync.status,
+    progress,
+    message,
+    imported: totalInDb,
+    updated: sync.updated,
+    failed: sync.failed,
+    totalProducts: totalInDb,
+    startedAt: sync.startedAt,
+    finishedAt: sync.finishedAt,
   });
 }

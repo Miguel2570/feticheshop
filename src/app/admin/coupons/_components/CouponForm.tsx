@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 
-import { Prisma } from "@prisma/client";
-
 import {
   CreateCoupon,
 } from "@/actions/coupons/CreateCoupon";
@@ -17,14 +15,19 @@ type Coupon = {
   code: string;
   name: string;
   description: string | null;
-  discountValue: Prisma.Decimal;
+
+  discountValue: string | number;
   isPercentage: boolean;
-  maximumDiscount: Prisma.Decimal | null;
-  minimumAmount: Prisma.Decimal | null;
+
+  maximumDiscount: string | number | null;
+  minimumAmount: string | number | null;
+
   usageLimit: number | null;
   usagePerUser: number | null;
-  startsAt: Date | null;
-  endsAt: Date | null;
+
+  startsAt: Date | string | null;
+  endsAt: Date | string | null;
+
   isActive: boolean;
 };
 
@@ -34,13 +37,14 @@ type Props = {
 
 export function CouponForm({ coupon }: Props) {
   const [loading, setLoading] = useState(false);
-  const isEditing = !!coupon;
+
+  const isEditing = Boolean(coupon);
 
   async function handleSubmit(formData: FormData) {
     setLoading(true);
 
     try {
-      if (isEditing) {
+      if (isEditing && coupon) {
         await UpdateCoupon(coupon.id, formData);
       } else {
         await CreateCoupon(formData);
@@ -51,198 +55,292 @@ export function CouponForm({ coupon }: Props) {
   }
 
   const inputClass =
-    "w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm outline-none transition placeholder:text-zinc-400 hover:border-pink-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-200";
+    "w-full rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 hover:border-pink-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-200";
 
-  const labelClass = "text-sm font-medium";
+  const labelClass =
+    "text-sm font-medium text-zinc-700";
 
   return (
-    <form action={handleSubmit} className="space-y-8">
+    <form
+      action={handleSubmit}
+      className="space-y-8"
+    >
       <div className="grid gap-6 md:grid-cols-2">
+
         {/* Código */}
         <div className="space-y-1.5">
-          <label className={labelClass} style={{ color: "#3f3f46" }}>
+          <label
+            htmlFor="code"
+            className={labelClass}
+          >
             Código
           </label>
+
           <input
+            id="code"
             name="code"
             required
-            defaultValue={coupon?.code}
+            defaultValue={coupon?.code ?? ""}
             placeholder="VERAO10"
             className={inputClass}
-            style={{ color: "#18181b" }}
           />
         </div>
 
         {/* Nome */}
         <div className="space-y-1.5">
-          <label className={labelClass} style={{ color: "#3f3f46" }}>
+          <label
+            htmlFor="name"
+            className={labelClass}
+          >
             Nome
           </label>
+
           <input
+            id="name"
             name="name"
             required
-            defaultValue={coupon?.name}
+            defaultValue={coupon?.name ?? ""}
             placeholder="Campanha de Verão"
             className={inputClass}
-            style={{ color: "#18181b" }}
           />
         </div>
 
         {/* Descrição */}
         <div className="space-y-1.5 md:col-span-2">
-          <label className={labelClass} style={{ color: "#3f3f46" }}>
+          <label
+            htmlFor="description"
+            className={labelClass}
+          >
             Descrição
           </label>
+
           <textarea
+            id="description"
             name="description"
             rows={3}
             defaultValue={coupon?.description ?? ""}
+            placeholder="Descrição do cupão..."
             className={`${inputClass} resize-none`}
-            style={{ color: "#18181b" }}
           />
         </div>
 
         {/* Tipo de desconto */}
         <div className="space-y-1.5">
-          <label className={labelClass} style={{ color: "#3f3f46" }}>
+          <label
+            htmlFor="isPercentage"
+            className={labelClass}
+          >
             Tipo de desconto
           </label>
+
           <select
+            id="isPercentage"
             name="isPercentage"
-            defaultValue={coupon?.isPercentage ? "true" : "false"}
+            defaultValue={
+              coupon?.isPercentage
+                ? "true"
+                : "false"
+            }
             className={`${inputClass} cursor-pointer`}
-            style={{ color: "#18181b" }}
           >
-            <option value="true" className="text-zinc-900">Percentagem</option>
-            <option value="false" className="text-zinc-900">Valor Fixo (€)</option>
+            <option value="true">
+              Percentagem
+            </option>
+
+            <option value="false">
+              Valor Fixo (€)
+            </option>
           </select>
         </div>
 
         {/* Valor do desconto */}
         <div className="space-y-1.5">
-          <label className={labelClass} style={{ color: "#3f3f46" }}>
+          <label
+            htmlFor="discountValue"
+            className={labelClass}
+          >
             Valor do desconto
           </label>
+
           <input
+            id="discountValue"
             type="number"
             step="0.01"
+            min="0.01"
             name="discountValue"
             required
-            defaultValue={coupon?.discountValue?.toString()}
+            defaultValue={
+              coupon?.discountValue?.toString() ?? ""
+            }
+            placeholder="10"
             className={inputClass}
-            style={{ color: "#18181b" }}
           />
         </div>
 
         {/* Compra mínima */}
         <div className="space-y-1.5">
-          <label className={labelClass} style={{ color: "#3f3f46" }}>
+          <label
+            htmlFor="minimumAmount"
+            className={labelClass}
+          >
             Compra mínima (€)
           </label>
+
           <input
+            id="minimumAmount"
             type="number"
             step="0.01"
+            min="0"
             name="minimumAmount"
-            defaultValue={coupon?.minimumAmount?.toString()}
+            defaultValue={
+              coupon?.minimumAmount?.toString() ?? ""
+            }
+            placeholder="50"
             className={inputClass}
-            style={{ color: "#18181b" }}
           />
         </div>
 
         {/* Desconto máximo */}
         <div className="space-y-1.5">
-          <label className={labelClass} style={{ color: "#3f3f46" }}>
+          <label
+            htmlFor="maximumDiscount"
+            className={labelClass}
+          >
             Desconto máximo (€)
           </label>
+
           <input
+            id="maximumDiscount"
             type="number"
             step="0.01"
+            min="0"
             name="maximumDiscount"
-            defaultValue={coupon?.maximumDiscount?.toString()}
+            defaultValue={
+              coupon?.maximumDiscount?.toString() ?? ""
+            }
+            placeholder="20"
             className={inputClass}
-            style={{ color: "#18181b" }}
           />
         </div>
 
         {/* Limite de utilizações */}
         <div className="space-y-1.5">
-          <label className={labelClass} style={{ color: "#3f3f46" }}>
+          <label
+            htmlFor="usageLimit"
+            className={labelClass}
+          >
             Limite de utilizações
           </label>
+
           <input
+            id="usageLimit"
             type="number"
+            min="1"
             name="usageLimit"
-            defaultValue={coupon?.usageLimit ?? ""}
+            defaultValue={
+              coupon?.usageLimit ?? ""
+            }
             placeholder="100"
             className={inputClass}
-            style={{ color: "#18181b" }}
           />
         </div>
 
         {/* Limite por utilizador */}
         <div className="space-y-1.5">
-          <label className={labelClass} style={{ color: "#3f3f46" }}>
+          <label
+            htmlFor="usagePerUser"
+            className={labelClass}
+          >
             Limite por utilizador
           </label>
+
           <input
+            id="usagePerUser"
             type="number"
+            min="1"
             name="usagePerUser"
-            defaultValue={coupon?.usagePerUser ?? ""}
+            defaultValue={
+              coupon?.usagePerUser ?? ""
+            }
             placeholder="1"
             className={inputClass}
-            style={{ color: "#18181b" }}
           />
         </div>
 
         {/* Data de início */}
         <div className="space-y-1.5">
-          <label className={labelClass} style={{ color: "#3f3f46" }}>
+          <label
+            htmlFor="startsAt"
+            className={labelClass}
+          >
             Data de início
           </label>
+
           <input
+            id="startsAt"
             type="datetime-local"
             name="startsAt"
             defaultValue={
               coupon?.startsAt
-                ? new Date(coupon.startsAt).toISOString().slice(0, 16)
+                ? new Date(coupon.startsAt)
+                    .toISOString()
+                    .slice(0, 16)
                 : ""
             }
             className={`${inputClass} cursor-pointer`}
-            style={{ color: "#18181b" }}
           />
         </div>
 
         {/* Data de fim */}
         <div className="space-y-1.5">
-          <label className={labelClass} style={{ color: "#3f3f46" }}>
+          <label
+            htmlFor="endsAt"
+            className={labelClass}
+          >
             Data de fim
           </label>
+
           <input
+            id="endsAt"
             type="datetime-local"
             name="endsAt"
             defaultValue={
               coupon?.endsAt
-                ? new Date(coupon.endsAt).toISOString().slice(0, 16)
+                ? new Date(coupon.endsAt)
+                    .toISOString()
+                    .slice(0, 16)
                 : ""
             }
             className={`${inputClass} cursor-pointer`}
-            style={{ color: "#18181b" }}
           />
         </div>
 
         {/* Estado */}
         <div className="space-y-1.5 md:col-span-2">
-          <label className={labelClass} style={{ color: "#3f3f46" }}>
+          <label
+            htmlFor="isActive"
+            className={labelClass}
+          >
             Estado
           </label>
+
           <select
+            id="isActive"
             name="isActive"
-            defaultValue={coupon?.isActive ? "true" : "false"}
+            defaultValue={
+              coupon?.isActive
+                ? "true"
+                : "false"
+            }
             className={`${inputClass} cursor-pointer`}
-            style={{ color: "#18181b" }}
           >
-            <option value="true" className="text-zinc-900">Ativo</option>
-            <option value="false" className="text-zinc-900">Inativo</option>
+            <option value="true">
+              Ativo
+            </option>
+
+            <option value="false">
+              Inativo
+            </option>
           </select>
         </div>
       </div>
@@ -251,13 +349,15 @@ export function CouponForm({ coupon }: Props) {
       <div className="flex justify-end gap-3 border-t border-zinc-100 pt-5">
         <button
           type="button"
-          onClick={() => history.back()}
+          onClick={() => window.history.back()}
           className="
-            inline-flex items-center justify-center
-            h-10 px-5 text-sm font-semibold rounded-xl
-            transition-all duration-200 cursor-pointer
-            border-2 border-pink-500 text-pink-500
+            inline-flex h-10 items-center justify-center
+            rounded-xl border-2 border-pink-500
+            px-5 text-sm font-semibold
+            text-pink-500
+            transition-all duration-200
             hover:bg-pink-50
+            cursor-pointer
           "
         >
           Cancelar
@@ -267,15 +367,22 @@ export function CouponForm({ coupon }: Props) {
           type="submit"
           disabled={loading}
           className="
-            inline-flex items-center justify-center
-            h-10 px-5 text-sm font-semibold rounded-xl
-            transition-all duration-200 cursor-pointer
-            bg-pink-500 text-white
-            hover:bg-pink-600 hover:shadow-lg hover:shadow-pink-500/25
-            disabled:opacity-50 disabled:cursor-not-allowed
+            inline-flex h-10 items-center justify-center
+            rounded-xl bg-pink-500
+            px-5 text-sm font-semibold text-white
+            transition-all duration-200
+            hover:bg-pink-600
+            hover:shadow-lg hover:shadow-pink-500/25
+            disabled:cursor-not-allowed
+            disabled:opacity-50
+            cursor-pointer
           "
         >
-          {loading ? "A guardar..." : isEditing ? "Guardar alterações" : "Criar cupão"}
+          {loading
+            ? "A guardar..."
+            : isEditing
+              ? "Guardar alterações"
+              : "Criar cupão"}
         </button>
       </div>
     </form>

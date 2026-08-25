@@ -135,8 +135,7 @@ export default async function CouponDetailsPage({
                 : "-"}
             </p>
           </div>
-
-          <div>
+                    <div>
             <p className="text-sm text-muted-foreground">
               Desconto máximo
             </p>

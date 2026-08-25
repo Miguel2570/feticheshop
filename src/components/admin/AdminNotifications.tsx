@@ -19,7 +19,6 @@ export function AdminNotifications() {
   const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Usa useCallback para a função
   const loadNotifications = useCallback(async () => {
     try {
       const response = await fetch("/api/admin/notifications");
@@ -43,12 +42,10 @@ export function AdminNotifications() {
     }
   }
 
-  // Carrega notificações de forma assíncrona
   useEffect(() => {
     const timeout = setTimeout(() => {
       void loadNotifications();
     }, 0);
-
     return () => clearTimeout(timeout);
   }, [loadNotifications]);
 
@@ -58,7 +55,6 @@ export function AdminNotifications() {
         setOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
@@ -97,7 +93,25 @@ export function AdminNotifications() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-96 rounded-2xl border border-zinc-200 bg-white shadow-xl">
+        <div className="
+          fixed
+          inset-x-3
+          top-16
+          z-50
+          mx-auto
+          max-w-sm
+          rounded-2xl
+          border
+          border-zinc-200
+          bg-white
+          shadow-xl
+          sm:absolute
+          sm:inset-x-auto
+          sm:right-0
+          sm:top-full
+          sm:mt-2
+          sm:w-96
+        ">
           {/* Header */}
           <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
             <p className="text-sm font-semibold" style={{ color: "#18181b" }}>
@@ -116,7 +130,7 @@ export function AdminNotifications() {
           </div>
 
           {/* Lista */}
-          <div className="max-h-96 overflow-y-auto">
+          <div className="max-h-[60vh] sm:max-h-96 overflow-y-auto">
             {notifications.length === 0 ? (
               <p className="px-4 py-10 text-center text-sm" style={{ color: "#71717a" }}>
                 Sem notificações
@@ -146,7 +160,7 @@ export function AdminNotifications() {
                     )}
                   </div>
 
-                  <div className="mt-1.5 flex items-center gap-2">
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
                     <span
                       className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
                         typeColors[notification.type] ?? "bg-zinc-50 text-zinc-500"

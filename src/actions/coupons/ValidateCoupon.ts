@@ -5,10 +5,27 @@ import { prisma } from "@/lib/prisma";
 export async function ValidateCoupon(
   code: string,
   subtotal: number,
+  userId?: string,
 ) {
+  const normalizedCode = code.trim().toUpperCase();
+
+  if (!normalizedCode) {
+    return {
+      valid: false,
+      message: "Introduza um código de cupão.",
+    };
+  }
+
+  if (subtotal <= 0) {
+    return {
+      valid: false,
+      message: "O subtotal deve ser superior a 0.",
+    };
+  }
+
   const coupon = await prisma.coupon.findUnique({
     where: {
-      code: code.trim().toUpperCase(),
+      code: normalizedCode,
     },
   });
 
@@ -48,12 +65,33 @@ export async function ValidateCoupon(
   ) {
     return {
       valid: false,
-      message: "Este cupão atingiu o limite de utilizações.",
+      message:
+        "Este cupão atingiu o limite de utilizações.",
     };
   }
 
   if (
-    coupon.minimumAmount &&
+    coupon.usagePerUser !== null &&
+    userId
+  ) {
+    const userUsage = await prisma.order.count({
+      where: {
+        userId,
+        couponId: coupon.id,
+      },
+    });
+
+    if (userUsage >= coupon.usagePerUser) {
+      return {
+        valid: false,
+        message:
+          "Já atingiu o limite de utilizações deste cupão.",
+      };
+    }
+  }
+
+  if (
+    coupon.minimumAmount !== null &&
     subtotal < Number(coupon.minimumAmount)
   ) {
     return {
@@ -72,7 +110,7 @@ export async function ValidateCoupon(
       (Number(coupon.discountValue) / 100);
 
     if (
-      coupon.maximumDiscount &&
+      coupon.maximumDiscount !== null &&
       discount > Number(coupon.maximumDiscount)
     ) {
       discount = Number(coupon.maximumDiscount);
@@ -85,13 +123,12 @@ export async function ValidateCoupon(
     discount = subtotal;
   }
 
+  discount = Math.max(0, discount);
+
   return {
     valid: true,
-
     coupon,
-
     discount,
-
     finalTotal: subtotal - discount,
   };
 }

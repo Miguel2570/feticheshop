@@ -1,7 +1,5 @@
 import Link from "next/link";
-
 import { notFound } from "next/navigation";
-
 import { prisma } from "@/lib/prisma";
 
 import { Avatar } from "@/components/ui/Avatar";
@@ -49,6 +47,7 @@ export default async function CustomerDetailsPage({
 
   return (
     <div className="space-y-6">
+      {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">
@@ -70,7 +69,9 @@ export default async function CustomerDetailsPage({
         </Button>
       </div>
 
+      {/* CLIENTE + INFORMAÇÕES */}
       <div className="grid gap-6 lg:grid-cols-3">
+        {/* PERFIL */}
         <Card>
           <CardContent className="flex flex-col items-center gap-4 py-8">
             <Avatar
@@ -102,6 +103,7 @@ export default async function CustomerDetailsPage({
           </CardContent>
         </Card>
 
+        {/* INFORMAÇÕES */}
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>
@@ -111,6 +113,7 @@ export default async function CustomerDetailsPage({
 
           <CardContent className="space-y-4">
             <div className="grid gap-6 md:grid-cols-2">
+              {/* NOME */}
               <div>
                 <p className="text-sm text-muted-foreground">
                   Nome
@@ -122,6 +125,7 @@ export default async function CustomerDetailsPage({
                 </p>
               </div>
 
+              {/* EMAIL */}
               <div>
                 <p className="text-sm text-muted-foreground">
                   Email
@@ -132,6 +136,7 @@ export default async function CustomerDetailsPage({
                 </p>
               </div>
 
+              {/* TELEFONE */}
               <div>
                 <p className="text-sm text-muted-foreground">
                   Telefone
@@ -142,6 +147,7 @@ export default async function CustomerDetailsPage({
                 </p>
               </div>
 
+              {/* PERFIL */}
               <div>
                 <p className="text-sm text-muted-foreground">
                   Perfil
@@ -152,6 +158,7 @@ export default async function CustomerDetailsPage({
                 </Badge>
               </div>
 
+              {/* DATA DE CRIAÇÃO */}
               <div>
                 <p className="text-sm text-muted-foreground">
                   Criado em
@@ -164,6 +171,7 @@ export default async function CustomerDetailsPage({
                 </p>
               </div>
 
+              {/* ÚLTIMO LOGIN */}
               <div>
                 <p className="text-sm text-muted-foreground">
                   Último login
@@ -173,9 +181,7 @@ export default async function CustomerDetailsPage({
                   {customer.lastLoginAt
                     ? new Date(
                         customer.lastLoginAt,
-                      ).toLocaleString(
-                        "pt-PT",
-                      )
+                      ).toLocaleString("pt-PT")
                     : "-"}
                 </p>
               </div>
@@ -184,6 +190,7 @@ export default async function CustomerDetailsPage({
         </Card>
       </div>
 
+      {/* ESTATÍSTICAS */}
       <Card>
         <CardHeader>
           <CardTitle>
@@ -193,6 +200,7 @@ export default async function CustomerDetailsPage({
 
         <CardContent>
           <div className="grid gap-6 md:grid-cols-3">
+            {/* ENCOMENDAS */}
             <div>
               <p className="text-sm text-muted-foreground">
                 Encomendas
@@ -203,6 +211,7 @@ export default async function CustomerDetailsPage({
               </p>
             </div>
 
+            {/* TOTAL GASTO */}
             <div>
               <p className="text-sm text-muted-foreground">
                 Total gasto
@@ -213,6 +222,7 @@ export default async function CustomerDetailsPage({
               </p>
             </div>
 
+            {/* NEWSLETTER */}
             <div>
               <p className="text-sm text-muted-foreground">
                 Newsletter
@@ -234,6 +244,7 @@ export default async function CustomerDetailsPage({
         </CardContent>
       </Card>
 
+      {/* MORADAS */}
       <Card>
         <CardHeader>
           <CardTitle>
@@ -280,9 +291,7 @@ export default async function CustomerDetailsPage({
 
                       {address.addressLine2 && (
                         <p>
-                          {
-                            address.addressLine2
-                          }
+                          {address.addressLine2}
                         </p>
                       )}
 
@@ -304,7 +313,7 @@ export default async function CustomerDetailsPage({
           )}
         </CardContent>
       </Card>
-
+            {/* ÚLTIMAS ENCOMENDAS */}
       <Card>
         <CardHeader>
           <CardTitle>
@@ -352,18 +361,19 @@ export default async function CustomerDetailsPage({
                         key={order.id}
                         className="border-b"
                       >
+                        {/* NÚMERO */}
                         <td className="p-3">
-                          {
-                            order.orderNumber
-                          }
+                          {order.orderNumber}
                         </td>
 
+                        {/* ESTADO */}
                         <td className="p-3 text-center">
                           <Badge variant="secondary">
                             {order.status}
                           </Badge>
                         </td>
 
+                        {/* TOTAL */}
                         <td className="p-3 text-right font-medium">
                           {Number(
                             order.total,
@@ -371,6 +381,7 @@ export default async function CustomerDetailsPage({
                           €
                         </td>
 
+                        {/* DATA */}
                         <td className="p-3 text-right">
                           {new Date(
                             order.createdAt,
@@ -379,6 +390,7 @@ export default async function CustomerDetailsPage({
                           )}
                         </td>
 
+                        {/* AÇÕES */}
                         <td className="p-3 text-right">
                           <Button
                             asChild

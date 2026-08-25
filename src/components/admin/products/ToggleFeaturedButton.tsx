@@ -4,7 +4,7 @@ import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Star } from "lucide-react";
 
-import { toggleFeatured } from "./toggleFeatured";
+import { toggleFeatured } from "../../../actions/products/toggleFeatured";
 
 export function ToggleFeaturedButton({
   id,

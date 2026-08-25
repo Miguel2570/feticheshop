@@ -68,12 +68,12 @@ export default async function CouponsPage({ searchParams }: Props) {
           <h1 className="text-3xl font-bold" style={{ color: "#18181b" }}>
             Cupões
           </h1>
+
           <p style={{ color: "#71717a" }}>
             Gestão de cupões da loja
           </p>
         </div>
 
-        {/* NOVO CUPÃO - rosa sólido */}
         <Link
           href="/admin/coupons/new"
           className="
@@ -91,26 +91,54 @@ export default async function CouponsPage({ searchParams }: Props) {
       {/* RESUMO */}
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-xs" style={{ color: "#71717a" }}>Total de cupões</p>
-          <p className="text-2xl font-bold mt-1" style={{ color: "#18181b" }}>{total}</p>
+          <p className="text-xs" style={{ color: "#71717a" }}>
+            Total de cupões
+          </p>
+
+          <p
+            className="text-2xl font-bold mt-1"
+            style={{ color: "#18181b" }}
+          >
+            {total}
+          </p>
         </div>
 
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-xs" style={{ color: "#71717a" }}>Cupões ativos</p>
-          <p className="text-2xl font-bold mt-1" style={{ color: "#059669" }}>{activeCoupons}</p>
+          <p className="text-xs" style={{ color: "#71717a" }}>
+            Cupões ativos
+          </p>
+
+          <p
+            className="text-2xl font-bold mt-1"
+            style={{ color: "#059669" }}
+          >
+            {activeCoupons}
+          </p>
         </div>
 
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-xs" style={{ color: "#71717a" }}>Cupões inativos</p>
-          <p className="text-2xl font-bold mt-1" style={{ color: "#ef4444" }}>{inactiveCoupons}</p>
+          <p className="text-xs" style={{ color: "#71717a" }}>
+            Cupões inativos
+          </p>
+
+          <p
+            className="text-2xl font-bold mt-1"
+            style={{ color: "#ef4444" }}
+          >
+            {inactiveCoupons}
+          </p>
         </div>
       </div>
 
       {/* TABELA */}
       <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
+
         {/* FILTROS */}
         <div className="border-b border-zinc-100 p-5">
-          <form className="flex flex-wrap items-center gap-3" method="GET">
+          <form
+            className="flex flex-wrap items-center gap-3"
+            method="GET"
+          >
             <input
               type="text"
               name="search"
@@ -129,7 +157,11 @@ export default async function CouponsPage({ searchParams }: Props) {
             <select
               name="type"
               defaultValue={type}
-              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none cursor-pointer focus:border-pink-500"
+              className="
+                h-10 rounded-xl border border-zinc-200 bg-white
+                px-3 text-sm outline-none cursor-pointer
+                focus:border-pink-500
+              "
               style={{ color: "#18181b" }}
             >
               <option value="all">Todos os tipos</option>
@@ -140,7 +172,11 @@ export default async function CouponsPage({ searchParams }: Props) {
             <select
               name="status"
               defaultValue={status}
-              className="h-10 rounded-xl border border-zinc-200 bg-white px-3 text-sm outline-none cursor-pointer focus:border-pink-500"
+              className="
+                h-10 rounded-xl border border-zinc-200 bg-white
+                px-3 text-sm outline-none cursor-pointer
+                focus:border-pink-500
+              "
               style={{ color: "#18181b" }}
             >
               <option value="all">Todos</option>
@@ -181,40 +217,98 @@ export default async function CouponsPage({ searchParams }: Props) {
           <table className="w-full">
             <thead className="border-b border-zinc-200 bg-zinc-50">
               <tr className="text-left">
-                <th className="p-4 text-sm font-semibold" style={{ color: "#52525b" }}>Código</th>
-                <th className="p-4 text-sm font-semibold" style={{ color: "#52525b" }}>Tipo</th>
-                <th className="p-4 text-sm font-semibold" style={{ color: "#52525b" }}>Valor</th>
-                <th className="p-4 text-sm font-semibold" style={{ color: "#52525b" }}>Utilizações</th>
-                <th className="p-4 text-sm font-semibold" style={{ color: "#52525b" }}>Estado</th>
-                <th className="p-4 text-right text-sm font-semibold" style={{ color: "#52525b" }}>Ações</th>
+                <th
+                  className="p-4 text-sm font-semibold"
+                  style={{ color: "#52525b" }}
+                >
+                  Código
+                </th>
+
+                <th
+                  className="p-4 text-sm font-semibold"
+                  style={{ color: "#52525b" }}
+                >
+                  Tipo
+                </th>
+
+                <th
+                  className="p-4 text-sm font-semibold"
+                  style={{ color: "#52525b" }}
+                >
+                  Valor
+                </th>
+
+                <th
+                  className="p-4 text-sm font-semibold"
+                  style={{ color: "#52525b" }}
+                >
+                  Utilizações
+                </th>
+
+                <th
+                  className="p-4 text-sm font-semibold"
+                  style={{ color: "#52525b" }}
+                >
+                  Estado
+                </th>
+
+                <th
+                  className="p-4 text-right text-sm font-semibold"
+                  style={{ color: "#52525b" }}
+                >
+                  Ações
+                </th>
               </tr>
             </thead>
 
             <tbody>
               {coupons.map((coupon) => (
-                <tr key={coupon.id} className="border-b border-zinc-100 hover:bg-pink-50/30">
+                <tr
+                  key={coupon.id}
+                  className="border-b border-zinc-100 hover:bg-pink-50/30"
+                >
                   <td className="p-4">
-                    <div className="font-medium" style={{ color: "#18181b" }}>
+                    <div
+                      className="font-medium"
+                      style={{ color: "#18181b" }}
+                    >
                       {coupon.code}
                     </div>
-                    <div className="text-xs" style={{ color: "#a1a1aa" }}>
+
+                    <div
+                      className="text-xs"
+                      style={{ color: "#a1a1aa" }}
+                    >
                       {coupon.description ?? "-"}
                     </div>
                   </td>
 
-                  <td className="p-4 text-sm" style={{ color: "#52525b" }}>
-                    {coupon.isPercentage ? "Percentagem" : "Valor Fixo"}
+                  <td
+                    className="p-4 text-sm"
+                    style={{ color: "#52525b" }}
+                  >
+                    {coupon.isPercentage
+                      ? "Percentagem"
+                      : "Valor Fixo"}
                   </td>
 
-                  <td className="p-4 font-semibold" style={{ color: "#18181b" }}>
+                  <td
+                    className="p-4 font-semibold"
+                    style={{ color: "#18181b" }}
+                  >
                     {coupon.isPercentage
                       ? `${Number(coupon.discountValue)}%`
                       : `${Number(coupon.discountValue).toFixed(2)} €`}
                   </td>
 
-                  <td className="p-4 text-sm" style={{ color: "#52525b" }}>
+                  <td
+                    className="p-4 text-sm"
+                    style={{ color: "#52525b" }}
+                  >
                     {coupon.usedCount}
-                    {coupon.usageLimit && <> / {coupon.usageLimit}</>}
+                    {coupon.usageLimit && (
+                      <> / {coupon.usageLimit}</>
+                    )}
                   </td>
 
                   <td className="p-4">
@@ -231,7 +325,6 @@ export default async function CouponsPage({ searchParams }: Props) {
 
                   <td className="p-4">
                     <div className="flex justify-end gap-2">
-                      {/* VER - rosa sólido */}
                       <Link
                         href={`/admin/coupons/${coupon.id}`}
                         className="
@@ -245,7 +338,6 @@ export default async function CouponsPage({ searchParams }: Props) {
                         Ver
                       </Link>
 
-                      {/* EDITAR - rosa sólido */}
                       <Link
                         href={`/admin/coupons/${coupon.id}/edit`}
                         className="
@@ -270,7 +362,11 @@ export default async function CouponsPage({ searchParams }: Props) {
 
               {coupons.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="p-10 text-center" style={{ color: "#71717a" }}>
+                  <td
+                    colSpan={6}
+                    className="p-10 text-center"
+                    style={{ color: "#71717a" }}
+                  >
                     Nenhum cupão encontrado.
                   </td>
                 </tr>
@@ -278,19 +374,27 @@ export default async function CouponsPage({ searchParams }: Props) {
             </tbody>
           </table>
         </div>
-
-        {/* PAGINAÇÃO - preservando filtros */}
+                {/* PAGINAÇÃO */}
         {totalPages > 1 && (
           <div className="flex justify-center gap-2 border-t border-zinc-200 p-5">
             <div className="flex items-center gap-2">
               <Link
                 href={{
                   pathname: "/admin/coupons",
-                  query: { search, type, status, page: "1" },
+                  query: {
+                    search,
+                    type,
+                    status,
+                    page: "1",
+                  },
                 }}
               >
                 <button
-                  className="h-8 px-3 text-xs font-semibold rounded-lg border border-zinc-200 bg-white text-zinc-700 disabled:opacity-40"
+                  className="
+                    h-8 px-3 text-xs font-semibold rounded-lg
+                    border border-zinc-200 bg-white text-zinc-700
+                    disabled:opacity-40
+                  "
                   disabled={currentPage === 1}
                 >
                   «
@@ -300,11 +404,20 @@ export default async function CouponsPage({ searchParams }: Props) {
               <Link
                 href={{
                   pathname: "/admin/coupons",
-                  query: { search, type, status, page: String(currentPage - 1) },
+                  query: {
+                    search,
+                    type,
+                    status,
+                    page: String(currentPage - 1),
+                  },
                 }}
               >
                 <button
-                  className="h-8 px-3 text-xs font-semibold rounded-lg border border-zinc-200 bg-white text-zinc-700 disabled:opacity-40"
+                  className="
+                    h-8 px-3 text-xs font-semibold rounded-lg
+                    border border-zinc-200 bg-white text-zinc-700
+                    disabled:opacity-40
+                  "
                   disabled={currentPage === 1}
                 >
                   Anterior
@@ -312,7 +425,11 @@ export default async function CouponsPage({ searchParams }: Props) {
               </Link>
 
               <div
-                className="flex h-8 min-w-10 items-center justify-center rounded-lg border border-zinc-200 bg-white px-4 text-sm font-semibold"
+                className="
+                  flex h-8 min-w-10 items-center justify-center
+                  rounded-lg border border-zinc-200 bg-white
+                  px-4 text-sm font-semibold
+                "
                 style={{ color: "#18181b" }}
               >
                 {currentPage} / {totalPages}
@@ -321,11 +438,20 @@ export default async function CouponsPage({ searchParams }: Props) {
               <Link
                 href={{
                   pathname: "/admin/coupons",
-                  query: { search, type, status, page: String(currentPage + 1) },
+                  query: {
+                    search,
+                    type,
+                    status,
+                    page: String(currentPage + 1),
+                  },
                 }}
               >
                 <button
-                  className="h-8 px-3 text-xs font-semibold rounded-lg bg-pink-500 text-white disabled:opacity-40"
+                  className="
+                    h-8 px-3 text-xs font-semibold rounded-lg
+                    bg-pink-500 text-white
+                    disabled:opacity-40
+                  "
                   disabled={currentPage === totalPages}
                 >
                   Seguinte
@@ -335,11 +461,20 @@ export default async function CouponsPage({ searchParams }: Props) {
               <Link
                 href={{
                   pathname: "/admin/coupons",
-                  query: { search, type, status, page: String(totalPages) },
+                  query: {
+                    search,
+                    type,
+                    status,
+                    page: String(totalPages),
+                  },
                 }}
               >
                 <button
-                  className="h-8 px-3 text-xs font-semibold rounded-lg border border-zinc-200 bg-white text-zinc-700 disabled:opacity-40"
+                  className="
+                    h-8 px-3 text-xs font-semibold rounded-lg
+                    border border-zinc-200 bg-white text-zinc-700
+                    disabled:opacity-40
+                  "
                   disabled={currentPage === totalPages}
                 >
                   »

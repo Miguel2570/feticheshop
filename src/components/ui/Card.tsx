@@ -11,7 +11,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-zinc-800 bg-zinc-900 shadow-sm",
+        "rounded-2xl border border-zinc-200 bg-white shadow-sm",
         className
       )}
       {...props}
@@ -19,8 +19,7 @@ export function Card({
   );
 }
 
-type CardHeaderProps =
-  HTMLAttributes<HTMLDivElement>;
+type CardHeaderProps = HTMLAttributes<HTMLDivElement>;
 
 export function CardHeader({
   className,
@@ -29,7 +28,7 @@ export function CardHeader({
   return (
     <div
       className={cn(
-        "border-b border-zinc-800 p-6",
+        "border-b border-zinc-100 p-6",
         className
       )}
       {...props}
@@ -37,8 +36,7 @@ export function CardHeader({
   );
 }
 
-type CardTitleProps =
-  HTMLAttributes<HTMLHeadingElement>;
+type CardTitleProps = HTMLAttributes<HTMLHeadingElement>;
 
 export function CardTitle({
   className,
@@ -47,7 +45,7 @@ export function CardTitle({
   return (
     <h2
       className={cn(
-        "text-lg font-semibold text-white",
+        "text-lg font-bold text-zinc-900",
         className
       )}
       {...props}
@@ -65,7 +63,7 @@ export function CardDescription({
   return (
     <p
       className={cn(
-        "mt-1 text-sm text-zinc-400",
+        "mt-1 text-sm text-zinc-500",
         className
       )}
       {...props}
@@ -73,8 +71,7 @@ export function CardDescription({
   );
 }
 
-type CardContentProps =
-  HTMLAttributes<HTMLDivElement>;
+type CardContentProps = HTMLAttributes<HTMLDivElement>;
 
 export function CardContent({
   className,
@@ -91,8 +88,7 @@ export function CardContent({
   );
 }
 
-type CardFooterProps =
-  HTMLAttributes<HTMLDivElement>;
+type CardFooterProps = HTMLAttributes<HTMLDivElement>;
 
 export function CardFooter({
   className,
@@ -101,7 +97,7 @@ export function CardFooter({
   return (
     <div
       className={cn(
-        "flex items-center justify-end gap-3 border-t border-zinc-800 p-6",
+        "flex items-center justify-end gap-3 border-t border-zinc-100 p-6",
         className
       )}
       {...props}

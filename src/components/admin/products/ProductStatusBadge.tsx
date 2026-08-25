@@ -16,31 +16,31 @@ const statusConfig: Record<
   DRAFT: {
     label: "Rascunho",
     className:
-      "bg-zinc-700/20 border-zinc-600 text-zinc-300",
+      "bg-zinc-50 border-zinc-200 text-zinc-600",
   },
 
   ACTIVE: {
     label: "Ativo",
     className:
-      "bg-emerald-500/15 border-emerald-500/20 text-emerald-400",
+      "bg-emerald-50 border-emerald-200 text-emerald-600",
   },
 
   HIDDEN: {
     label: "Oculto",
     className:
-      "bg-yellow-500/15 border-yellow-500/20 text-yellow-400",
+      "bg-yellow-50 border-yellow-200 text-yellow-600",
   },
 
   OUT_OF_STOCK: {
     label: "Sem Stock",
     className:
-      "bg-red-500/15 border-red-500/20 text-red-400",
+      "bg-red-50 border-red-200 text-red-500",
   },
 
   ARCHIVED: {
     label: "Arquivado",
     className:
-      "bg-slate-500/15 border-slate-500/20 text-slate-300",
+      "bg-slate-50 border-slate-200 text-slate-500",
   },
 };
 

@@ -24,7 +24,9 @@ export default async function SupplierDetailsPage({
         },
       },
       syncs: {
-        orderBy: { startedAt: "desc" },
+        orderBy: {
+          startedAt: "desc",
+        },
         take: 10,
       },
     },
@@ -57,38 +59,62 @@ export default async function SupplierDetailsPage({
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold" style={{ color: "#18181b" }}>
+          <h1
+            className="text-3xl font-bold"
+            style={{ color: "#18181b" }}
+          >
             {supplier.name}
           </h1>
+
           <p style={{ color: "#71717a" }}>
             Detalhes do fornecedor
           </p>
         </div>
 
         <div className="flex gap-2">
-          {/* VOLTAR - rosa sólido */}
+          {/* VOLTAR */}
           <Link
             href="/admin/suppliers"
             className="
-              inline-flex items-center justify-center
-              h-9 px-4 text-xs font-semibold rounded-lg
-              transition-all duration-200 cursor-pointer
-              bg-pink-500 text-white
-              hover:bg-pink-600 hover:shadow-lg hover:shadow-pink-500/25
+              inline-flex
+              h-9
+              items-center
+              justify-center
+              rounded-lg
+              bg-pink-500
+              px-4
+              text-xs
+              font-semibold
+              text-white
+              transition-all
+              duration-200
+              hover:bg-pink-600
+              hover:shadow-lg
+              hover:shadow-pink-500/25
             "
           >
             Voltar
           </Link>
 
-          {/* EDITAR - rosa sólido */}
+          {/* EDITAR */}
           <Link
             href={`/admin/suppliers/${supplier.id}/edit`}
             className="
-              inline-flex items-center justify-center
-              h-9 px-4 text-xs font-semibold rounded-lg
-              transition-all duration-200 cursor-pointer
-              bg-pink-500 text-white
-              hover:bg-pink-600 hover:shadow-lg hover:shadow-pink-500/25
+              inline-flex
+              h-9
+              items-center
+              justify-center
+              rounded-lg
+              bg-pink-500
+              px-4
+              text-xs
+              font-semibold
+              text-white
+              transition-all
+              duration-200
+              hover:bg-pink-600
+              hover:shadow-lg
+              hover:shadow-pink-500/25
             "
           >
             Editar
@@ -99,28 +125,52 @@ export default async function SupplierDetailsPage({
       {/* RESUMO */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-xs" style={{ color: "#71717a" }}>Produtos</p>
-          <p className="text-2xl font-bold mt-1" style={{ color: "#18181b" }}>
+          <p
+            className="text-xs"
+            style={{ color: "#71717a" }}
+          >
+            Produtos
+          </p>
+
+          <p
+            className="mt-1 text-2xl font-bold"
+            style={{ color: "#18181b" }}
+          >
             {supplier._count.products}
           </p>
         </div>
 
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-xs" style={{ color: "#71717a" }}>Sincronizações</p>
-          <p className="text-2xl font-bold mt-1" style={{ color: "#18181b" }}>
+          <p
+            className="text-xs"
+            style={{ color: "#71717a" }}
+          >
+            Sincronizações
+          </p>
+
+          <p
+            className="mt-1 text-2xl font-bold"
+            style={{ color: "#18181b" }}
+          >
             {supplier._count.syncs}
           </p>
         </div>
 
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-xs" style={{ color: "#71717a" }}>Estado</p>
+          <p
+            className="text-xs"
+            style={{ color: "#71717a" }}
+          >
+            Estado
+          </p>
+
           <div className="mt-2">
             {supplier.isActive ? (
-              <span className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-600">
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600">
                 Ativo
               </span>
             ) : (
-              <span className="rounded-full bg-red-50 border border-red-200 px-3 py-1 text-xs font-semibold text-red-500">
+              <span className="rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-500">
                 Inativo
               </span>
             )}
@@ -128,9 +178,20 @@ export default async function SupplierDetailsPage({
         </div>
 
         <div className="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <p className="text-xs" style={{ color: "#71717a" }}>Última sincronização</p>
-          <p className="text-sm font-medium mt-2" style={{ color: "#18181b" }}>
-            {lastSync ? new Date(lastSync.startedAt).toLocaleString("pt-PT") : "-"}
+          <p
+            className="text-xs"
+            style={{ color: "#71717a" }}
+          >
+            Última sincronização
+          </p>
+
+          <p
+            className="mt-2 text-sm font-medium"
+            style={{ color: "#18181b" }}
+          >
+            {lastSync
+              ? new Date(lastSync.startedAt).toLocaleString("pt-PT")
+              : "-"}
           </p>
         </div>
       </div>
@@ -138,24 +199,55 @@ export default async function SupplierDetailsPage({
       {/* INFORMAÇÃO */}
       <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="border-b border-zinc-100 p-5">
-          <h2 className="text-lg font-bold" style={{ color: "#18181b" }}>
+          <h2
+            className="text-lg font-bold"
+            style={{ color: "#18181b" }}
+          >
             Informação do fornecedor
           </h2>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="space-y-4 p-5">
           <div className="flex items-center justify-between">
-            <span className="text-sm" style={{ color: "#71717a" }}>Nome</span>
-            <span className="font-medium" style={{ color: "#18181b" }}>{supplier.name}</span>
+            <span
+              className="text-sm"
+              style={{ color: "#71717a" }}
+            >
+              Nome
+            </span>
+
+            <span
+              className="font-medium"
+              style={{ color: "#18181b" }}
+            >
+              {supplier.name}
+            </span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-sm" style={{ color: "#71717a" }}>Slug</span>
-            <span className="font-medium" style={{ color: "#18181b" }}>{supplier.slug}</span>
+            <span
+              className="text-sm"
+              style={{ color: "#71717a" }}
+            >
+              Slug
+            </span>
+
+            <span
+              className="font-medium"
+              style={{ color: "#18181b" }}
+            >
+              {supplier.slug}
+            </span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-sm" style={{ color: "#71717a" }}>Website</span>
+            <span
+              className="text-sm"
+              style={{ color: "#71717a" }}
+            >
+              Website
+            </span>
+
             {supplier.website ? (
               <a
                 href={supplier.website}
@@ -166,23 +258,39 @@ export default async function SupplierDetailsPage({
                 {supplier.website}
               </a>
             ) : (
-              <span className="font-medium" style={{ color: "#18181b" }}>-</span>
+              <span
+                className="font-medium"
+                style={{ color: "#18181b" }}
+              >
+                -
+              </span>
             )}
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-sm" style={{ color: "#71717a" }}>API</span>
-            <span className="font-medium" style={{ color: "#18181b" }}>
+            <span
+              className="text-sm"
+              style={{ color: "#71717a" }}
+            >
+              API
+            </span>
+
+            <span
+              className="font-medium"
+              style={{ color: "#18181b" }}
+            >
               {supplier.apiUrl ?? "-"}
             </span>
           </div>
         </div>
       </div>
-
-      {/* HISTÓRICO */}
+            {/* HISTÓRICO */}
       <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="border-b border-zinc-100 p-5">
-          <h2 className="text-lg font-bold" style={{ color: "#18181b" }}>
+          <h2
+            className="text-lg font-bold"
+            style={{ color: "#18181b" }}
+          >
             Histórico de sincronizações
           </h2>
         </div>
@@ -197,24 +305,54 @@ export default async function SupplierDetailsPage({
               {supplier.syncs.map((sync) => (
                 <div
                   key={sync.id}
-                  className="flex items-center justify-between border-b border-zinc-100 pb-3 last:border-b-0 last:pb-0"
+                  className="
+                    flex
+                    items-center
+                    justify-between
+                    border-b
+                    border-zinc-100
+                    pb-3
+                    last:border-b-0
+                    last:pb-0
+                  "
                 >
                   <div>
-                    <p className="font-medium text-sm" style={{ color: "#18181b" }}>
-                      {new Date(sync.startedAt).toLocaleString("pt-PT")}
+                    <p
+                      className="text-sm font-medium"
+                      style={{ color: "#18181b" }}
+                    >
+                      {new Date(
+                        sync.startedAt
+                      ).toLocaleString("pt-PT")}
                     </p>
-                    <p className="text-xs mt-1" style={{ color: "#71717a" }}>
-                      {sync.imported} importados · {sync.updated} atualizados · {sync.failed} falhados
+
+                    <p
+                      className="mt-1 text-xs"
+                      style={{ color: "#71717a" }}
+                    >
+                      {sync.imported} importados ·{" "}
+                      {sync.updated} atualizados ·{" "}
+                      {sync.failed} falhados
                     </p>
                   </div>
 
                   <span
                     className={`
-                      inline-flex rounded-full border px-3 py-1 text-xs font-semibold
-                      ${statusSyncColors[sync.status] ?? "bg-zinc-50 text-zinc-500 border-zinc-200"}
+                      inline-flex
+                      rounded-full
+                      border
+                      px-3
+                      py-1
+                      text-xs
+                      font-semibold
+                      ${
+                        statusSyncColors[sync.status] ??
+                        "bg-zinc-50 text-zinc-500 border-zinc-200"
+                      }
                     `}
                   >
-                    {statusSyncLabels[sync.status] ?? sync.status}
+                    {statusSyncLabels[sync.status] ??
+                      sync.status}
                   </span>
                 </div>
               ))}

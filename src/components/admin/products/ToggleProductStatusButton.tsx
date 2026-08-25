@@ -1,7 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
-import { toggleProductStatus } from "./toggleProductStatus";
+import { toggleProductStatus } from "../../../actions/products/toggleProductStatus";
 import { Button } from "@/components/ui/Button";
 
 export function ToggleProductStatusButton({

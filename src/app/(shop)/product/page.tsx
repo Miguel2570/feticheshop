@@ -10,7 +10,6 @@ import { Breadcrumb } from "@/components/ui/Breadcrumb";
 
 const PAGE_SIZE = 24;
 
-// Categorias do frontend
 const FRONTEND_CATEGORY_SLUGS = [
   "vibradores",
   "para-ele",
@@ -49,12 +48,6 @@ export default async function ProductsPage({ searchParams }: Props) {
   const sort = params.sort ?? "newest";
   const page = Math.max(1, Number(params.page ?? "1"));
 
-  /*
-   * =========================
-   * FILTROS
-   * =========================
-   */
-
   const where: Prisma.ProductWhereInput = {
     status: "ACTIVE",
 
@@ -71,7 +64,6 @@ export default async function ProductsPage({ searchParams }: Props) {
         }
       : {}),
 
-    // Se houver subcategory, filtra também por nome/descrição
     ...(subcategory
       ? {
           OR: [
@@ -101,25 +93,12 @@ export default async function ProductsPage({ searchParams }: Props) {
       : {}),
 
     ...(sale === "true" ? { isOnSale: true } : {}),
-
     ...(isNew === "true" ? { isNew: true } : {}),
   };
-
-  /*
-   * =========================
-   * TOTAL
-   * =========================
-   */
 
   const total = await prisma.product.count({ where });
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
-
-  /*
-   * =========================
-   * PRODUTOS
-   * =========================
-   */
 
   const products = await prisma.product.findMany({
     where,
@@ -142,12 +121,6 @@ export default async function ProductsPage({ searchParams }: Props) {
     },
   });
 
-  /*
-   * =========================
-   * CATEGORIAS & MARCAS
-   * =========================
-   */
-
   const [categories, brands] = await Promise.all([
     prisma.category.findMany({
       where: {
@@ -165,12 +138,6 @@ export default async function ProductsPage({ searchParams }: Props) {
   const activeCategory = category
     ? categories.find((cat) => cat.slug === category)
     : null;
-
-  /*
-   * =========================
-   * QUERY BASE
-   * =========================
-   */
 
   const createQuery = (extra: Record<string, string> = {}) => {
     const query = new URLSearchParams();
@@ -193,14 +160,12 @@ export default async function ProductsPage({ searchParams }: Props) {
 
   const hasFilters = !!(category || subcategory || brand || minPrice || maxPrice || sale === "true" || isNew === "true");
 
-  // Título da página
   const pageTitle = subcategory
     ? subcategory
     : activeCategory
     ? activeCategory.name
     : "Todos os Produtos";
 
-  // Breadcrumb items
   const breadcrumbItems = [
     { label: "Home", href: "/" },
     { label: "Produtos", href: "/product" },
@@ -212,18 +177,11 @@ export default async function ProductsPage({ searchParams }: Props) {
       : []),
   ];
 
-  /*
-   * =========================
-   * RENDER
-   * =========================
-   */
-
   return (
     <main className="arabesque-bg relative overflow-hidden min-h-screen">
       <div className="container-custom py-12">
         {/* HEADER */}
         <div className="mb-10">
-          {/* BREADCRUMB */}
           <div className="mb-4">
             <Breadcrumb items={breadcrumbItems} />
           </div>
@@ -270,7 +228,6 @@ export default async function ProductsPage({ searchParams }: Props) {
           </div>
 
           <form method="GET" className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            {/* CATEGORIA */}
             <div className="relative z-30">
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
                 Categoria
@@ -289,7 +246,6 @@ export default async function ProductsPage({ searchParams }: Props) {
               />
             </div>
 
-            {/* MARCA */}
             <div className="relative z-30">
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
                 Marca
@@ -308,7 +264,6 @@ export default async function ProductsPage({ searchParams }: Props) {
               />
             </div>
 
-            {/* PREÇO */}
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
                 Preço
@@ -335,7 +290,6 @@ export default async function ProductsPage({ searchParams }: Props) {
               </div>
             </div>
 
-            {/* TIPO */}
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
                 Tipo
@@ -352,7 +306,6 @@ export default async function ProductsPage({ searchParams }: Props) {
               </div>
             </div>
 
-            {/* BOTÃO */}
             <div className="flex items-end">
               <Button type="submit" className="w-full">
                 Filtrar
@@ -400,7 +353,6 @@ export default async function ProductsPage({ searchParams }: Props) {
               Tenta alterar ou remover alguns filtros.
             </p>
 
-            {/* BOTÃO ROSA SÓLIDO */}
             <Link
               href="/product"
               className="
@@ -437,22 +389,83 @@ export default async function ProductsPage({ searchParams }: Props) {
             </div>
 
             {/* PAGINAÇÃO */}
-            {totalPages > 1 && (
-              <div className="mt-14 flex flex-wrap justify-center gap-2">
-                {Array.from({ length: totalPages }).map((_, index) => {
-                  const current = index + 1;
-                  const query = createQuery({ page: String(current) });
+{totalPages > 1 && (
+  <div className="mt-14 flex items-center justify-center gap-4 border-t border-zinc-200 pt-8">
+    {/* ANTERIOR */}
+    {currentPage > 1 ? (
+      <Link
+        href={`/product?${createQuery({ page: String(currentPage - 1) })}`}
+        className="
+          group relative inline-flex items-center justify-center
+          h-12 w-12 rounded-2xl
+          transition-all duration-300 cursor-pointer
+          bg-zinc-200 text-zinc-900
+          border-2 border-zinc-400
+          hover:bg-zinc-300 hover:border-pink-500 hover:text-pink-600
+          hover:shadow-[0_4px_20px_rgba(236,72,153,0.2)]
+        "
+        aria-label="Página anterior"
+      >
+        <svg className="h-5 w-5 transition-transform duration-300 group-hover:-translate-x-1" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+      </Link>
+    ) : (
+      <span className="
+        inline-flex items-center justify-center
+        h-12 w-12 rounded-2xl
+        bg-zinc-200 text-zinc-400 cursor-not-allowed
+        border-2 border-zinc-300
+      ">
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+      </span>
+    )}
 
-                  return (
-                    <Link key={current} href={`/product?${query}`}>
-                      <Button variant={current === currentPage ? "secondary" : "outline"} size="sm">
-                        {current}
-                      </Button>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
+    {/* INDICADOR */}
+    <div className="flex items-center gap-2 rounded-2xl bg-white border-2 border-zinc-300 px-6 py-2.5 shadow-sm">
+      <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-fuchsia-500">
+        {currentPage}
+      </span>
+      <span className="text-sm text-zinc-400">/</span>
+      <span className="text-sm font-semibold text-zinc-700">{totalPages}</span>
+    </div>
+
+    {/* PRÓXIMA */}
+    {currentPage < totalPages ? (
+      <Link
+        href={`/product?${createQuery({ page: String(currentPage + 1) })}`}
+        className="
+          group relative inline-flex items-center justify-center
+          h-12 w-12 rounded-2xl
+          transition-all duration-300 cursor-pointer
+          bg-gradient-to-br from-pink-500 to-fuchsia-500
+          text-white
+          shadow-lg shadow-pink-500/25
+          hover:shadow-[0_4px_25px_rgba(236,72,153,0.4)]
+          hover:scale-105
+        "
+        aria-label="Página seguinte"
+      >
+        <svg className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </Link>
+    ) : (
+      <span className="
+        inline-flex items-center justify-center
+        h-12 w-12 rounded-2xl
+        bg-zinc-200 text-zinc-400 cursor-not-allowed
+        border-2 border-zinc-300
+      ">
+        <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </span>
+    )}
+  </div>
+)}
           </section>
         )}
       </div>

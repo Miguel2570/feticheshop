@@ -1,14 +1,42 @@
 "use client";
 
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import dynamic from "next/dynamic";
+
+// Dynamic imports para evitar problemas com SSR
+const AreaChart = dynamic(
+  () => import("recharts").then((mod) => mod.AreaChart),
+  { ssr: false }
+);
+
+const Area = dynamic(
+  () => import("recharts").then((mod) => mod.Area),
+  { ssr: false }
+);
+
+const CartesianGrid = dynamic(
+  () => import("recharts").then((mod) => mod.CartesianGrid),
+  { ssr: false }
+);
+
+const ResponsiveContainer = dynamic(
+  () => import("recharts").then((mod) => mod.ResponsiveContainer),
+  { ssr: false }
+);
+
+const Tooltip = dynamic(
+  () => import("recharts").then((mod) => mod.Tooltip),
+  { ssr: false }
+);
+
+const XAxis = dynamic(
+  () => import("recharts").then((mod) => mod.XAxis),
+  { ssr: false }
+);
+
+const YAxis = dynamic(
+  () => import("recharts").then((mod) => mod.YAxis),
+  { ssr: false }
+);
 
 interface SalesChartProps {
   sales: {

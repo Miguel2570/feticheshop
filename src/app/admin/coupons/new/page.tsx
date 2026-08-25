@@ -42,7 +42,6 @@ export default function NewCouponPage() {
       </div>
 
       <Card>
-
         <CardHeader>
           <CardTitle>
             Dados do Cupão
@@ -50,9 +49,7 @@ export default function NewCouponPage() {
         </CardHeader>
 
         <CardContent>
-
           <CouponForm />
-
         </CardContent>
 
       </Card>

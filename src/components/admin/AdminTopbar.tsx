@@ -20,11 +20,18 @@ export default function AdminTopbar({
 }: AdminTopbarProps) {
   return (
     <header 
-      className="sticky top-0 z-40 mb-8 flex h-16 items-center justify-between rounded-2xl border border-zinc-200 bg-white px-6 shadow-sm"
+      className="
+        sticky top-0 z-30
+        mb-4 lg:mb-8
+        flex h-14 lg:h-16 items-center justify-between
+        rounded-2xl border border-zinc-200 bg-white
+        pl-14 lg:pl-6 pr-3 lg:pr-6
+        shadow-sm
+      "
       style={{ backgroundColor: "#ffffff" }}
     >
-      {/* Pesquisa */}
-      <div className="relative w-full max-w-md">
+      {/* Pesquisa - visível a partir de ≥768px */}
+      <div className="relative w-full max-w-md hidden md:block">
         <Search
           size={18}
           className="absolute left-3 top-1/2 -translate-y-1/2"
@@ -54,18 +61,18 @@ export default function AdminTopbar({
       </div>
 
       {/* Ações */}
-      <div className="flex items-center gap-5">
+      <div className="flex items-center gap-2 lg:gap-5 ml-auto">
         {/* Notificações */}
         <AdminNotifications />
 
         {/* Utilizador */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 lg:gap-3">
           <UserCircle2
-            size={36}
-            className="text-pink-500"
+            size={28}
+            className="lg:size-9 text-pink-500 shrink-0"
           />
 
-          <div>
+          <div className="hidden lg:block">
             <p 
               className="text-sm font-semibold"
               style={{ color: "#18181b" }}

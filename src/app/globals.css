@@ -59,23 +59,32 @@ button {
   color: #fff;
 }
 
-/* Scrollbar */
+/* ================================================= */
+/* SCROLLBAR - BRANCO */
+/* ================================================= */
 
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0a0a0a;
+  background: #ffffff;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2a2a2a;
+  background: #e4e4e7;
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--primary);
+  background: #ec4899;
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #e4e4e7 #ffffff;
 }
 
 /* ================================================= */

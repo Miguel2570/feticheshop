@@ -71,9 +71,10 @@ export default function AdminSidebar() {
   return (
     <aside
       className="
+        hidden
+        lg:flex
         sticky
         top-0
-        flex
         h-screen
         w-64
         flex-col
@@ -106,8 +107,9 @@ export default function AdminSidebar() {
           const Icon = item.icon;
 
           const active =
-            pathname === item.href ||
-            pathname.startsWith(item.href + "/");
+            item.href === "/admin"
+              ? pathname === "/admin"
+              : pathname === item.href || pathname.startsWith(item.href + "/");
 
           return (
             <Link

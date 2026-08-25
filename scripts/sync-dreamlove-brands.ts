@@ -22,6 +22,11 @@ type DreamloveBrand = {
   } | null;
 };
 
+// Helper para delay
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function loginDreamlove(): Promise<string> {
   const response = await fetch(`${API_URL}/login_check`, {
     method: "POST",
@@ -74,6 +79,13 @@ async function getBrands(token: string): Promise<DreamloveBrand[]> {
       }
     );
 
+    // Tratar rate limit (429)
+    if (response.status === 429) {
+      console.log("⏳ Rate limit atingido. Aguardar 15 segundos...");
+      await sleep(15000);
+      continue; // Tentar novamente
+    }
+
     if (!response.ok) {
       throw new Error(`Erro marcas: ${response.status}`);
     }
@@ -99,6 +111,9 @@ async function getBrands(token: string): Promise<DreamloveBrand[]> {
     brands.push(...items);
     console.log(`Página ${page}: ${items.length} marcas`);
     page++;
+
+    // Delay entre páginas (2 segundos)
+    await sleep(2000);
   }
 
   return brands;
@@ -121,7 +136,7 @@ async function syncBrands() {
     try {
       const name = brand.name?.trim() || `Marca ${brand.id}`;
 
-      const saved = await prisma.brand.upsert({
+      await prisma.brand.upsert({
         where: { dreamloveId: brand.id },
         update: {
           name,
@@ -138,16 +153,11 @@ async function syncBrands() {
         },
       });
 
-      const exists = await prisma.brand.findUnique({
-        where: { dreamloveId: brand.id },
-      });
-
-      if (exists && saved.id === exists.id) {
-        // Já existia antes?
-      }
-
       console.log(`✅ ${name}`);
       imported++;
+
+      // Pequeno delay entre imports
+      await sleep(500);
     } catch (error) {
       console.error(`❌ Erro marca ${brand.name}:`, error);
       failed++;

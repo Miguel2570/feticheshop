@@ -20,13 +20,19 @@ async function updateSupplier(formData: FormData) {
 
   const name = String(formData.get("name") ?? "").trim();
   const slug = String(formData.get("slug") ?? "").trim();
-  const description = String(formData.get("description") ?? "").trim() || null;
-  const website = String(formData.get("website") ?? "").trim() || null;
-  const apiUrl = String(formData.get("apiUrl") ?? "").trim() || null;
-  const apiUsername = String(formData.get("apiUsername") ?? "").trim() || null;
+  const description =
+    String(formData.get("description") ?? "").trim() || null;
+  const website =
+    String(formData.get("website") ?? "").trim() || null;
+  const apiUrl =
+    String(formData.get("apiUrl") ?? "").trim() || null;
+  const apiUsername =
+    String(formData.get("apiUsername") ?? "").trim() || null;
   const apiPassword = String(formData.get("apiPassword") ?? "").trim();
-  const currency = String(formData.get("currency") ?? "EUR").trim() || "EUR";
-  const language = String(formData.get("language") ?? "pt").trim() || "pt";
+  const currency =
+    String(formData.get("currency") ?? "EUR").trim() || "EUR";
+  const language =
+    String(formData.get("language") ?? "pt").trim() || "pt";
   const isActive = formData.get("isActive") === "on";
 
   if (!name) {
@@ -83,9 +89,13 @@ export default async function EditSupplierPage({
     <div className="space-y-6">
       {/* HEADER */}
       <div>
-        <h1 className="text-3xl font-bold" style={{ color: "#18181b" }}>
+        <h1
+          className="text-3xl font-bold"
+          style={{ color: "#18181b" }}
+        >
           Editar fornecedor
         </h1>
+
         <p style={{ color: "#71717a" }}>
           Editar as informações e configuração do fornecedor.
         </p>
@@ -94,21 +104,33 @@ export default async function EditSupplierPage({
       {/* CARD */}
       <div className="rounded-2xl border border-zinc-200 bg-white shadow-sm">
         <div className="border-b border-zinc-100 p-5">
-          <h2 className="text-lg font-bold" style={{ color: "#18181b" }}>
+          <h2
+            className="text-lg font-bold"
+            style={{ color: "#18181b" }}
+          >
             {supplier.name}
           </h2>
         </div>
 
         <div className="p-5">
           <form action={updateSupplier} className="space-y-6">
-            <input type="hidden" name="id" value={supplier.id} />
+            <input
+              type="hidden"
+              name="id"
+              value={supplier.id}
+            />
 
             <div className="grid gap-5 md:grid-cols-2">
               {/* Nome */}
               <div className="space-y-1.5">
-                <label htmlFor="name" className="text-sm font-medium" style={{ color: "#3f3f46" }}>
+                <label
+                  htmlFor="name"
+                  className="text-sm font-medium"
+                  style={{ color: "#3f3f46" }}
+                >
                   Nome
                 </label>
+
                 <input
                   id="name"
                   name="name"
@@ -122,9 +144,14 @@ export default async function EditSupplierPage({
 
               {/* Slug */}
               <div className="space-y-1.5">
-                <label htmlFor="slug" className="text-sm font-medium" style={{ color: "#3f3f46" }}>
+                <label
+                  htmlFor="slug"
+                  className="text-sm font-medium"
+                  style={{ color: "#3f3f46" }}
+                >
                   Slug
                 </label>
+
                 <input
                   id="slug"
                   name="slug"
@@ -138,9 +165,14 @@ export default async function EditSupplierPage({
 
               {/* Website */}
               <div className="space-y-1.5">
-                <label htmlFor="website" className="text-sm font-medium" style={{ color: "#3f3f46" }}>
+                <label
+                  htmlFor="website"
+                  className="text-sm font-medium"
+                  style={{ color: "#3f3f46" }}
+                >
                   Website
                 </label>
+
                 <input
                   id="website"
                   name="website"
@@ -154,9 +186,14 @@ export default async function EditSupplierPage({
 
               {/* API URL */}
               <div className="space-y-1.5">
-                <label htmlFor="apiUrl" className="text-sm font-medium" style={{ color: "#3f3f46" }}>
+                <label
+                  htmlFor="apiUrl"
+                  className="text-sm font-medium"
+                  style={{ color: "#3f3f46" }}
+                >
                   API URL
                 </label>
+
                 <input
                   id="apiUrl"
                   name="apiUrl"
@@ -170,9 +207,14 @@ export default async function EditSupplierPage({
 
               {/* API Username */}
               <div className="space-y-1.5">
-                <label htmlFor="apiUsername" className="text-sm font-medium" style={{ color: "#3f3f46" }}>
+                <label
+                  htmlFor="apiUsername"
+                  className="text-sm font-medium"
+                  style={{ color: "#3f3f46" }}
+                >
                   API Username
                 </label>
+
                 <input
                   id="apiUsername"
                   name="apiUsername"
@@ -185,9 +227,14 @@ export default async function EditSupplierPage({
 
               {/* API Password */}
               <div className="space-y-1.5">
-                <label htmlFor="apiPassword" className="text-sm font-medium" style={{ color: "#3f3f46" }}>
+                <label
+                  htmlFor="apiPassword"
+                  className="text-sm font-medium"
+                  style={{ color: "#3f3f46" }}
+                >
                   Nova API Password
                 </label>
+
                 <input
                   id="apiPassword"
                   name="apiPassword"
@@ -197,16 +244,25 @@ export default async function EditSupplierPage({
                   className={inputClass}
                   style={{ color: "#18181b" }}
                 />
-                <p className="text-xs" style={{ color: "#a1a1aa" }}>
+
+                <p
+                  className="text-xs"
+                  style={{ color: "#a1a1aa" }}
+                >
                   Deixa vazio se não quiseres alterar a password.
                 </p>
               </div>
 
               {/* Currency */}
               <div className="space-y-1.5">
-                <label htmlFor="currency" className="text-sm font-medium" style={{ color: "#3f3f46" }}>
+                <label
+                  htmlFor="currency"
+                  className="text-sm font-medium"
+                  style={{ color: "#3f3f46" }}
+                >
                   Moeda
                 </label>
+
                 <input
                   id="currency"
                   name="currency"
@@ -219,9 +275,14 @@ export default async function EditSupplierPage({
 
               {/* Language */}
               <div className="space-y-1.5">
-                <label htmlFor="language" className="text-sm font-medium" style={{ color: "#3f3f46" }}>
+                <label
+                  htmlFor="language"
+                  className="text-sm font-medium"
+                  style={{ color: "#3f3f46" }}
+                >
                   Idioma
                 </label>
+
                 <input
                   id="language"
                   name="language"
@@ -232,12 +293,16 @@ export default async function EditSupplierPage({
                 />
               </div>
             </div>
-
-            {/* Descrição */}
+                        {/* Descrição */}
             <div className="space-y-1.5">
-              <label htmlFor="description" className="text-sm font-medium" style={{ color: "#3f3f46" }}>
+              <label
+                htmlFor="description"
+                className="text-sm font-medium"
+                style={{ color: "#3f3f46" }}
+              >
                 Descrição
               </label>
+
               <textarea
                 id="description"
                 name="description"
@@ -255,38 +320,69 @@ export default async function EditSupplierPage({
                 name="isActive"
                 type="checkbox"
                 defaultChecked={supplier.isActive}
-                className="h-4 w-4 rounded border-zinc-300 accent-pink-500 cursor-pointer"
+                className="
+                  h-4
+                  w-4
+                  cursor-pointer
+                  rounded
+                  border-zinc-300
+                  accent-pink-500
+                "
               />
-              <label htmlFor="isActive" className="text-sm font-medium" style={{ color: "#3f3f46" }}>
+
+              <label
+                htmlFor="isActive"
+                className="text-sm font-medium"
+                style={{ color: "#3f3f46" }}
+              >
                 Fornecedor ativo
               </label>
             </div>
 
             {/* Botões */}
             <div className="flex justify-end gap-3 border-t border-zinc-100 pt-5">
-              {/* CANCELAR - Link do Next.js */}
+              {/* CANCELAR */}
               <Link
                 href="/admin/suppliers"
                 className="
-                  inline-flex items-center justify-center
-                  h-10 px-5 text-sm font-semibold rounded-xl
-                  transition-all duration-200 cursor-pointer
-                  border-2 border-pink-500 text-pink-500
+                  inline-flex
+                  h-10
+                  items-center
+                  justify-center
+                  rounded-xl
+                  border-2
+                  border-pink-500
+                  px-5
+                  text-sm
+                  font-semibold
+                  text-pink-500
+                  transition-all
+                  duration-200
                   hover:bg-pink-50
                 "
               >
                 Cancelar
               </Link>
 
-              {/* GUARDAR - rosa sólido */}
+              {/* GUARDAR */}
               <button
                 type="submit"
                 className="
-                  inline-flex items-center justify-center
-                  h-10 px-5 text-sm font-semibold rounded-xl
-                  transition-all duration-200 cursor-pointer
-                  bg-pink-500 text-white
-                  hover:bg-pink-600 hover:shadow-lg hover:shadow-pink-500/25
+                  inline-flex
+                  h-10
+                  items-center
+                  justify-center
+                  rounded-xl
+                  bg-pink-500
+                  px-5
+                  text-sm
+                  font-semibold
+                  text-white
+                  transition-all
+                  duration-200
+                  hover:bg-pink-600
+                  hover:shadow-lg
+                  hover:shadow-pink-500/25
                 "
               >
                 Guardar alterações

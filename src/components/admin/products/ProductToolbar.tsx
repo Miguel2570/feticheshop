@@ -1,30 +1,28 @@
+// components/admin/products/ProductToolbar.tsx
+
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-
 import {
   Search,
-  SlidersHorizontal,
   X,
 } from "lucide-react";
-
 import { useState } from "react";
 
 export function ProductToolbar() {
   const router = useRouter();
-
   const searchParams = useSearchParams();
 
   const [search, setSearch] = useState(
-    searchParams.get("search") ?? "",
+    searchParams.get("search") ?? ""
   );
 
   const updateParam = (
     key: string,
-    value: string,
+    value: string
   ) => {
     const params = new URLSearchParams(
-      searchParams.toString(),
+      searchParams.toString()
     );
 
     if (value) {
@@ -33,41 +31,82 @@ export function ProductToolbar() {
       params.delete(key);
     }
 
+    // Quando alteramos um filtro,
+    // voltamos sempre para a primeira página.
     params.delete("page");
 
     router.push(
-      `/admin/products?${params.toString()}`,
+      `/admin/products?${params.toString()}`
     );
+  };
+
+  const clearFilters = () => {
+    setSearch("");
+    router.push("/admin/products");
   };
 
   return (
     <div
       className="
-        rounded-3xl
+        w-full
+        min-w-0
+        rounded-xl
         border
-        border-zinc-800
-        bg-[#111]
-        p-6
+        border-zinc-200
+        bg-white
+        p-3
+        shadow-sm
+
+        sm:rounded-2xl
+        sm:p-4
+
+        lg:p-5
       "
     >
-      <div className="flex flex-wrap gap-4">
+      <div
+        className="
+          grid
+          w-full
+          min-w-0
+          grid-cols-1
+          gap-3
 
-        {/* Pesquisa */}
+          sm:grid-cols-2
 
-        <div className="relative min-w-[320px] flex-1">
+          lg:flex
+          lg:flex-wrap
+          lg:items-center
+        "
+      >
+        {/* =================================================
+            PESQUISA
+        ================================================= */}
 
+        <div
+          className="
+            relative
+            w-full
+            min-w-0
+
+            lg:min-w-[250px]
+            lg:flex-1
+          "
+        >
           <Search
-            size={18}
+            size={16}
             className="
               absolute
-              left-4
+              left-3
               top-1/2
               -translate-y-1/2
-              text-zinc-500
+              text-zinc-400
+
+              sm:left-4
             "
           />
 
           <input
+            type="text"
             value={search}
             onChange={(e) =>
               setSearch(e.target.value)
@@ -76,30 +115,41 @@ export function ProductToolbar() {
               if (e.key === "Enter") {
                 updateParam(
                   "search",
-                  search,
+                  search
                 );
               }
             }}
             placeholder="Pesquisar produtos..."
             className="
+              h-10
               w-full
-              rounded-2xl
-              border
-              border-zinc-700
-              bg-zinc-900
-              py-3
-              pl-12
-              pr-4
-              text-white
+              min-w-0
+              rounded-xl
+              border-2
+              border-zinc-200
+              bg-zinc-50
+              pl-10
+              pr-3
+              text-sm
+              text-zinc-900
               outline-none
               transition
+
+              placeholder:text-zinc-400
+
               focus:border-pink-500
+              focus:ring-2
+              focus:ring-pink-200
+
+              sm:pl-11
+              sm:pr-4
             "
           />
-
         </div>
 
-        {/* Estado */}
+        {/* =================================================
+            ESTADO
+        ================================================= */}
 
         <select
           defaultValue={
@@ -108,17 +158,32 @@ export function ProductToolbar() {
           onChange={(e) =>
             updateParam(
               "status",
-              e.target.value,
+              e.target.value
             )
           }
           className="
-            rounded-2xl
-            border
-            border-zinc-700
-            bg-zinc-900
-            px-4
-            text-white
+            h-10
+            w-full
+            min-w-0
+            cursor-pointer
+            rounded-xl
+            border-2
+            border-zinc-200
+            bg-white
+            px-3
+            text-sm
+            text-zinc-900
             outline-none
+            transition
+
+            focus:border-pink-500
+            focus:ring-2
+            focus:ring-pink-200
+
+            sm:px-4
+
+            lg:w-auto
+            lg:min-w-[150px]
           "
         >
           <option value="">
@@ -144,10 +209,11 @@ export function ProductToolbar() {
           <option value="ARCHIVED">
             Arquivados
           </option>
-
         </select>
 
-        {/* Ordenação */}
+        {/* =================================================
+            ORDENAÇÃO
+        ================================================= */}
 
         <select
           defaultValue={
@@ -157,17 +223,32 @@ export function ProductToolbar() {
           onChange={(e) =>
             updateParam(
               "sort",
-              e.target.value,
+              e.target.value
             )
           }
           className="
-            rounded-2xl
-            border
-            border-zinc-700
-            bg-zinc-900
-            px-4
-            text-white
+            h-10
+            w-full
+            min-w-0
+            cursor-pointer
+            rounded-xl
+            border-2
+            border-zinc-200
+            bg-white
+            px-3
+            text-sm
+            text-zinc-900
             outline-none
+            transition
+
+            focus:border-pink-500
+            focus:ring-2
+            focus:ring-pink-200
+
+            sm:px-4
+
+            lg:w-auto
+            lg:min-w-[150px]
           "
         >
           <option value="newest">
@@ -197,59 +278,41 @@ export function ProductToolbar() {
           <option value="name">
             Nome
           </option>
-
         </select>
+        {searchParams.toString() && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="
+              inline-flex
+              h-10
+              w-full
+              items-center
+              justify-center
+              gap-2
+              rounded-xl
+              bg-pink-500
+              px-4
+              text-sm
+              font-semibold
+              text-white
+              transition
+              hover:bg-pink-600
+              cursor-pointer
 
-        {/* Botão filtros */}
+              sm:col-span-2
 
-        <button
-          className="
-            flex
-            items-center
-            gap-2
-            rounded-2xl
-            border
-            border-zinc-700
-            px-5
-            text-zinc-300
-            transition
-            hover:border-pink-500
-            hover:text-white
-          "
-        >
-          <SlidersHorizontal
-            size={18}
-          />
+              lg:w-auto
+              lg:px-5
+            "
+          >
+            <X size={16} />
 
-          Filtros
-
-        </button>
-
-        {/* Limpar */}
-
-        <button
-          onClick={() =>
-            router.push("/admin/products")
-          }
-          className="
-            flex
-            items-center
-            gap-2
-            rounded-2xl
-            border
-            border-red-500/20
-            px-5
-            text-red-400
-            transition
-            hover:bg-red-500/10
-          "
-        >
-          <X size={18} />
-
-          Limpar
-
-        </button>
-
+            <span>
+              Limpar
+            </span>
+          </button>
+        )}
       </div>
     </div>
   );

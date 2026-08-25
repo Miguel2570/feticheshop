@@ -1,14 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+} from "react";
 
 import { ProgressBar } from "./ProgressBar";
-import { SyncStats } from "./SyncStats";
 import { SyncLogs } from "./SyncLogs";
 import { SyncHeader } from "./SyncHeader";
-import { SyncTimeline } from "./SyncTimeline";
 import { SyncBackground } from "./SyncBackground";
-import { SyncFinished } from "./SyncFinished";
 import { SyncAnimation } from "./SyncAnimation";
 
 type DreamloveSyncPageProps = {
@@ -19,20 +21,17 @@ export function DreamloveSyncPage({
   supplierId,
 }: DreamloveSyncPageProps) {
   const [finished, setFinished] = useState(false);
-
   const [progress, setProgress] = useState(0);
-
   const [currentStep, setCurrentStep] = useState(
     "A preparar sincronização..."
   );
-
   const [imported, setImported] = useState(0);
-  const [updated, setUpdated] = useState(0);
-  const [failed, setFailed] = useState(0);
-
   const [logs, setLogs] = useState<string[]>([]);
-
   const [elapsed, setElapsed] = useState("00:00");
+
+  const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const hasStartedRef = useRef(false);
+  const lastMessageRef = useRef("");
 
   // Cronómetro
   useEffect(() => {
@@ -54,179 +53,181 @@ export function DreamloveSyncPage({
       setElapsed(`${mins}:${secs}`);
     }, 1000);
 
-    return () => {
-      clearInterval(timer);
-    };
+    return () => clearInterval(timer);
   }, []);
 
-  // Iniciar sincronização + SSE
-  useEffect(() => {
-    let source: EventSource | null = null;
+  // Iniciar sincronização (apenas uma vez)
+  const startSync = useCallback(async () => {
+    if (hasStartedRef.current) return;
 
-    async function startSync() {
-      try {
-        const response = await fetch(
-          "/api/supplier/start-sync",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              supplierId,
-            }),
-          }
-        );
+    hasStartedRef.current = true;
 
-        const result = await response.json();
+    try {
+      setLogs((prev) => [
+        ...prev,
+        "🚀 A iniciar sincronização...",
+      ]);
 
-        if (!response.ok) {
-          setLogs((prev) => [
-            ...prev,
-            `❌ ${result.message}`,
-          ]);
-
-          return;
+      const response = await fetch(
+        "/api/supplier/start-sync",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            supplierId,
+          }),
         }
+      );
 
-        source = new EventSource(
-          "/api/supplier/sync"
-        );
+      const result = await response.json();
 
-        source.onmessage = (event) => {
-          try {
-            const data = JSON.parse(
-              event.data
-            );
-
-            switch (data.type) {
-              case "progress":
-                setProgress(
-                  Number(data.progress) || 0
-                );
-
-                setCurrentStep(
-                  data.step ??
-                    "A sincronizar..."
-                );
-
-                break;
-
-              case "count":
-                setImported(
-                  Number(data.imported) || 0
-                );
-
-                setUpdated(
-                  Number(data.updated) || 0
-                );
-
-                setFailed(
-                  Number(data.failed) || 0
-                );
-
-                break;
-
-              case "log":
-                setLogs((prev) => [
-                  ...prev,
-                  data.message,
-                ]);
-
-                break;
-
-              case "done":
-                setFinished(true);
-                setProgress(100);
-
-                setCurrentStep(
-                  "Sincronização concluída."
-                );
-
-                source?.close();
-
-                break;
-
-              case "error":
-                setLogs((prev) => [
-                  ...prev,
-                  `❌ ${data.message}`,
-                ]);
-
-                break;
-
-              default:
-                break;
-            }
-          } catch {
-            setLogs((prev) => [
-              ...prev,
-              event.data,
-            ]);
-          }
-        };
-
-        source.onerror = () => {
-          setLogs((prev) => [
-            ...prev,
-            "Ligação perdida com o servidor.",
-          ]);
-
-          source?.close();
-        };
-      } catch (error) {
+      if (!response.ok) {
         setLogs((prev) => [
           ...prev,
-          error instanceof Error
-            ? `❌ ${error.message}`
-            : "❌ Não foi possível iniciar a sincronização.",
+          `❌ ${result.message}`,
         ]);
-      }
-    }
 
+        setFinished(true);
+        return;
+      }
+
+      setLogs((prev) => [
+        ...prev,
+        `✅ ${result.message}`,
+      ]);
+    } catch (error) {
+      setLogs((prev) => [
+        ...prev,
+        error instanceof Error
+          ? `❌ ${error.message}`
+          : "❌ Erro ao iniciar",
+      ]);
+
+      setFinished(true);
+    }
+  }, [supplierId]);
+
+  // Polling
+  useEffect(() => {
     startSync();
 
+    pollRef.current = setInterval(async () => {
+      try {
+        const response = await fetch(
+          `/api/supplier/sync?supplierId=${supplierId}`
+        );
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+
+        if (
+          data.status === "RUNNING" ||
+          data.status === "IDLE"
+        ) {
+          const totalInDb =
+            data.totalProducts || 0;
+
+          const importedCount =
+            totalInDb > 0
+              ? totalInDb
+              : data.imported || 0;
+
+          setProgress(data.progress ?? 0);
+
+          setCurrentStep(
+            data.message ?? "A sincronizar..."
+          );
+
+          setImported(importedCount);
+        } else if (data.status === "SUCCESS") {
+          setFinished(true);
+          setProgress(100);
+
+          setCurrentStep(
+            "Sincronização concluída."
+          );
+
+          setImported(data.imported ?? 0);
+
+          setLogs((prev) => [
+            ...prev,
+            "✅ Sincronização concluída com sucesso.",
+          ]);
+
+          if (pollRef.current) {
+            clearInterval(pollRef.current);
+          }
+        } else if (data.status === "FAILED") {
+          setFinished(true);
+
+          setCurrentStep(
+            "Sincronização falhou."
+          );
+
+          setLogs((prev) => [
+            ...prev,
+            `❌ ${data.message ?? "Erro"}`,
+          ]);
+
+          if (pollRef.current) {
+            clearInterval(pollRef.current);
+          }
+        }
+
+        if (
+          data.message &&
+          data.message !== lastMessageRef.current
+        ) {
+          lastMessageRef.current =
+            data.message;
+
+          setLogs((prev) => [
+            ...prev,
+            `📊 ${data.message}`,
+          ]);
+        }
+      } catch {
+        // Silencioso
+      }
+    }, 1000);
+
     return () => {
-      source?.close();
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+      }
     };
-  }, [supplierId]);
+  }, [supplierId, startSync]);
 
   return (
     <div className="relative min-h-screen">
       <SyncBackground />
 
-      <div className="relative z-10 mx-auto max-w-7xl space-y-8 p-10">
+      <div className="relative z-10 mx-auto max-w-4xl space-y-6 p-8">
         <SyncHeader elapsed={elapsed} />
 
-        <SyncAnimation
-          active={!finished}
-        />
+        <SyncAnimation active={!finished} />
 
         <ProgressBar
           progress={progress}
           currentStep={currentStep}
         />
 
-        <SyncTimeline
-          currentStep={currentStep}
-        />
-
-        <SyncStats
-          imported={imported}
-          updated={updated}
-          failed={failed}
-          elapsed={elapsed}
-        />
-
         <SyncLogs logs={logs} />
 
-        <SyncFinished
-          finished={finished}
-          imported={imported}
-          updated={updated}
-          failed={failed}
-          elapsed={elapsed}
-        />
+        {finished && (
+          <div className="rounded-2xl border-2 border-emerald-200 bg-emerald-50 p-6 text-center">
+            <p className="text-2xl font-bold text-emerald-600">
+              ✅ Sincronização Concluída!
+            </p>
+
+            <p className="mt-2 text-emerald-700">
+              {imported} produtos na base de dados
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

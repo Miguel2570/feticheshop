@@ -88,6 +88,12 @@ enum InventoryReferenceType {
   IMPORT
 }
 
+enum StockMode {
+  PHYSICAL
+  SUPPLIER
+  BOTH
+}
+
 model PasswordReset {
   id    String @id @default(cuid())
   email String
@@ -352,6 +358,15 @@ model Product {
   price        Decimal  @db.Decimal(10, 2)
   comparePrice Decimal? @db.Decimal(10, 2)
   costPrice    Decimal? @db.Decimal(10, 2)
+
+  // NOVO: Modo de stock
+  stockMode StockMode @default(PHYSICAL)
+  
+  // Stock físico (loja)
+  physicalStock Int @default(0)
+  
+  // Stock do fornecedor (sincronizado)
+  supplierStock Int @default(0)
 
   stock          Int     @default(0)
   manageStock    Boolean @default(true)
@@ -715,6 +730,7 @@ model Order {
 
   @@index([userId])
   @@index([status])
+  @@index([couponId, userId])
 }
 
 model OrderAddress {
