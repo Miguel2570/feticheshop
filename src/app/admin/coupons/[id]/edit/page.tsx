@@ -36,6 +36,23 @@ export default async function EditCouponPage({
     notFound();
   }
 
+  // Converter Decimal para number
+  const plainCoupon = {
+    id: coupon.id,
+    code: coupon.code,
+    name: coupon.name,
+    description: coupon.description,
+    discountValue: Number(coupon.discountValue),
+    isPercentage: coupon.isPercentage,
+    maximumDiscount: coupon.maximumDiscount ? Number(coupon.maximumDiscount) : null,
+    minimumAmount: coupon.minimumAmount ? Number(coupon.minimumAmount) : null,
+    usageLimit: coupon.usageLimit,
+    usagePerUser: coupon.usagePerUser,
+    startsAt: coupon.startsAt,
+    endsAt: coupon.endsAt,
+    isActive: coupon.isActive,
+  };
+
   return (
     <div className="space-y-6">
 
@@ -76,7 +93,7 @@ export default async function EditCouponPage({
         <CardContent>
 
           <CouponForm
-            coupon={coupon}
+            coupon={plainCoupon}
           />
 
         </CardContent>
