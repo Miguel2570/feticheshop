@@ -1,11 +1,12 @@
+// src/app/api/products/[slug]/stock-mode/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ slug: string }> }  // Mudar de id para slug
 ) {
-  const { id } = await params;
+  const { slug } = await params;  // Extrair slug em vez de id
   const body = await request.json();
   const mode = body.mode;
 
@@ -13,10 +14,18 @@ export async function PATCH(
     return NextResponse.json({ error: "Modo inválido" }, { status: 400 });
   }
 
-  const product = await prisma.product.update({
-    where: { id },
-    data: { stockMode: mode },
-  });
+  try {
+    const product = await prisma.product.update({
+      where: { slug },  // Usar slug em vez de id
+      data: { stockMode: mode },
+    });
 
-  return NextResponse.json(product);
+    return NextResponse.json(product);
+  } catch (error) {
+    console.error("Erro ao atualizar modo de stock:", error);
+    return NextResponse.json(
+      { error: "Produto não encontrado ou erro ao atualizar" },
+      { status: 404 }
+    );
+  }
 }
