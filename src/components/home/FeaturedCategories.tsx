@@ -58,11 +58,10 @@ export async function CategoriesGrid() {
   }
 
   return (
-  <section className="arabesque-bg relative overflow-hidden">
-    <div className="container-custom">
-      {/* Cabeçalho da secção */}
-      <div className="pt-10 mb-8 sm:pt-16 sm:mb-16 flex items-end justify-between">
-        <div>
+    <section className="arabesque-bg relative overflow-hidden">
+      <div className="container-custom">
+        {/* Cabeçalho da secção - CENTRADO */}
+        <div className="pt-10 mb-8 sm:pt-16 sm:mb-16 text-center">
           <p className="section-eyebrow">Explora por categoria</p>
 
           <h2 className="section-title mt-4">
@@ -79,50 +78,49 @@ export async function CategoriesGrid() {
           </h2>
         </div>
 
-        {/* Link "Ver todas" para desktop */}
-        <Link
-          href="/product"
-          className="
-            hidden
-            lg:flex
-            items-center
-            gap-2
-            text-sm
-            font-medium
-            text-zinc-400
-            hover:text-pink-500
-          "
-        >
-          Ver todas
-          <ArrowRight size={18} />
-        </Link>
-      </div>
+        {/* Grelha de categorias */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5 lg:gap-6">
+          {allCategories.map((category) => (
+            <CategoryCard
+              key={category.id}
+              id={category.id}
+              slug={category.slug}
+              name={category.name}
+              description={category.description}
+              image={category.image}
+            />
+          ))}
+        </div>
 
-      {/* Grelha de categorias */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-5 lg:gap-6">
-        {allCategories.map((category) => (
-          <CategoryCard
-            key={category.id}
-            id={category.id}
-            slug={category.slug}
-            name={category.name}
-            description={category.description}
-            image={category.image}
-          />
-        ))}
+        {/* Link "Ver todas" - CENTRADO */}
+        <div className="mt-8 pb-10 flex justify-center">
+          <Link
+            href="/product"
+            className="
+              flex
+              items-center
+              justify-center
+              gap-2
+              rounded-full
+              bg-pink-500
+              px-8
+              py-3.5
+              text-sm
+              font-semibold
+              text-white
+              transition-all
+              duration-300
+              hover:bg-pink-600
+              hover:scale-105
+              hover:shadow-[0_0_30px_rgba(255,46,136,.35)]
+              cursor-pointer
+            "
+          >
+            Ver todas
+            <ArrowRight size={16} />
+          </Link>
+        </div>
       </div>
-
-      {/* Link "Ver todas" para mobile */}
-      <div className="mt-8 pb-10 flex justify-center lg:hidden">
-        <Link
-          href="/product"
-          className="flex items-center gap-2 rounded-full border border-zinc-300 px-6 py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
-        >
-          Ver todas
-          <ArrowRight size={16} />
-        </Link>
-      </div>
-    </div>
-  </section>
-);
+    </section>
+  );
 }
