@@ -10,7 +10,7 @@ import { prisma } from "@/lib/prisma";
 type IconComponent = ComponentType<{ size?: number | string; className?: string }>;
 type FooterLink = { href: string; label: string };
 type FooterSection = { title: string; links: FooterLink[] };
-type SocialLink = { href: string; label: string; icon: IconComponent; size?: number };
+type SocialLink = { href: string; label: string; icon: IconComponent; size?: number; isWhatsApp?: boolean };
 type PaymentMethod = { src: string; alt: string };
 
 const socialLinks: SocialLink[] = [
@@ -27,10 +27,11 @@ const socialLinks: SocialLink[] = [
     size: 17,
   },
   {
-    href: "https://wa.me/351919292567",
+    href: "whatsapp://send?phone=351919292567",
     label: "WhatsApp",
     icon: FaWhatsapp,
     size: 19,
+    isWhatsApp: true,
   },
 ];
 
@@ -70,6 +71,8 @@ function ContactLink({
   icon: IconComponent;
   children: ReactNode;
 }) {
+  const isWhatsApp = href.startsWith("whatsapp://");
+
   return (
     <a
       href={href}
@@ -85,7 +88,6 @@ export async function Footer() {
   const user = await getCurrentUser();
   const isAuthenticated = !!user;
 
-  // Verifica se há produtos novos e em promoção
   const [newCount, saleCount] = await Promise.all([
     prisma.product.count({
       where: { status: "ACTIVE", isNew: true },
@@ -153,7 +155,7 @@ export async function Footer() {
     <footer className="border-t border-zinc-800 bg-black text-white">
       <div className="container-custom py-14">
         <div className="grid gap-10 sm:grid-cols-3 lg:grid-cols-7">
-          {/* Marca + contactos - ocupa 2 colunas */}
+          {/* Marca + contactos */}
           <div className="lg:col-span-2">
             <div className="space-y-3">
               <ContactLink
@@ -163,13 +165,16 @@ export async function Footer() {
                 feticheshop.leiria@gmail.com
               </ContactLink>
 
-              <ContactLink href="tel:+351919292567" icon={Phone}>
+              {/* Telefone agora abre WhatsApp */}
+              <ContactLink
+                href="whatsapp://send?phone=351919292567"
+                icon={Phone}
+              >
                 +351 919 292 567
               </ContactLink>
 
               <div className="flex items-start gap-3 text-sm leading-6 text-zinc-400">
                 <MapPin size={17} className="mt-1 shrink-0 text-pink-500" />
-
                 <span>
                   Rua da Nazaré, Lote 3, R/C Loja A
                   <br />
@@ -181,12 +186,11 @@ export async function Footer() {
             </div>
 
             <div className="mt-7 flex items-center gap-2">
-              {socialLinks.map(({ href, label, icon: Icon, size = 18 }) => (
+              {socialLinks.map(({ href, label, icon: Icon, size = 18, isWhatsApp }) => (
                 <a
                   key={label}
                   href={href}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  {...(!isWhatsApp ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                   aria-label={label}
                   className={socialButtonClass}
                 >
@@ -206,13 +210,11 @@ export async function Footer() {
       {/* Bottom */}
       <div className="border-t border-zinc-800">
         <div className="container-custom flex flex-col gap-4 py-6 text-xs text-zinc-500 md:flex-row md:items-center md:justify-between">
-          {/* Esquerda: Copyright */}
           <p>
             © {new Date().getFullYear()} Fetiche Shop. Todos os
             direitos reservados.
           </p>
 
-          {/* Direita: Pagamento seguro */}
           <div className="flex flex-wrap items-center gap-4">
             <span className="text-xs font-medium text-zinc-400">
               Pagamento seguro
@@ -229,7 +231,8 @@ export async function Footer() {
                     alt={alt}
                     width={60}
                     height={30}
-                    className="h-5 w-auto"
+                    className="h-5 w-auto object-contain"
+                    unoptimized
                   />
                 </div>
               ))}

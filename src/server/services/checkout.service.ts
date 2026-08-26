@@ -16,6 +16,7 @@ export class CheckoutService {
       addressId: string;
       notes?: string;
       couponCode?: string;
+      paymentMethod: PaymentMethod;
     }
   ) {
     return prisma.$transaction(
@@ -25,10 +26,7 @@ export class CheckoutService {
         // =====================================================
 
         const cart = await tx.cart.findUnique({
-          where: {
-            userId,
-          },
-
+          where: { userId },
           include: {
             items: {
               include: {
@@ -51,12 +49,9 @@ export class CheckoutService {
         // Morada
         // =====================================================
 
-        const address =
-          await tx.userAddress.findUnique({
-            where: {
-              id: input.addressId,
-            },
-          });
+        const address = await tx.userAddress.findUnique({
+          where: { id: input.addressId },
+        });
 
         if (!address || address.userId !== userId) {
           throw new Error("Morada inválida.");
@@ -66,27 +61,22 @@ export class CheckoutService {
         // Snapshot da morada
         // =====================================================
 
-        const orderAddress =
-          await tx.orderAddress.create({
-            data: {
-              firstName: address.firstName,
-              lastName: address.lastName,
-
-              company: address.company,
-              vatNumber: address.vatNumber,
-
-              email: address.email,
-              phone: address.phone,
-
-              addressLine1: address.addressLine1,
-              addressLine2: address.addressLine2,
-
-              postalCode: address.postalCode,
-              city: address.city,
-              district: address.district,
-              country: address.country,
-            },
-          });
+        const orderAddress = await tx.orderAddress.create({
+          data: {
+            firstName: address.firstName,
+            lastName: address.lastName,
+            company: address.company,
+            vatNumber: address.vatNumber,
+            email: address.email,
+            phone: address.phone,
+            addressLine1: address.addressLine1,
+            addressLine2: address.addressLine2,
+            postalCode: address.postalCode,
+            city: address.city,
+            district: address.district,
+            country: address.country,
+          },
+        });
 
         // =====================================================
         // Subtotal
@@ -95,25 +85,17 @@ export class CheckoutService {
         let subtotal = new Prisma.Decimal(0);
 
         for (const item of cart.items) {
-          const price =
-            item.variant?.price ??
-            item.product.price;
+          const price = item.variant?.price ?? item.product.price;
 
           if (price === null || price === undefined) {
-            throw new Error(
-              `Preço inválido para o produto ${item.product.name}.`
-            );
+            throw new Error(`Preço inválido para o produto ${item.product.name}.`);
           }
 
           if (item.quantity <= 0) {
-            throw new Error(
-              `Quantidade inválida para o produto ${item.product.name}.`
-            );
+            throw new Error(`Quantidade inválida para o produto ${item.product.name}.`);
           }
 
-          subtotal = subtotal.plus(
-            price.mul(item.quantity)
-          );
+          subtotal = subtotal.plus(price.mul(item.quantity));
         }
 
         // =====================================================
@@ -121,60 +103,38 @@ export class CheckoutService {
         // =====================================================
 
         let couponId: string | null = null;
-
-        let discount =
-          new Prisma.Decimal(0);
+        let discount = new Prisma.Decimal(0);
 
         if (input.couponCode?.trim()) {
-          const code =
-            input.couponCode
-              .trim()
-              .toUpperCase();
+          const code = input.couponCode.trim().toUpperCase();
 
-          /*
-           * Lock do cupão.
-           *
-           * Isto impede que dois checkouts concorrentes
-           * utilizem simultaneamente o mesmo limite.
-           */
-          const coupons =
-            await tx.$queryRaw<
-              Array<{
-                id: string;
-                code: string;
-                name: string;
-                description: string | null;
-                discountValue: Prisma.Decimal;
-                isPercentage: boolean;
-                maximumDiscount: Prisma.Decimal | null;
-                minimumAmount: Prisma.Decimal | null;
-                usageLimit: number | null;
-                usedCount: number;
-                usagePerUser: number | null;
-                isActive: boolean;
-                startsAt: Date | null;
-                endsAt: Date | null;
-              }>
-            >`
-              SELECT
-                "id",
-                "code",
-                "name",
-                "description",
-                "discountValue",
-                "isPercentage",
-                "maximumDiscount",
-                "minimumAmount",
-                "usageLimit",
-                "usedCount",
-                "usagePerUser",
-                "isActive",
-                "startsAt",
-                "endsAt"
-              FROM "Coupon"
-              WHERE "code" = ${code}
-              FOR UPDATE
-            `;
+          const coupons = await tx.$queryRaw<
+            Array<{
+              id: string;
+              code: string;
+              name: string;
+              description: string | null;
+              discountValue: Prisma.Decimal;
+              isPercentage: boolean;
+              maximumDiscount: Prisma.Decimal | null;
+              minimumAmount: Prisma.Decimal | null;
+              usageLimit: number | null;
+              usedCount: number;
+              usagePerUser: number | null;
+              isActive: boolean;
+              startsAt: Date | null;
+              endsAt: Date | null;
+            }>
+          >`
+            SELECT
+              "id", "code", "name", "description",
+              "discountValue", "isPercentage", "maximumDiscount",
+              "minimumAmount", "usageLimit", "usedCount",
+              "usagePerUser", "isActive", "startsAt", "endsAt"
+            FROM "Coupon"
+            WHERE "code" = ${code}
+            FOR UPDATE
+          `;
 
           const coupon = coupons[0];
 
@@ -183,104 +143,45 @@ export class CheckoutService {
           }
 
           if (!coupon.isActive) {
-            throw new Error(
-              "Este cupão está desativado."
-            );
+            throw new Error("Este cupão está desativado.");
           }
 
           const now = new Date();
 
-          if (
-            coupon.startsAt &&
-            coupon.startsAt > now
-          ) {
-            throw new Error(
-              "Este cupão ainda não está disponível."
-            );
+          if (coupon.startsAt && coupon.startsAt > now) {
+            throw new Error("Este cupão ainda não está disponível.");
           }
 
-          if (
-            coupon.endsAt &&
-            coupon.endsAt < now
-          ) {
-            throw new Error(
-              "Este cupão expirou."
-            );
+          if (coupon.endsAt && coupon.endsAt < now) {
+            throw new Error("Este cupão expirou.");
           }
 
-          if (
-            coupon.usageLimit !== null &&
-            coupon.usedCount >=
-              coupon.usageLimit
-          ) {
-            throw new Error(
-              "Este cupão atingiu o limite de utilizações."
-            );
+          if (coupon.usageLimit !== null && coupon.usedCount >= coupon.usageLimit) {
+            throw new Error("Este cupão atingiu o limite de utilizações.");
           }
 
-          // ===================================================
-          // Limite por utilizador
-          // ===================================================
+          if (coupon.usagePerUser !== null) {
+            const userUsage = await tx.order.count({
+              where: { userId, couponId: coupon.id },
+            });
 
-          if (
-            coupon.usagePerUser !== null
-          ) {
-            const userUsage =
-              await tx.order.count({
-                where: {
-                  userId,
-                  couponId: coupon.id,
-                },
-              });
-
-            if (
-              userUsage >=
-              coupon.usagePerUser
-            ) {
-              throw new Error(
-                "Já atingiu o limite de utilizações deste cupão."
-              );
+            if (userUsage >= coupon.usagePerUser) {
+              throw new Error("Já atingiu o limite de utilizações deste cupão.");
             }
           }
 
-          // ===================================================
-          // Compra mínima
-          // ===================================================
-
-          if (
-            coupon.minimumAmount !== null &&
-            subtotal.lessThan(
-              coupon.minimumAmount
-            )
-          ) {
-            throw new Error(
-              `Compra mínima de ${Number(
-                coupon.minimumAmount
-              ).toFixed(2)} €`
-            );
+          if (coupon.minimumAmount !== null && subtotal.lessThan(coupon.minimumAmount)) {
+            throw new Error(`Compra mínima de ${Number(coupon.minimumAmount).toFixed(2)} €`);
           }
-
-          // ===================================================
-          // Calcular desconto
-          // ===================================================
 
           if (coupon.isPercentage) {
-            discount = subtotal
-              .mul(coupon.discountValue)
-              .div(100);
+            discount = subtotal.mul(coupon.discountValue).div(100);
 
-            if (
-              coupon.maximumDiscount !== null &&
-              discount.greaterThan(
-                coupon.maximumDiscount
-              )
-            ) {
-              discount =
-                coupon.maximumDiscount;
+            if (coupon.maximumDiscount !== null && discount.greaterThan(coupon.maximumDiscount)) {
+              discount = coupon.maximumDiscount;
             }
           } else {
-            discount =
-              coupon.discountValue;
+            discount = coupon.discountValue;
           }
 
           if (discount.greaterThan(subtotal)) {
@@ -288,8 +189,7 @@ export class CheckoutService {
           }
 
           if (discount.lessThan(0)) {
-            discount =
-              new Prisma.Decimal(0);
+            discount = new Prisma.Decimal(0);
           }
 
           couponId = coupon.id;
@@ -299,54 +199,26 @@ export class CheckoutService {
         // Totais
         // =====================================================
 
-        const shipping =
-          new Prisma.Decimal(0);
-
-        const total = subtotal
-          .plus(shipping)
-          .minus(discount);
+        const shipping = new Prisma.Decimal(0);
+        const total = subtotal.plus(shipping).minus(discount);
 
         // =====================================================
         // Encomenda
         // =====================================================
 
-        const order =
-          await tx.order.create({
-            data: {
-              orderNumber:
-                randomUUID()
-                  .replaceAll("-", "")
-                  .slice(0, 10)
-                  .toUpperCase(),
-
-              user: {
-                connect: {
-                  id: userId,
-                },
-              },
-
-              orderAddress: {
-                connect: {
-                  id: orderAddress.id,
-                },
-              },
-
-              subtotal,
-              shipping,
-              discount,
-              total,
-
-              notes: input.notes,
-
-              ...(couponId && {
-                coupon: {
-                  connect: {
-                    id: couponId,
-                  },
-                },
-              }),
-            },
-          });
+        const order = await tx.order.create({
+          data: {
+            orderNumber: randomUUID().replaceAll("-", "").slice(0, 10).toUpperCase(),
+            user: { connect: { id: userId } },
+            orderAddress: { connect: { id: orderAddress.id } },
+            subtotal,
+            shipping,
+            discount,
+            total,
+            notes: input.notes,
+            ...(couponId && { coupon: { connect: { id: couponId } } }),
+          },
+        });
 
         // =====================================================
         // Incrementar utilização do cupão
@@ -354,15 +226,8 @@ export class CheckoutService {
 
         if (couponId) {
           await tx.coupon.update({
-            where: {
-              id: couponId,
-            },
-
-            data: {
-              usedCount: {
-                increment: 1,
-              },
-            },
+            where: { id: couponId },
+            data: { usedCount: { increment: 1 } },
           });
         }
 
@@ -371,127 +236,54 @@ export class CheckoutService {
         // =====================================================
 
         for (const item of cart.items) {
-          const price =
-            item.variant?.price ??
-            item.product.price;
+          const price = item.variant?.price ?? item.product.price;
 
           await tx.orderItem.create({
             data: {
-              order: {
-                connect: {
-                  id: order.id,
-                },
-              },
-
-              product: {
-                connect: {
-                  id: item.productId,
-                },
-              },
-
-              ...(item.variantId && {
-                variant: {
-                  connect: {
-                    id: item.variantId,
-                  },
-                },
-              }),
-
+              order: { connect: { id: order.id } },
+              product: { connect: { id: item.productId } },
+              ...(item.variantId && { variant: { connect: { id: item.variantId } } }),
               name: item.product.name,
-
-              sku:
-                item.variant?.sku ??
-                item.product.sku,
-
-              ean:
-                item.variant?.ean ??
-                item.product.ean,
-
+              sku: item.variant?.sku ?? item.product.sku,
+              ean: item.variant?.ean ?? item.product.ean,
               quantity: item.quantity,
-
               unitPrice: price,
-
-              totalPrice: price.mul(
-                item.quantity
-              ),
+              totalPrice: price.mul(item.quantity),
             },
           });
 
-          // ===================================================
-          // Stock
-          // ===================================================
-
           if (item.variantId) {
-            const variant =
-              await tx.productVariant.findUnique({
-                where: {
-                  id: item.variantId,
-                },
-
-                select: {
-                  id: true,
-                  stock: true,
-                  allowBackorder: true,
-                },
-              });
+            const variant = await tx.productVariant.findUnique({
+              where: { id: item.variantId },
+              select: { id: true, stock: true, allowBackorder: true },
+            });
 
             if (!variant) {
-              throw new Error(
-                "Variante não encontrada."
-              );
+              throw new Error("Variante não encontrada.");
             }
 
-            const stockBefore =
-              variant.stock;
+            const stockBefore = variant.stock;
+            const stockAfter = stockBefore - item.quantity;
 
-            const stockAfter =
-              stockBefore - item.quantity;
-
-            if (
-              stockAfter < 0 &&
-              !variant.allowBackorder
-            ) {
-              throw new Error(
-                `Stock insuficiente para a variante.`
-              );
+            if (stockAfter < 0 && !variant.allowBackorder) {
+              throw new Error("Stock insuficiente para a variante.");
             }
 
             await tx.productVariant.update({
-              where: {
-                id: variant.id,
-              },
-
-              data: {
-                stock: stockAfter,
-              },
+              where: { id: variant.id },
+              data: { stock: stockAfter },
             });
 
             await tx.inventoryMovement.create({
               data: {
-                variant: {
-                  connect: {
-                    id: variant.id,
-                  },
-                },
-
-                type:
-                  InventoryMovementType.SALE,
-
+                variant: { connect: { id: variant.id } },
+                type: InventoryMovementType.SALE,
                 quantity: item.quantity,
-
                 stockBefore,
-
                 stockAfter,
-
                 referenceType: "ORDER",
-
                 referenceId: order.id,
-
-                createdBy: {
-                  connect: {
-                    id: userId,
-                  },
-                },
+                createdBy: { connect: { id: userId } },
               },
             });
           }
@@ -503,16 +295,9 @@ export class CheckoutService {
 
         await tx.payment.create({
           data: {
-            order: {
-              connect: {
-                id: order.id,
-              },
-            },
-
-            method: PaymentMethod.CARD,
-
+            order: { connect: { id: order.id } },
+            method: input.paymentMethod,
             amount: total,
-
             status: PaymentStatus.PENDING,
           },
         });
@@ -522,9 +307,7 @@ export class CheckoutService {
         // =====================================================
 
         await tx.cartItem.deleteMany({
-          where: {
-            cartId: cart.id,
-          },
+          where: { cartId: cart.id },
         });
 
         // =====================================================
@@ -532,15 +315,11 @@ export class CheckoutService {
         // =====================================================
 
         return tx.order.findUnique({
-          where: {
-            id: order.id,
-          },
-
+          where: { id: order.id },
           include: {
             orderAddress: true,
             payment: true,
             coupon: true,
-
             items: {
               include: {
                 product: true,
@@ -554,5 +333,4 @@ export class CheckoutService {
   }
 }
 
-export const checkoutService =
-  new CheckoutService();
+export const checkoutService = new CheckoutService();

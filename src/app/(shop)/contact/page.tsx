@@ -52,10 +52,10 @@ export default function ContactPage() {
   const contactInfo = [
     {
       icon: Phone,
-      label: "Telefone",
+      label: "WhatsApp",
       value: "+351 919 292 567",
       sub: "Seg. a Sex., 09:00 - 18:00",
-      href: "tel:+351919292567",
+      href: "whatsapp://send?phone=351919292567",
     },
     {
       icon: Mail,
@@ -96,7 +96,7 @@ export default function ContactPage() {
       size: 16,
     },
     {
-      href: "https://wa.me/351919292567",
+      href: "whatsapp://send?phone=351919292567",
       label: "WhatsApp",
       icon: FaWhatsapp,
       size: 18,
@@ -187,8 +187,6 @@ export default function ContactPage() {
                   <a
                     key={label}
                     href={href}
-                    target="_blank"
-                    rel="noopener noreferrer"
                     aria-label={label}
                     title={label}
                     className="flex h-10 w-10 items-center justify-center rounded-full border border-pink-200 bg-pink-50 transition-all duration-300 hover:scale-110 hover:bg-pink-500 hover:border-pink-500 cursor-pointer"

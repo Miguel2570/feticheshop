@@ -1,12 +1,25 @@
 "use client";
 
+import { useState } from "react";
 import {
-  CreditCard,
   Landmark,
   Smartphone,
 } from "lucide-react";
 
-export function PaymentMethod() {
+type PaymentMethod = "MBWAY" | "MULTIBANCO";
+
+interface PaymentMethodProps {
+  onSelect: (method: PaymentMethod) => void;
+}
+
+export function PaymentMethod({ onSelect }: PaymentMethodProps) {
+  const [selected, setSelected] = useState<PaymentMethod>("MBWAY");
+
+  const handleSelect = (method: PaymentMethod) => {
+    setSelected(method);
+    onSelect(method);
+  };
+
   return (
     <section className="rounded-[30px] border border-pink-100 bg-white p-8 shadow-sm">
       <div className="mb-8">
@@ -20,16 +33,20 @@ export function PaymentMethod() {
 
       <div className="space-y-5">
         {/* MB Way */}
-        <label
-          className="
-            flex cursor-pointer items-center justify-between
-            rounded-2xl border-2 border-pink-500 bg-pink-50/50
-            p-6 transition-all
-          "
+        <button
+          type="button"
+          onClick={() => handleSelect("MBWAY")}
+          className={`
+            flex w-full cursor-pointer items-center justify-between
+            rounded-2xl border-2 p-6 transition-all text-left
+            ${selected === "MBWAY"
+              ? "border-pink-500 bg-pink-50/50"
+              : "border-zinc-200 bg-white hover:border-pink-300"
+            }
+          `}
         >
           <div className="flex items-center gap-5">
-            <input type="radio" name="payment" defaultChecked className="hidden" />
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-pink-500 text-white">
+            <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${selected === "MBWAY" ? "bg-pink-500 text-white" : "bg-zinc-100 text-zinc-600"}`}>
               <Smartphone size={22} />
             </div>
             <div>
@@ -41,19 +58,29 @@ export function PaymentMethod() {
               </p>
             </div>
           </div>
-        </label>
+
+          <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${selected === "MBWAY" ? "border-pink-500" : "border-zinc-300"}`}>
+            {selected === "MBWAY" && (
+              <div className="h-2.5 w-2.5 rounded-full bg-pink-500" />
+            )}
+          </div>
+        </button>
 
         {/* Multibanco */}
-        <label
-          className="
-            flex cursor-pointer items-center justify-between
-            rounded-2xl border border-zinc-200 bg-white
-            p-6 transition-all hover:border-pink-300
-          "
+        <button
+          type="button"
+          onClick={() => handleSelect("MULTIBANCO")}
+          className={`
+            flex w-full cursor-pointer items-center justify-between
+            rounded-2xl border-2 p-6 transition-all text-left
+            ${selected === "MULTIBANCO"
+              ? "border-pink-500 bg-pink-50/50"
+              : "border-zinc-200 bg-white hover:border-pink-300"
+            }
+          `}
         >
           <div className="flex items-center gap-5">
-            <input type="radio" name="payment" className="hidden" />
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600">
+            <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${selected === "MULTIBANCO" ? "bg-pink-500 text-white" : "bg-zinc-100 text-zinc-600"}`}>
               <Landmark size={22} />
             </div>
             <div>
@@ -65,31 +92,13 @@ export function PaymentMethod() {
               </p>
             </div>
           </div>
-        </label>
 
-        {/* Cartão */}
-        <label
-          className="
-            flex cursor-pointer items-center justify-between
-            rounded-2xl border border-zinc-200 bg-white
-            p-6 transition-all hover:border-pink-300
-          "
-        >
-          <div className="flex items-center gap-5">
-            <input type="radio" name="payment" className="hidden" />
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-100 text-zinc-600">
-              <CreditCard size={22} />
-            </div>
-            <div>
-              <h3 className="font-semibold" style={{ color: "#18181b" }}>
-                Cartão Bancário
-              </h3>
-              <p className="mt-1 text-sm" style={{ color: "#71717a" }}>
-                Visa, Mastercard e outros cartões.
-              </p>
-            </div>
+          <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${selected === "MULTIBANCO" ? "border-pink-500" : "border-zinc-300"}`}>
+            {selected === "MULTIBANCO" && (
+              <div className="h-2.5 w-2.5 rounded-full bg-pink-500" />
+            )}
           </div>
-        </label>
+        </button>
       </div>
 
       {/* Segurança */}
