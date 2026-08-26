@@ -9,7 +9,6 @@ import "./globals.css";
 
 import { CartProvider } from "@/components/cart/CartProvider";
 import { WishlistProvider } from "@/components/wishlist/WishlistProvider";
-import { ThemeProvider } from "@/components/theme/ThemeProvider";
 import { CookieConsent } from "@/components/CookieConsent";
 
 const inter = Inter({
@@ -42,13 +41,11 @@ export default function RootLayout({
       className={`${inter.variable} ${playfair.variable}`}
     >
       <body>
-        <ThemeProvider>
           <WishlistProvider>
             <CartProvider>
               {children}
             </CartProvider>
           </WishlistProvider>
-        </ThemeProvider>
         <CookieConsent />
       </body>
     </html>

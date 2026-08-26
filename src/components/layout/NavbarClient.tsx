@@ -338,8 +338,6 @@ export function NavbarClient({
               )}
             </Link>
 
-            {/* TEMA */}
-            <ThemeToggle />
           </div>
 
           {/* MOBILE */}
