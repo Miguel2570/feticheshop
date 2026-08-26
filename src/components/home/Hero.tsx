@@ -48,9 +48,6 @@ export function Hero() {
       <div className="relative z-10 mx-auto flex min-h-[calc(100vh-80px)] max-w-7xl items-center px-6 py-24">
         {/* Texto */}
         <div className="max-w-2xl">
-          <span className="mb-6 inline-flex rounded-full border border-pink-500/20 bg-pink-500/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.3em] text-pink-400">
-            Nova Coleção
-          </span>
 
           <h1 className="font-display text-5xl font-bold leading-tight md:text-7xl">
             <span className="text-white">Prazer sem limites</span>
