@@ -12,9 +12,9 @@ type CategoryCardProps = {
 // Mapeamento: slug visual → slug real da BD
 const slugMapping: Record<string, string> = {
   "vibradores": "vibradores",
-  "lingeries": "roupa", // Lingeries → categoria Roupa
+  "lingeries": "roupa",
   "BDSM": "bdsm",
-  "lubrificantes": "essenciais", // Lubrificantes → categoria Essenciais
+  "lubrificantes": "essenciais",
 };
 
 export function CategoryCard({
@@ -62,9 +62,6 @@ export function CategoryCard({
         "
       />
 
-      {/* Gradiente para contraste do texto */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
-
       {/* Conteúdo textual */}
       <div className="absolute inset-x-0 bottom-0 p-4 sm:p-6">
         {description && (
@@ -73,7 +70,7 @@ export function CategoryCard({
           </p>
         )}
 
-        <h3 className="mt-1 sm:mt-2 font-display text-lg sm:text-2xl lg:text-3xl text-white">
+        <h3 className="mt-1 sm:mt-2 font-display text-lg sm:text-2xl lg:text-3xl text-white drop-shadow-lg">
           {name}
         </h3>
       </div>
