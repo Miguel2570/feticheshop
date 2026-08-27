@@ -17,7 +17,6 @@ import {
 
 import { useCart } from "@/components/cart/CartProvider";
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
-import { ThemeToggle } from "@/components/theme/ThemeToggle";
 
 import { Container } from "./Container";
 import { MegaMenu } from "./MegaMenu";
