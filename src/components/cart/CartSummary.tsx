@@ -132,32 +132,6 @@ export function CartSummary() {
       >
         Continuar Compras
       </Link>
-
-      <div className="mt-10 rounded-2xl bg-pink-50/50 p-5">
-        <p className="font-medium text-zinc-900">
-          ✓ Envio Discreto
-        </p>
-
-        <p className="mt-2 text-sm leading-7 text-zinc-600">
-          Todas as encomendas são
-          enviadas em embalagens
-          totalmente discretas sem
-          qualquer referência ao conteúdo.
-        </p>
-      </div>
-
-      <div className="mt-4 rounded-2xl bg-pink-50/50 p-5">
-        <p className="font-medium text-zinc-900">
-          ✓ Pagamento Seguro
-        </p>
-
-        <p className="mt-2 text-sm leading-7 text-zinc-600">
-          Aceitamos MB Way,
-          Multibanco, Cartão, PayPal e
-          outros métodos de pagamento
-          protegidos.
-        </p>
-      </div>
     </aside>
   );
 }

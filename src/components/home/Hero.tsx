@@ -8,13 +8,14 @@ import {
   Clock,
   Headphones,
   ShieldCheck,
+  ShoppingBag,
   Truck,
 } from "lucide-react";
 
 export function Hero() {
   return (
     <section className="relative overflow-hidden bg-black">
-      {/* Imagem de Fundo - MOBILE (tamanho natural) */}
+      {/* Imagem de Fundo - MOBILE */}
       <div className="absolute inset-0 md:hidden">
         <Image
           src="/images/hero_telemovel2.png"
@@ -45,20 +46,20 @@ export function Hero() {
       <div className="absolute left-[-250px] top-[-200px] h-[550px] w-[550px] rounded-full bg-pink-500/20 blur-[180px]" />
       <div className="absolute bottom-[-150px] right-[-200px] h-[500px] w-[500px] rounded-full bg-fuchsia-700/20 blur-[180px]" />
 
-      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-80px)] max-w-7xl items-center px-6 py-24">
-        {/* Texto */}
+      {/* Texto posicionado no meio-termo */}
+      <div className="relative z-10 container-custom flex min-h-[calc(100vh-80px)] items-start pt-16 md:pt-20">
         <div className="max-w-2xl">
-
           <h1 className="font-display text-5xl font-bold leading-tight md:text-7xl">
             <span className="text-white">Prazer sem limites</span>
           </h1>
 
-          <p className="mt-8 max-w-xl text-lg leading-8 text-zinc-300">
+          <p className="mt-6 md:mt-8 max-w-xl text-lg leading-8 text-zinc-300">
             Descobre uma seleção premium de produtos para bem-estar íntimo,
             prazer e experiências únicas, sempre com envio totalmente discreto.
           </p>
 
-          <div className="mt-10 flex flex-wrap gap-4">
+          <div className="mt-8 md:mt-10 flex flex-wrap gap-4">
+            {/* Botão Ver Produtos */}
             <Link
               href="/product"
               className="
@@ -72,43 +73,48 @@ export function Hero() {
                 text-sm
                 font-semibold
                 text-white
+                shadow-lg
+                shadow-pink-500/25
                 transition-all
                 duration-300
                 hover:scale-105
                 hover:bg-pink-600
               "
             >
-              Comprar Agora
+              Ver produtos
               <ArrowRight size={18} />
             </Link>
 
+            {/* Botão Ver Carrinho */}
             <Link
-              href="/product"
+              href="/cart"
               className="
                 inline-flex
                 items-center
+                gap-2
                 rounded-full
-                border
-                border-zinc-600
-                bg-black/20
+                bg-zinc-900
                 px-8
                 py-4
                 text-sm
-                font-semibold
+                font-bold
                 text-white
-                backdrop-blur-sm
+                border
+                border-zinc-700
                 transition-all
                 duration-300
+                hover:bg-zinc-800
                 hover:border-pink-500
-                hover:bg-white/10
+                cursor-pointer
               "
             >
-              Explorar
+              <ShoppingBag size={18} />
+              Ver Carrinho
             </Link>
           </div>
 
           {/* BENEFÍCIOS */}
-          <div className="mt-50 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="mt-50 md:mt-50 grid grid-cols-2 gap-4 sm:grid-cols-4">
             {/* Item 1 */}
             <div className="flex items-center gap-2">
               <Truck size={16} className="shrink-0 text-pink-500" />

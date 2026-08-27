@@ -24,6 +24,11 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: "Pleasure Shop",
   description: "Luxury Adult Store",
+  icons: {
+    icon: "/images/favicon.jpg",
+    shortcut: "/images/favicon.jpg",
+    apple: "/images/favicon.jpg",
+  },
 };
 
 // Forçar renderização dinâmica para leitura correta da sessão
@@ -40,6 +45,11 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${playfair.variable}`}
     >
+      <head>
+        <link rel="icon" href="/images/favicon.jpg" sizes="any" />
+        <link rel="shortcut icon" href="/images/favicon.jpg" />
+        <link rel="apple-touch-icon" href="/images/favicon.jpg" />
+      </head>
       <body>
           <WishlistProvider>
             <CartProvider>

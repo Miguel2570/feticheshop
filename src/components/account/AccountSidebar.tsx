@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import {
   LayoutDashboard,
@@ -24,6 +24,23 @@ const items = [
 
 export function AccountSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      // Chamar a API de logout
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      // Redirecionar para home
+      router.push("/");
+      router.refresh();
+    } catch (error) {
+      console.error("Erro ao terminar sessão:", error);
+    }
+  };
 
   return (
     <aside 
@@ -75,6 +92,8 @@ export function AccountSidebar() {
 
       <div className="mt-4 border-t border-pink-100 pt-3">
         <button 
+          type="button"
+          onClick={handleLogout}
           className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium cursor-pointer transition-colors"
           style={{ color: "#ef4444" }}
           onMouseEnter={(e) => {

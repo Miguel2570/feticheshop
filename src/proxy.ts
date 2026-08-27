@@ -24,7 +24,9 @@ export function proxy(request: NextRequest) {
   // Next internals
   if (
     pathname.startsWith("/_next") ||
-    pathname === "/favicon.ico"
+    pathname === "/favicon.jpg" ||
+    pathname === "/favicon.ico" ||
+    pathname.startsWith("/images")
   ) {
     return NextResponse.next();
   }
@@ -34,7 +36,6 @@ export function proxy(request: NextRequest) {
    */
 
   if (
-    pathname.startsWith("/images") ||
     pathname.startsWith("/fonts")
   ) {
     return NextResponse.next();
@@ -54,9 +55,6 @@ export function proxy(request: NextRequest) {
 
   /*
    * Utilizador ainda não confirmou os 18 anos.
-   *
-   * Guardamos a página onde ele estava
-   * para podermos voltar lá depois.
    */
 
   const ageUrl = request.nextUrl.clone();
@@ -77,10 +75,6 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Executar o Proxy em todas as páginas,
-     * exceto assets estáticos e APIs.
-     */
-    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+    "/((?!api|_next/static|_next/image|favicon.jpg|favicon.ico|images).*)",
   ],
 };

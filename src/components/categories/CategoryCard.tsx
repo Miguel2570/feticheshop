@@ -12,7 +12,6 @@ type CategoryCardProps = {
 // Mapeamento: slug visual → slug real da BD
 const slugMapping: Record<string, string> = {
   "vibradores": "vibradores",
-  "sugadores": "vibradores", // Sugadores → categoria Vibradores
   "lingeries": "roupa", // Lingeries → categoria Roupa
   "BDSM": "bdsm",
   "lubrificantes": "essenciais", // Lubrificantes → categoria Essenciais

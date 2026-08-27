@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
 
+import { TopBar } from "@/components/layout/TopBar";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 
@@ -12,15 +13,15 @@ export default function ShopLayout({
 }: ShopLayoutProps) {
   return (
     <div className="flex min-h-screen flex-col">
+      <TopBar />
 
       <Navbar />
 
-      <main className="flex-1 bg-black text-white">
+      <main className="flex-1">
         {children}
       </main>
 
       <Footer />
-
     </div>
   );
 }

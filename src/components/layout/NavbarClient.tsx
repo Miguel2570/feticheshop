@@ -18,7 +18,6 @@ import {
 import { useCart } from "@/components/cart/CartProvider";
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
 
-import { Container } from "./Container";
 import { MegaMenu } from "./MegaMenu";
 import { MobileMenu } from "./MobileMenu";
 import { Search } from "./Search";
@@ -78,78 +77,79 @@ export function NavbarClient({
           : "bg-black"
       }`}
     >
-      <Container>
-        <div className="flex h-24 items-center gap-8">
-          {/* LOGO */}
-          <Link
-            href="/"
-            className="flex shrink-0 items-center"
-            aria-label="Fetiche Shop"
-          >
-            <Image
-              src="/images/logo_sexshop2.png"
-              alt="Fetiche Shop"
-              width={1024}
-              height={1024}
-              className="h-20 w-auto object-contain"
-              priority
-            />
-          </Link>
-
-          {/* NAVEGAÇÃO DESKTOP */}
-          <nav className="hidden items-center gap-8 xl:flex">
-            {/* CATEGORIAS */}
-            <button
-              type="button"
-              onMouseEnter={() => {
-                setMegaOpen(true);
-                setSearchOpen(false);
-              }}
-              onClick={() => setMegaOpen((value) => !value)}
-              className="
-                flex
-                items-center
-                gap-1
-                text-sm
-                font-medium
-                text-zinc-300
-                transition
-                hover:text-pink-500
-                cursor-pointer
-              "
+      {/* Usar o mesmo container-custom da TopBar */}
+      <div className="mx-auto max-w-[1545px] px-10">
+        <div className="flex h-24 items-center justify-between">
+          {/* ESQUERDA - LOGO + NAVEGAÇÃO */}
+          <div className="flex items-center gap-10 lg:gap-14">
+            {/* LOGO */}
+            <Link
+              href="/"
+              className="flex shrink-0 items-center"
+              aria-label="Fetiche Shop"
             >
-              Categorias
-              <ChevronDown
-                size={16}
-                className={`transition-transform duration-200 ${
-                  megaOpen ? "rotate-180" : ""
-                }`}
+              <Image
+                src="/images/logo_sexshop2.png"
+                alt="Fetiche Shop"
+                width={1024}
+                height={1024}
+                className="h-20 w-auto object-contain"
+                priority
               />
-            </button>
+            </Link>
 
-            {/* OUTROS LINKS */}
-            {links.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                onMouseEnter={() => setMegaOpen(false)}
+            {/* NAVEGAÇÃO DESKTOP */}
+            <nav className="hidden items-center gap-8 xl:flex">
+              {/* CATEGORIAS */}
+              <button
+                type="button"
+                onMouseEnter={() => {
+                  setMegaOpen(true);
+                  setSearchOpen(false);
+                }}
+                onClick={() => setMegaOpen((value) => !value)}
                 className="
+                  flex
+                  items-center
+                  gap-1.5
                   text-sm
                   font-medium
                   text-zinc-300
                   transition
                   hover:text-pink-500
+                  cursor-pointer
                 "
               >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
+                Categorias
+                <ChevronDown
+                  size={16}
+                  className={`transition-transform duration-200 ${
+                    megaOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </button>
 
-          {/* ESPAÇO CENTRAL */}
-          <div className="flex-1" />
+              {/* OUTROS LINKS */}
+              {links.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onMouseEnter={() => setMegaOpen(false)}
+                  className="
+                    text-sm
+                    font-medium
+                    text-zinc-300
+                    transition
+                    hover:text-pink-500
+                  "
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
 
-          {/* AÇÕES */}
+          {/* DIREITA - AÇÕES */}
           <div className="hidden items-center gap-3 lg:flex">
             {/* PESQUISA */}
             <button
@@ -363,15 +363,15 @@ export function NavbarClient({
             {open ? <X size={28} /> : <Menu size={28} />}
           </button>
         </div>
-      </Container>
+      </div>
 
       {/* PESQUISA EXPANDIDA */}
       <div
         className={`
+          arabesque-bg
           overflow-hidden
           border-t
-          border-zinc-800
-          bg-black
+          border-pink-100
           transition-all
           duration-300
           ${
@@ -381,13 +381,13 @@ export function NavbarClient({
           }
         `}
       >
-        <Container>
+        <div className="container-custom">
           <div className="py-4">
             <div className="mx-auto w-full max-w-3xl">
               <Search />
             </div>
           </div>
-        </Container>
+        </div>
       </div>
 
       {/* MEGA MENU */}
@@ -397,7 +397,7 @@ export function NavbarClient({
         onClose={() => setMegaOpen(false)}
       />
 
-      {/* MOBILE MENU - com isAuthenticated */}
+      {/* MOBILE MENU */}
       <MobileMenu
         open={open}
         onClose={() => setOpen(false)}
