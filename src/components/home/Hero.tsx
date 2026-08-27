@@ -58,7 +58,7 @@ export function Hero() {
             prazer e experiências únicas, sempre com envio totalmente discreto.
           </p>
 
-          <div className="mt-8 md:mt-10 flex flex-wrap gap-4">
+          <div className="mt-8 md:mt-20 flex flex-wrap gap-4">
             {/* Botão Ver Produtos */}
             <Link
               href="/product"
