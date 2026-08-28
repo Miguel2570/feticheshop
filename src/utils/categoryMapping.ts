@@ -1,48 +1,41 @@
-// Mapeamento das categorias do fornecedor para categorias principais (estilo Vibrolandia)
+// Mapeamento das categorias do fornecedor para categorias principais
 export const categoryMapping: Record<string, string> = {
-  // Essenciais
-  "Lubrificantes": "Essenciais",
-  "DROGUERÍA": "Essenciais",
-  "Con deliciosos Sabores": "Essenciais",
-  "Potenciadores": "Essenciais",
-  "Estimulantes": "Essenciais",
-  "Afrodisíacos": "Essenciais",
-  "Retardantes": "Essenciais",
-  "Aumento do Pénis": "Essenciais",
-  "Poppers": "Essenciais",
+  // Saúde e Bem-Estar
+  "Lubrificantes": "Saúde e Bem-Estar",
+  "DROGUERÍA": "Saúde e Bem-Estar",
+  "Con deliciosos Sabores": "Saúde e Bem-Estar",
+  "Potenciadores": "Saúde e Bem-Estar",
+  "Estimulantes": "Saúde e Bem-Estar",
+  "Afrodisíacos": "Saúde e Bem-Estar",
+  "Retardantes": "Saúde e Bem-Estar",
+  "Aumento do Pénis": "Saúde e Bem-Estar",
+  "Poppers": "Saúde e Bem-Estar",
 
-  // Vibradores
-  "Vibradores": "Vibradores",
-  "Dildos": "Vibradores",
-  "Dildos Anales": "Vibradores",
-  "Dildos Punto G": "Vibradores",
-  "Dildos sin Vibración": "Vibradores",
-  "Dildos para Arneses": "Vibradores",
-  "Sugadores": "Vibradores",
-  "Estimuladores de Clitóris": "Vibradores",
-  "Pontos G": "Vibradores",
-  "Bolas e Óvulos": "Vibradores",
-  "Bolas Chinas": "Vibradores",
+  // Sex Toys
+  "Vibradores": "Sex Toys",
+  "Dildos": "Sex Toys",
+  "Dildos Anales": "Sex Toys",
+  "Dildos Punto G": "Sex Toys",
+  "Dildos sin Vibración": "Sex Toys",
+  "Dildos para Arneses": "Sex Toys",
+  "Sugadores": "Sex Toys",
+  "Estimuladores de Clitóris": "Sex Toys",
+  "Pontos G": "Sex Toys",
+  "Bolas e Óvulos": "Sex Toys",
+  "Bolas Chinas": "Sex Toys",
+  "Sex Toys Anais": "Sex Toys",
+  "Bolas Anales": "Sex Toys",
+  "Bolas Básicas": "Sex Toys",
+  "Dilatadores para nuevo placer BDSM": "Sex Toys",
+  "Estimuladores": "Sex Toys",
+  "Acessórios": "Sex Toys",
 
-  // Acessórios
-  "Sex Toys Anais": "Acessórios",
-  "Bolas Anales": "Acessórios",
-  "Bolas Básicas": "Acessórios",
-  "Dilatadores para nuevo placer BDSM": "Acessórios",
-  "Estimuladores": "Acessórios",
-  "Acessórios": "Acessórios",
-
-  // Para Ele
-  "Masturbadores": "Para Ele",
-  "Estimulantes para Ellos": "Para Ele",
-  "Anéis Penianos": "Para Ele",
-  "Masturbadores Manuais": "Para Ele",
-  "Masturbadores Elétricos": "Para Ele",
-
-  // Para Ela
-  "Estimulantes para Ellas": "Para Ela",
-  "Vibradores para Ela": "Para Ela",
-  "Sugadores para Ela": "Para Ela",
+  // Para o Pénis
+  "Masturbadores": "Para o Pénis",
+  "Estimulantes para Ellos": "Para o Pénis",
+  "Anéis Penianos": "Para o Pénis",
+  "Masturbadores Manuais": "Para o Pénis",
+  "Masturbadores Elétricos": "Para o Pénis",
 
   // BDSM
   "Bondage": "BDSM",
@@ -50,45 +43,32 @@ export const categoryMapping: Record<string, string> = {
   "Collares": "BDSM",
   "BDSM": "BDSM",
 
-  // Roupa
-  "Lingerie": "Roupa",
-  "Bikinis": "Roupa",
-  "Bodystocking": "Roupa",
-  "Camisetas Masculinas": "Roupa",
-  "Roupa Erótica": "Roupa",
-
-  // CBD
-  "CBD Sex": "CBD",
-  "Vapes": "CBD",
-  "Joints": "CBD",
-  "Flores": "CBD",
+  // Lingerie
+  "Lingerie": "Lingerie",
+  "Bikinis": "Lingerie",
+  "Bodystocking": "Lingerie",
+  "Camisetas Masculinas": "Lingerie",
+  "Roupa Erótica": "Lingerie",
 };
 
 // Categorias principais (as que aparecem no menu)
 export const mainCategories = [
-  { slug: "vibradores", label: "Vibradores", icon: "⚡" },
-  { slug: "para-ele", label: "Para Ele", icon: "👤" },
-  { slug: "para-ela", label: "Para Ela", icon: "👩" },
-  { slug: "acessorios", label: "Acessórios", icon: "🔧" },
+  { slug: "sex-toys", label: "Sex Toys", icon: "⚡" },
+  { slug: "para-ele", label: "Para o Pénis", icon: "👤" },
+  { slug: "essenciais", label: "Saúde e Bem-Estar", icon: "🧴" },
+  { slug: "roupa", label: "Lingerie", icon: "👗" },
   { slug: "bdsm", label: "BDSM", icon: "⛓️" },
-  { slug: "roupa", label: "Roupa", icon: "👗" },
-  { slug: "essenciais", label: "Essenciais", icon: "🧴" },
-  { slug: "cbd", label: "CBD", icon: "🌿" },
 ];
 
-// Mapeamento inverso: categoria principal -> categorias do fornecedor
 export function getSupplierCategories(mainCategorySlug: string): string[] {
-  // Encontra o label da categoria principal pelo slug
   const mainCat = mainCategories.find(c => c.slug === mainCategorySlug);
   if (!mainCat) return [];
 
-  // Retorna todas as categorias do fornecedor que mapeiam para esta categoria principal
   return Object.entries(categoryMapping)
     .filter(([_, main]) => main === mainCat.label)
     .map(([supplier]) => supplier);
 }
 
-// Obtém a categoria principal a partir de uma categoria do fornecedor
 export function getMainCategory(supplierCategory: string): string | null {
   return categoryMapping[supplierCategory] || null;
 }

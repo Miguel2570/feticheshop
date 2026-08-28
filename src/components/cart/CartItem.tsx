@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { Minus, Plus, Trash2 } from "lucide-react";
 
 import { useCart, CartItem as CartItemType } from "./CartProvider";
@@ -53,44 +54,42 @@ export function CartItem({ item }: CartItemProps) {
     >
       <div className="flex flex-col gap-6 lg:flex-row">
         {/* IMAGEM */}
-
-        <div
-          className="
-            relative
-            h-48
-            w-full
-            shrink-0
-            overflow-hidden
-            rounded-2xl
-            bg-pink-50/50
-            lg:h-36
-            lg:w-36
-          "
-        >
-          <Image
-            src={product.image}
-            alt={product.name}
-            fill
-            className="object-cover"
-          />
-        </div>
+        <Link href={`/product/${product.slug}`}>
+          <div
+            className="
+              relative
+              h-48
+              w-full
+              shrink-0
+              overflow-hidden
+              rounded-2xl
+              bg-pink-50/50
+              lg:h-36
+              lg:w-36
+            "
+          >
+            <Image
+              src={product.image ?? "/placeholder-product.png"}
+              alt={product.name}
+              fill
+              sizes="144px"
+              className="object-contain p-2"
+            />
+          </div>
+        </Link>
 
         {/* CONTEÚDO */}
-
         <div className="flex min-w-0 flex-1 flex-col justify-between">
           <div>
-            <p className="text-sm text-zinc-500">
-              {product.brand}
-            </p>
-
-            <h3 className="mt-2 font-display text-2xl text-zinc-900">
-              {product.name}
-            </h3>
+            <Link href={`/product/${product.slug}`}>
+              <h3 className="mt-2 font-display text-2xl text-zinc-900 hover:text-pink-500 transition-colors">
+                {product.name}
+              </h3>
+            </Link>
           </div>
 
           <div className="mt-6 flex flex-wrap items-end justify-between gap-6">
             {/* QUANTIDADE */}
-
             <div>
               <p className="mb-2 text-sm text-zinc-500">
                 Quantidade
@@ -162,32 +161,29 @@ export function CartItem({ item }: CartItemProps) {
               </div>
             </div>
 
-            {/* PREÇO */}
-
+            {/* PREÇO UNITÁRIO - ✅ Usar product.price */}
             <div>
               <p className="text-sm text-zinc-500">
                 Preço
               </p>
 
               <p className="text-xl font-bold text-zinc-900">
-                €{item.price.toFixed(2)}
+                €{product.price.toFixed(2)}
               </p>
             </div>
 
-            {/* SUBTOTAL */}
-
+            {/* SUBTOTAL - ✅ Calcular a partir de product.price e quantity */}
             <div>
               <p className="text-sm text-zinc-500">
                 Subtotal
               </p>
 
               <p className="text-2xl font-bold text-pink-500">
-                €{item.subtotal.toFixed(2)}
+                €{(product.price * item.quantity).toFixed(2)}
               </p>
             </div>
 
             {/* REMOVER */}
-
             <button
               type="button"
               onClick={handleRemove}

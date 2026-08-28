@@ -7,22 +7,39 @@ import { Button } from "@/components/ui/Button";
 import { ProductSort } from "@/components/product/ProductSort";
 import { FilterDropdown } from "@/components/ui/FilterDropdown";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
+import { Search } from "lucide-react";
 
 const PAGE_SIZE = 24;
 
+// ✅ LISTA COMPLETA DE CATEGORIAS REAIS
 const FRONTEND_CATEGORY_SLUGS = [
-  "vibradores",
+  "sex-toys",
   "para-ele",
-  "para-ela",
-  "acessorios",
-  "bdsm",
-  "roupa",
   "essenciais",
-  "cbd",
+  "roupa",
+  "bdsm",
+  "vibradores",
+  "dildos",
+  "sugadores",
+  "bolas-anales",
+  "estimuladores",
+  "masturbadores",
+  "aneis-penianos",
+  "estimulantes",
+  "lubrificantes",
+  "afrodisiacos",
+  "jogos-eroticos",
+  "lingerie-sexy",
+  "bodystocking",
+  "bikinis",
+  "bondage",
+  "acessorios-bdsm",
+  "baterias-acessorios",
 ];
 
 type Props = {
   searchParams: Promise<{
+    search?: string;
     category?: string;
     subcategory?: string;
     brand?: string;
@@ -38,6 +55,7 @@ type Props = {
 export default async function ProductsPage({ searchParams }: Props) {
   const params = await searchParams;
 
+  const search = params.search ?? "";
   const category = params.category ?? "";
   const subcategory = params.subcategory ?? "";
   const brand = params.brand ?? "";
@@ -50,7 +68,19 @@ export default async function ProductsPage({ searchParams }: Props) {
 
   const where: Prisma.ProductWhereInput = {
     status: "ACTIVE",
+    stock: { gt: 0 },
 
+    ...(search
+      ? {
+          OR: [
+            { name: { contains: search, mode: "insensitive" as const } },
+            { sku: { contains: search, mode: "insensitive" as const } },
+            { description: { contains: search, mode: "insensitive" as const } },
+          ],
+        }
+      : {}),
+
+    // ✅ FILTRO DE CATEGORIA PRINCIPAL (correto)
     ...(category
       ? {
           categories: {
@@ -64,13 +94,17 @@ export default async function ProductsPage({ searchParams }: Props) {
         }
       : {}),
 
+    // ✅ FILTRO DE SUBCATEGORIA (corrigido - filtra pela categoria real)
     ...(subcategory
       ? {
-          OR: [
-            { name: { contains: subcategory, mode: "insensitive" as const } },
-            { description: { contains: subcategory, mode: "insensitive" as const } },
-            { shortDescription: { contains: subcategory, mode: "insensitive" as const } },
-          ],
+          categories: {
+            some: {
+              category: {
+                slug: subcategory,
+                isActive: true,
+              },
+            },
+          },
         }
       : {}),
 
@@ -118,6 +152,11 @@ export default async function ProductsPage({ searchParams }: Props) {
         where: { isPrimary: true },
         take: 1,
       },
+      categories: {
+        include: {
+          category: true,
+        },
+      },
     },
   });
 
@@ -139,9 +178,14 @@ export default async function ProductsPage({ searchParams }: Props) {
     ? categories.find((cat) => cat.slug === category)
     : null;
 
+  const activeSubcategory = subcategory
+    ? categories.find((cat) => cat.slug === subcategory)
+    : null;
+
   const createQuery = (extra: Record<string, string> = {}) => {
     const query = new URLSearchParams();
 
+    if (search) query.set("search", search);
     if (category) query.set("category", category);
     if (subcategory) query.set("subcategory", subcategory);
     if (brand) query.set("brand", brand);
@@ -158,22 +202,27 @@ export default async function ProductsPage({ searchParams }: Props) {
     return query.toString();
   };
 
-  const hasFilters = !!(category || subcategory || brand || minPrice || maxPrice || sale === "true" || isNew === "true");
+  const hasFilters = !!(search || category || subcategory || brand || minPrice || maxPrice || sale === "true" || isNew === "true");
 
-  const pageTitle = subcategory
-    ? subcategory
+  // ✅ TÍTULO DA PÁGINA (corrigido)
+  const pageTitle = search
+    ? `Resultados para "${search}"`
+    : activeSubcategory
+    ? activeSubcategory.name
     : activeCategory
     ? activeCategory.name
     : "Todos os Produtos";
 
   const breadcrumbItems = [
     { label: "Home", href: "/" },
-    { label: "Produtos", href: "/product" },
     ...(activeCategory
       ? [{ label: activeCategory.name, href: `/product?category=${activeCategory.slug}` }]
       : []),
-    ...(subcategory
-      ? [{ label: subcategory }]
+    ...(activeSubcategory
+      ? [{ label: activeSubcategory.name }]
+      : []),
+    ...(!activeSubcategory && search
+      ? [{ label: `Pesquisa: ${search}` }]
       : []),
   ];
 
@@ -227,14 +276,30 @@ export default async function ProductsPage({ searchParams }: Props) {
             )}
           </div>
 
-          <form method="GET" className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <form method="GET" className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+            <div className="relative md:col-span-2 xl:col-span-2">
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
+                Pesquisar
+              </label>
+              <div className="relative">
+                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <input
+                  type="text"
+                  name="search"
+                  defaultValue={search}
+                  placeholder="Pesquisar produto..."
+                  className="h-[46px] w-full rounded-xl border border-pink-200 bg-white pl-11 pr-4 text-sm text-zinc-900 outline-none transition-all placeholder:text-zinc-400 focus:border-pink-500 focus:ring-2 focus:ring-pink-200"
+                />
+              </div>
+            </div>
+
             <div className="relative z-30">
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
                 Categoria
               </label>
               <FilterDropdown
                 options={[
-                  { value: "", label: "Todas as categorias" },
+                  { value: "", label: "Todas" },
                   ...categories.map((cat) => ({
                     value: cat.slug,
                     label: cat.name,
@@ -242,7 +307,7 @@ export default async function ProductsPage({ searchParams }: Props) {
                 ]}
                 defaultValue={category}
                 name="category"
-                placeholder="Todas as categorias"
+                placeholder="Todas"
               />
             </div>
 
@@ -252,7 +317,7 @@ export default async function ProductsPage({ searchParams }: Props) {
               </label>
               <FilterDropdown
                 options={[
-                  { value: "", label: "Todas as marcas" },
+                  { value: "", label: "Todas" },
                   ...brands.map((item) => ({
                     value: item.slug,
                     label: item.name,
@@ -260,7 +325,7 @@ export default async function ProductsPage({ searchParams }: Props) {
                 ]}
                 defaultValue={brand}
                 name="brand"
-                placeholder="Todas as marcas"
+                placeholder="Todas"
               />
             </div>
 
@@ -276,7 +341,7 @@ export default async function ProductsPage({ searchParams }: Props) {
                   step="0.01"
                   placeholder="Mín."
                   defaultValue={minPrice}
-                  className="w-full rounded-xl border border-pink-200 bg-white px-4 py-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-pink-500 focus:ring-2 focus:ring-pink-200"
+                  className="w-full rounded-xl border border-pink-200 bg-white px-3 py-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-pink-500 focus:ring-2 focus:ring-pink-200"
                 />
                 <input
                   name="maxPrice"
@@ -285,24 +350,8 @@ export default async function ProductsPage({ searchParams }: Props) {
                   step="0.01"
                   placeholder="Máx."
                   defaultValue={maxPrice}
-                  className="w-full rounded-xl border border-pink-200 bg-white px-4 py-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-pink-500 focus:ring-2 focus:ring-pink-200"
+                  className="w-full rounded-xl border border-pink-200 bg-white px-3 py-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-pink-500 focus:ring-2 focus:ring-pink-200"
                 />
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
-                Tipo
-              </label>
-              <div className="flex h-[46px] items-center gap-4">
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-700">
-                  <input type="checkbox" name="sale" value="true" defaultChecked={sale === "true"} className="h-4 w-4 accent-pink-500" />
-                  Promoções
-                </label>
-                <label className="flex cursor-pointer items-center gap-2 text-sm text-zinc-700">
-                  <input type="checkbox" name="new" value="true" defaultChecked={isNew === "true"} className="h-4 w-4 accent-pink-500" />
-                  Novidades
-                </label>
               </div>
             </div>
 
@@ -319,15 +368,21 @@ export default async function ProductsPage({ searchParams }: Props) {
           <div className="mb-8 flex flex-wrap items-center gap-2">
             <span className="mr-2 text-sm text-zinc-500">Filtros:</span>
 
+            {search && (
+              <span className="rounded-full bg-pink-500/10 px-3 py-1.5 text-xs font-medium text-pink-600">
+                Pesquisa: {search}
+              </span>
+            )}
+
             {category && activeCategory && (
               <span className="rounded-full bg-pink-500/10 px-3 py-1.5 text-xs font-medium text-pink-600">
                 Categoria: {activeCategory.name}
               </span>
             )}
 
-            {subcategory && (
+            {subcategory && activeSubcategory && (
               <span className="rounded-full bg-pink-500/10 px-3 py-1.5 text-xs font-medium text-pink-600">
-                Subcategoria: {subcategory}
+                Subcategoria: {activeSubcategory.name}
               </span>
             )}
 
@@ -355,14 +410,7 @@ export default async function ProductsPage({ searchParams }: Props) {
 
             <Link
               href="/product"
-              className="
-                inline-flex items-center justify-center
-                h-10 px-5 text-sm font-semibold rounded-xl
-                transition-all duration-200 cursor-pointer
-                bg-pink-500 text-white
-                hover:bg-pink-600
-                mt-6
-              "
+              className="inline-flex items-center justify-center h-10 px-5 text-sm font-semibold rounded-xl transition-all duration-200 cursor-pointer bg-pink-500 text-white hover:bg-pink-600 mt-6"
             >
               Limpar filtros
             </Link>
@@ -389,83 +437,51 @@ export default async function ProductsPage({ searchParams }: Props) {
             </div>
 
             {/* PAGINAÇÃO */}
-{totalPages > 1 && (
-  <div className="mt-14 flex items-center justify-center gap-4 border-t border-zinc-200 pt-8">
-    {/* ANTERIOR */}
-    {currentPage > 1 ? (
-      <Link
-        href={`/product?${createQuery({ page: String(currentPage - 1) })}`}
-        className="
-          group relative inline-flex items-center justify-center
-          h-12 w-12 rounded-2xl
-          transition-all duration-300 cursor-pointer
-          bg-zinc-200 text-zinc-900
-          border-2 border-zinc-400
-          hover:bg-zinc-300 hover:border-pink-500 hover:text-pink-600
-          hover:shadow-[0_4px_20px_rgba(236,72,153,0.2)]
-        "
-        aria-label="Página anterior"
-      >
-        <svg className="h-5 w-5 transition-transform duration-300 group-hover:-translate-x-1" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
-      </Link>
-    ) : (
-      <span className="
-        inline-flex items-center justify-center
-        h-12 w-12 rounded-2xl
-        bg-zinc-200 text-zinc-400 cursor-not-allowed
-        border-2 border-zinc-300
-      ">
-        <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-        </svg>
-      </span>
-    )}
+            {totalPages > 1 && (
+              <div className="mt-14 flex items-center justify-center gap-4 border-t border-zinc-200 pt-8">
+                {currentPage > 1 ? (
+                  <Link
+                    href={`/product?${createQuery({ page: String(currentPage - 1) })}`}
+                    className="group relative inline-flex items-center justify-center h-12 w-12 rounded-2xl transition-all duration-300 cursor-pointer bg-zinc-200 text-zinc-900 border-2 border-zinc-400 hover:bg-zinc-300 hover:border-pink-500 hover:text-pink-600 hover:shadow-[0_4px_20px_rgba(236,72,153,0.2)]"
+                    aria-label="Página anterior"
+                  >
+                    <svg className="h-5 w-5 transition-transform duration-300 group-hover:-translate-x-1" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </Link>
+                ) : (
+                  <span className="inline-flex items-center justify-center h-12 w-12 rounded-2xl bg-zinc-200 text-zinc-400 cursor-not-allowed border-2 border-zinc-300">
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </span>
+                )}
 
-    {/* INDICADOR */}
-    <div className="flex items-center gap-2 rounded-2xl bg-white border-2 border-zinc-300 px-6 py-2.5 shadow-sm">
-      <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-fuchsia-500">
-        {currentPage}
-      </span>
-      <span className="text-sm text-zinc-400">/</span>
-      <span className="text-sm font-semibold text-zinc-700">{totalPages}</span>
-    </div>
+                <div className="flex items-center gap-2 rounded-2xl bg-white border-2 border-zinc-300 px-6 py-2.5 shadow-sm">
+                  <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-fuchsia-500">{currentPage}</span>
+                  <span className="text-sm text-zinc-400">/</span>
+                  <span className="text-sm font-semibold text-zinc-700">{totalPages}</span>
+                </div>
 
-    {/* PRÓXIMA */}
-    {currentPage < totalPages ? (
-      <Link
-        href={`/product?${createQuery({ page: String(currentPage + 1) })}`}
-        className="
-          group relative inline-flex items-center justify-center
-          h-12 w-12 rounded-2xl
-          transition-all duration-300 cursor-pointer
-          bg-gradient-to-br from-pink-500 to-fuchsia-500
-          text-white
-          shadow-lg shadow-pink-500/25
-          hover:shadow-[0_4px_25px_rgba(236,72,153,0.4)]
-          hover:scale-105
-        "
-        aria-label="Página seguinte"
-      >
-        <svg className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
-      </Link>
-    ) : (
-      <span className="
-        inline-flex items-center justify-center
-        h-12 w-12 rounded-2xl
-        bg-zinc-200 text-zinc-400 cursor-not-allowed
-        border-2 border-zinc-300
-      ">
-        <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
-      </span>
-    )}
-  </div>
-)}
+                {currentPage < totalPages ? (
+                  <Link
+                    href={`/product?${createQuery({ page: String(currentPage + 1) })}`}
+                    className="group relative inline-flex items-center justify-center h-12 w-12 rounded-2xl transition-all duration-300 cursor-pointer bg-gradient-to-br from-pink-500 to-fuchsia-500 text-white shadow-lg shadow-pink-500/25 hover:shadow-[0_4px_25px_rgba(236,72,153,0.4)] hover:scale-105"
+                    aria-label="Página seguinte"
+                  >
+                    <svg className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Link>
+                ) : (
+                  <span className="inline-flex items-center justify-center h-12 w-12 rounded-2xl bg-zinc-200 text-zinc-400 cursor-not-allowed border-2 border-zinc-300">
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </span>
+                )}
+              </div>
+            )}
           </section>
         )}
       </div>

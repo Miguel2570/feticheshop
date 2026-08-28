@@ -1,3 +1,5 @@
+// src/app/layout.tsx
+
 import type { Metadata } from "next";
 
 import {
@@ -8,7 +10,9 @@ import {
 import "./globals.css";
 
 import { CartProvider } from "@/components/cart/CartProvider";
+import { CartSidePanel } from "@/components/cart/CartSidePanel";
 import { WishlistProvider } from "@/components/wishlist/WishlistProvider";
+import { WishlistModal } from "@/components/wishlist/WishlistModal";
 import { CookieConsent } from "@/components/CookieConsent";
 
 const inter = Inter({
@@ -25,13 +29,12 @@ export const metadata: Metadata = {
   title: "Pleasure Shop",
   description: "Luxury Adult Store",
   icons: {
-    icon: "/images/favicon.jpg",
-    shortcut: "/images/favicon.jpg",
-    apple: "/images/favicon.jpg",
+    icon: "/images/fetichshop_favicon.png",
+    shortcut: "/images/fetichshop_favicon.png",
+    apple: "/images/fetichshop_favicon.png",
   },
 };
 
-// Forçar renderização dinâmica para leitura correta da sessão
 export const dynamic = "force-dynamic";
 
 export default function RootLayout({
@@ -45,17 +48,14 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${playfair.variable}`}
     >
-      <head>
-        <link rel="icon" href="/images/favicon.jpg" sizes="any" />
-        <link rel="shortcut icon" href="/images/favicon.jpg" />
-        <link rel="apple-touch-icon" href="/images/favicon.jpg" />
-      </head>
       <body>
-          <WishlistProvider>
-            <CartProvider>
-              {children}
-            </CartProvider>
-          </WishlistProvider>
+        <WishlistProvider>
+          <CartProvider>
+            {children}
+            <CartSidePanel />
+            <WishlistModal />
+          </CartProvider>
+        </WishlistProvider>
         <CookieConsent />
       </body>
     </html>

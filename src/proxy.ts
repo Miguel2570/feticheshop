@@ -21,21 +21,15 @@ export function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Next internals
+  // ✅ Next internals + ficheiros públicos (imagens, favicons, etc.)
   if (
     pathname.startsWith("/_next") ||
-    pathname === "/favicon.jpg" ||
-    pathname === "/favicon.ico" ||
-    pathname.startsWith("/images")
-  ) {
-    return NextResponse.next();
-  }
-
-  /*
-   * Ficheiros públicos
-   */
-
-  if (
+    pathname.endsWith(".jpg") ||
+    pathname.endsWith(".png") ||
+    pathname.endsWith(".ico") ||
+    pathname.endsWith(".svg") ||
+    pathname.endsWith(".webp") ||
+    pathname.startsWith("/images") ||
     pathname.startsWith("/fonts")
   ) {
     return NextResponse.next();
@@ -75,6 +69,7 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.jpg|favicon.ico|images).*)",
+    // Apenas bloqueia a raiz e todas as páginas, ignorando a API e os arquivos estáticos internos do Next
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
   ],
 };

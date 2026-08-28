@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 
 import { ProductRepository } from "@/server/repositories/product.repository";
+import { prisma } from "@/lib/prisma";
 
 export class ProductService {
   private repository = new ProductRepository();
@@ -47,11 +48,50 @@ export class ProductService {
 
   async updateProduct(
     id: string,
-    data: Prisma.ProductUpdateInput
+    data: Prisma.ProductUpdateInput & { categoryId?: string | null }
   ) {
     await this.getProductById(id);
 
-    return this.repository.update(id, data);
+    // Extrair categoryId
+    const { categoryId, ...productData } = data;
+
+    // Atualizar produto
+    const product = await this.repository.update(id, productData);
+
+    // Atualizar categoria se fornecida
+    if (categoryId !== undefined) {
+      // Apagar categorias antigas
+      await prisma.productCategory.deleteMany({
+        where: { productId: id },
+      });
+
+      if (categoryId) {
+        // Adicionar nova categoria
+        await prisma.productCategory.create({
+          data: {
+            productId: id,
+            categoryId,
+          },
+        });
+
+        // Buscar categoria para ver se tem pai
+        const category = await prisma.category.findUnique({
+          where: { id: categoryId },
+        });
+
+        // Se tiver pai, associar também à categoria principal
+        if (category?.parentId) {
+          await prisma.productCategory.create({
+            data: {
+              productId: id,
+              categoryId: category.parentId,
+            },
+          });
+        }
+      }
+    }
+
+    return this.getProductById(id);
   }
 
   async deleteProduct(id: string) {

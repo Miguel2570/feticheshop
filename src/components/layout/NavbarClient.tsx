@@ -20,7 +20,6 @@ import { useWishlist } from "@/components/wishlist/WishlistProvider";
 
 import { MegaMenu } from "./MegaMenu";
 import { MobileMenu } from "./MobileMenu";
-import { Search } from "./Search";
 
 interface NavbarCategory {
   id: string;
@@ -45,16 +44,20 @@ export function NavbarClient({
 }: NavbarClientProps) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  const [megaOpen, setMegaOpen] = useState(false);
+  const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
 
-  const { count: wishlistCount } = useWishlist();
-  const { itemCount: cartCount } = useCart();
+  // ✅ Adicionado wishlistLoading para evitar hidratação incorreta
+  const { count: wishlistCount, openWishlist, loading: wishlistLoading } = useWishlist();
+  const { itemCount: cartCount, openCart } = useCart();
 
-  const links = [
-    { href: "/product", label: "Produtos" },
-    ...(hasNewProducts ? [{ href: "/new", label: "Novidades" }] : []),
-    ...(hasSaleProducts ? [{ href: "/sale", label: "Promoções" }] : []),
+  const menuCategories = [
+    { name: "Sex Toys", slug: "sex-toys" },
+    { name: "Para o Pénis", slug: "para-ele" },
+    { name: "Saúde e Bem-Estar", slug: "essenciais" },
+    { name: "Lingerie", slug: "roupa" },
+    { name: "BDSM", slug: "bdsm" },
   ];
 
   useEffect(() => {
@@ -76,102 +79,115 @@ export function NavbarClient({
           ? "border-b border-zinc-800 bg-black/90 backdrop-blur-xl"
           : "bg-black"
       }`}
+      onMouseLeave={() => setActiveCategory(null)}
     >
-      {/* Usar o mesmo container-custom da TopBar */}
-      <div className="mx-auto max-w-[1545px] px-10">
-        <div className="flex h-24 items-center justify-between">
-          {/* ESQUERDA - LOGO + NAVEGAÇÃO */}
-          <div className="flex items-center gap-10 lg:gap-14">
-            {/* LOGO */}
+      <div className="mx-auto max-w-[1500px] px-10">
+        <div className="flex h-20 items-center justify-between gap-6">
+          {/* ESQUERDA - LOGO + CATEGORIAS */}
+          <div className="flex items-center gap-8">
             <Link
               href="/"
-              className="flex shrink-0 items-center"
+              className="relative h-12 w-36 shrink-0"
               aria-label="Fetiche Shop"
             >
               <Image
-                src="/images/logo_sexshop2.png"
+                src="/images/logo_sexshop3.png"
                 alt="Fetiche Shop"
-                width={1024}
-                height={1024}
-                className="h-20 w-auto object-contain"
+                fill
+                sizes="144px"
+                className="object-contain"
                 priority
               />
             </Link>
 
-            {/* NAVEGAÇÃO DESKTOP */}
-            <nav className="hidden items-center gap-8 xl:flex">
-              {/* CATEGORIAS */}
-              <button
-                type="button"
-                onMouseEnter={() => {
-                  setMegaOpen(true);
-                  setSearchOpen(false);
-                }}
-                onClick={() => setMegaOpen((value) => !value)}
-                className="
-                  flex
-                  items-center
-                  gap-1.5
-                  text-sm
-                  font-medium
-                  text-zinc-300
-                  transition
-                  hover:text-pink-500
-                  cursor-pointer
-                "
-              >
-                Categorias
-                <ChevronDown
-                  size={16}
-                  className={`transition-transform duration-200 ${
-                    megaOpen ? "rotate-180" : ""
-                  }`}
-                />
-              </button>
-
-              {/* OUTROS LINKS */}
-              {links.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onMouseEnter={() => setMegaOpen(false)}
-                  className="
-                    text-sm
-                    font-medium
-                    text-zinc-300
+            {/* CATEGORIAS PRINCIPAIS COM HOVER */}
+            <nav className="hidden items-center gap-6 xl:flex">
+              {menuCategories.map((cat) => (
+                <button
+                  key={cat.slug}
+                  type="button"
+                  onMouseEnter={() => {
+                    setActiveCategory(cat.slug);
+                    setSearchOpen(false);
+                  }}
+                  onClick={() => {
+                    setActiveCategory(activeCategory === cat.slug ? null : cat.slug);
+                  }}
+                  className={`
+                    flex items-center gap-1
+                    text-sm font-semibold
                     transition
-                    hover:text-pink-500
-                  "
+                    cursor-pointer
+                    whitespace-nowrap
+                    ${
+                      activeCategory === cat.slug
+                        ? "text-pink-500"
+                        : "text-zinc-300 hover:text-pink-500"
+                    }
+                  `}
                 >
-                  {link.label}
-                </Link>
+                  {cat.name}
+                  <ChevronDown
+                    size={14}
+                    className={`transition-transform duration-200 ${
+                      activeCategory === cat.slug ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
               ))}
             </nav>
           </div>
 
-          {/* DIREITA - AÇÕES */}
-          <div className="hidden items-center gap-3 lg:flex">
-            {/* PESQUISA */}
-            <button
-              type="button"
-              aria-label={searchOpen ? "Fechar pesquisa" : "Abrir pesquisa"}
-              title="Pesquisar"
-              onClick={() => {
-                setSearchOpen((value) => !value);
-                setMegaOpen(false);
-              }}
-              className="
-                rounded-full
-                p-2.5
-                text-zinc-200
-                transition
-                hover:bg-zinc-900
-                hover:text-pink-500
-                cursor-pointer
-              "
-            >
-              {searchOpen ? <X size={22} /> : <SearchIcon size={22} />}
-            </button>
+          {/* DIREITA - PESQUISA + AÇÕES */}
+          <div className="hidden items-center gap-2 lg:flex">
+            {/* PESQUISA INLINE */}
+            <div className="flex items-center">
+              <button
+                type="button"
+                aria-label="Pesquisar"
+                onClick={() => setSearchOpen((value) => !value)}
+                className="rounded-full p-2.5 text-zinc-200 transition hover:bg-zinc-900 hover:text-pink-500 cursor-pointer"
+              >
+                {searchOpen ? <X size={22} /> : <SearchIcon size={22} />}
+              </button>
+
+              <div
+                className={`
+                  overflow-hidden
+                  transition-all
+                  duration-300
+                  ease-in-out
+                  ${searchOpen ? "w-72 opacity-100" : "w-0 opacity-0"}
+                `}
+              >
+                <input
+                  type="text"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && searchValue.trim()) {
+                      window.location.href = `/product?search=${encodeURIComponent(searchValue.trim())}`;
+                    }
+                  }}
+                  placeholder="Pesquisar produtos..."
+                  className="
+                    h-10
+                    w-full
+                    rounded-full
+                    border
+                    border-zinc-700
+                    bg-zinc-900
+                    pl-5
+                    pr-5
+                    text-sm
+                    text-white
+                    outline-none
+                    placeholder:text-zinc-500
+                    focus:border-pink-500
+                  "
+                />
+              </div>
+            </div>
 
             {/* ADMIN */}
             {isAdmin && (
@@ -179,24 +195,7 @@ export function NavbarClient({
                 href="/admin"
                 aria-label="Administração"
                 title="Administração"
-                className="
-                  flex
-                  items-center
-                  gap-2
-                  rounded-full
-                  border
-                  border-pink-500/30
-                  bg-pink-500/10
-                  px-4
-                  py-2.5
-                  text-sm
-                  font-semibold
-                  text-pink-500
-                  transition
-                  hover:border-pink-500
-                  hover:bg-pink-500
-                  hover:text-white
-                "
+                className="flex items-center gap-2 rounded-full border border-pink-500/30 bg-pink-500/10 px-4 py-2.5 text-sm font-semibold text-pink-500 transition hover:border-pink-500 hover:bg-pink-500 hover:text-white"
               >
                 <Shield size={18} />
                 <span>Admin</span>
@@ -209,14 +208,7 @@ export function NavbarClient({
                 href="/account"
                 aria-label="A minha conta"
                 title="A minha conta"
-                className="
-                  rounded-full
-                  p-2.5
-                  text-zinc-200
-                  transition
-                  hover:bg-zinc-900
-                  hover:text-pink-500
-                "
+                className="rounded-full p-2.5 text-zinc-200 transition hover:bg-zinc-900 hover:text-pink-500"
               >
                 <User size={22} />
               </Link>
@@ -225,118 +217,48 @@ export function NavbarClient({
                 href="/login"
                 aria-label="Iniciar sessão"
                 title="Iniciar sessão"
-                className="
-                  flex
-                  items-center
-                  gap-2
-                  rounded-full
-                  border
-                  border-zinc-800
-                  px-4
-                  py-2.5
-                  text-sm
-                  font-semibold
-                  text-zinc-200
-                  transition
-                  hover:border-pink-500
-                  hover:bg-pink-500/10
-                  hover:text-pink-500
-                "
+                className="flex items-center gap-2 rounded-full border border-zinc-800 px-4 py-2.5 text-sm font-semibold text-zinc-200 transition hover:border-pink-500 hover:bg-pink-500/10 hover:text-pink-500"
               >
                 <User size={18} />
                 <span>Entrar</span>
               </Link>
             )}
 
-            {/* FAVORITOS */}
-            <Link
-              href="/wishlist"
-              aria-label="Os meus favoritos"
+            {/* FAVORITOS - ✅ ABRE O MODAL */}
+            <button
+              type="button"
+              onClick={openWishlist}
+              aria-label="Abrir favoritos"
               title="Favoritos"
-              className="
-                relative
-                rounded-full
-                p-2.5
-                text-zinc-200
-                transition
-                hover:bg-zinc-900
-                hover:text-pink-500
-              "
+              className="relative rounded-full p-2.5 text-zinc-200 transition hover:bg-zinc-900 hover:text-pink-500 cursor-pointer"
             >
               <Heart
                 size={22}
-                className={
-                  wishlistCount > 0
-                    ? "fill-pink-500 text-pink-500"
-                    : "text-zinc-200"
-                }
+                className="text-zinc-200"
               />
-
-              {wishlistCount > 0 && (
-                <span
-                  className="
-                    absolute
-                    -right-1
-                    -top-1
-                    flex
-                    h-5
-                    min-w-5
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-pink-500
-                    px-1
-                    text-[10px]
-                    font-bold
-                    text-white
-                  "
-                >
+              {/* ✅ Badge escondido durante carregamento (evita hidratação) */}
+              {wishlistCount > 0 && !wishlistLoading && (
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-pink-500 px-1 text-[10px] font-bold text-white">
                   {wishlistCount > 99 ? "99+" : wishlistCount}
                 </span>
               )}
-            </Link>
+            </button>
 
-            {/* CARRINHO */}
-            <Link
-              href="/cart"
-              aria-label="Carrinho"
+            {/* CARRINHO - ✅ ABRE O SIDE PANEL */}
+            <button
+              type="button"
+              onClick={openCart}
+              aria-label="Abrir carrinho"
               title="Carrinho"
-              className="
-                relative
-                rounded-full
-                p-2.5
-                text-zinc-200
-                transition
-                hover:bg-zinc-900
-                hover:text-pink-500
-              "
+              className="relative rounded-full p-2.5 text-zinc-200 transition hover:bg-zinc-900 hover:text-pink-500 cursor-pointer"
             >
               <ShoppingBag size={22} />
-
               {cartCount > 0 && (
-                <span
-                  className="
-                    absolute
-                    -right-1
-                    -top-1
-                    flex
-                    h-5
-                    min-w-5
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-pink-500
-                    px-1
-                    text-[10px]
-                    font-bold
-                    text-white
-                  "
-                >
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-pink-500 px-1 text-[10px] font-bold text-white">
                   {cartCount > 99 ? "99+" : cartCount}
                 </span>
               )}
-            </Link>
-
+            </button>
           </div>
 
           {/* MOBILE */}
@@ -344,57 +266,18 @@ export function NavbarClient({
             type="button"
             aria-label={open ? "Fechar menu" : "Abrir menu"}
             aria-expanded={open}
-            onClick={() => {
-              setOpen((value) => !value);
-              setSearchOpen(false);
-            }}
-            className="
-              ml-auto
-              rounded-full
-              p-2
-              text-zinc-200
-              transition
-              hover:bg-zinc-900
-              hover:text-pink-500
-              lg:hidden
-              cursor-pointer
-            "
+            onClick={() => setOpen((value) => !value)}
+            className="ml-auto rounded-full p-2 text-zinc-200 transition hover:bg-zinc-900 hover:text-pink-500 lg:hidden cursor-pointer"
           >
             {open ? <X size={28} /> : <Menu size={28} />}
           </button>
         </div>
       </div>
 
-      {/* PESQUISA EXPANDIDA */}
-      <div
-        className={`
-          arabesque-bg
-          overflow-hidden
-          border-t
-          border-pink-100
-          transition-all
-          duration-300
-          ${
-            searchOpen
-              ? "max-h-32 opacity-100"
-              : "max-h-0 opacity-0"
-          }
-        `}
-      >
-        <div className="container-custom">
-          <div className="py-4">
-            <div className="mx-auto w-full max-w-3xl">
-              <Search />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* MEGA MENU */}
+      {/* MEGA MENU - ABRE POR CATEGORIA */}
       <MegaMenu
-        categories={categories}
-        open={megaOpen}
-        onClose={() => setMegaOpen(false)}
+        activeCategory={activeCategory}
+        onClose={() => setActiveCategory(null)}
       />
 
       {/* MOBILE MENU */}

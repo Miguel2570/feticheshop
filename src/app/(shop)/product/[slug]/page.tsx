@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { mapProduct } from "@/lib/mappers/product";
 
+import { BackButton } from "@/components/product/BackButton";
 import { ProductActions } from "@/components/product/ProductActions";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { ProductInfo } from "@/components/product/ProductInfo";
@@ -18,29 +19,16 @@ interface ProductPageProps {
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
 
-  // Busca o produto atual
   const dbProduct = await prisma.product.findUnique({
-    where: {
-      slug,
-    },
+    where: { slug },
     include: {
       brand: true,
-      images: {
-        orderBy: {
-          position: "asc",
-        },
-      },
-      categories: {
-        include: {
-          category: true,
-        },
-      },
+      images: { orderBy: { position: "asc" } },
+      categories: { include: { category: true } },
       attributes: {
         include: {
           attributeValue: {
-            include: {
-              attribute: true,
-            },
+            include: { attribute: true },
           },
         },
       },
@@ -52,49 +40,22 @@ export default async function ProductPage({ params }: ProductPageProps) {
   }
 
   const product = mapProduct(dbProduct);
+  const categoryIds = dbProduct.categories.map((cat) => cat.categoryId);
 
-  // Obtém os IDs das categorias do produto atual
-  const categoryIds = dbProduct.categories.map(
-    (cat) => cat.categoryId
-  );
-
-  // ==========================================
-  // PRODUTOS RELACIONADOS
-  // ==========================================
-
-  // 1. Busca produtos da mesma categoria
   let dbRelatedProducts = await prisma.product.findMany({
     where: {
       status: "ACTIVE",
-      id: {
-        not: dbProduct.id,
-      },
-      categories: {
-        some: {
-          categoryId: {
-            in: categoryIds,
-          },
-        },
-      },
+      id: { not: dbProduct.id },
+      categories: { some: { categoryId: { in: categoryIds } } },
     },
     include: {
       brand: true,
-      images: {
-        orderBy: {
-          position: "asc",
-        },
-      },
-      categories: {
-        include: {
-          category: true,
-        },
-      },
+      images: { orderBy: { position: "asc" } },
+      categories: { include: { category: true } },
       attributes: {
         include: {
           attributeValue: {
-            include: {
-              attribute: true,
-            },
+            include: { attribute: true },
           },
         },
       },
@@ -102,8 +63,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
     take: 8,
   });
 
-  // 2. Se houver menos de 4 produtos da mesma categoria,
-  //    busca outros produtos para complementar
   if (dbRelatedProducts.length < 4) {
     const remainingCount = 8 - dbRelatedProducts.length;
 
@@ -117,22 +76,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
       },
       include: {
         brand: true,
-        images: {
-          orderBy: {
-            position: "asc",
-          },
-        },
-        categories: {
-          include: {
-            category: true,
-          },
-        },
+        images: { orderBy: { position: "asc" } },
+        categories: { include: { category: true } },
         attributes: {
           include: {
             attributeValue: {
-              include: {
-                attribute: true,
-              },
+              include: { attribute: true },
             },
           },
         },
@@ -147,8 +96,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
 
   return (
     <main className="arabesque-bg relative overflow-hidden">
+      {/* ✅ Botão voltar - vai para a página anterior */}
+      <div className="container-custom pt-8">
+        <BackButton />
+      </div>
+
       {/* Produto principal */}
-      <section className="container-custom py-20">
+      <section className="container-custom py-12">
         <div className="grid gap-16 lg:grid-cols-2">
           <ProductGallery images={product.images} />
           <ProductInfo product={product} />
@@ -158,17 +112,15 @@ export default async function ProductPage({ params }: ProductPageProps) {
       {/* Tabs */}
       <ProductTabs product={product} />
 
-      
       {/* Produtos Relacionados */}
       <RelatedProducts
         currentProductId={product.id}
         currentCategory={categoryIds.length > 0 ? product.category : undefined}
         products={relatedProducts}
       />
-      
+
       {/* Benefícios */}
       <ProductActions />
-
     </main>
   );
 }

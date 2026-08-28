@@ -3,6 +3,16 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+type Category = {
+  id: string;
+  name: string;
+  slug: string;
+  parent: {
+    id: string;
+    name: string;
+  } | null;
+};
+
 type Product = {
   id: string;
   name: string;
@@ -11,8 +21,8 @@ type Product = {
   ean: string | null;
   shortDescription: string | null;
   description: string | null;
-  price: { toString(): string };
-  comparePrice: { toString(): string } | null;
+  price: number;
+  comparePrice: number | null;
   stock: number;
   physicalStock: number;
   supplierStock: number;
@@ -21,16 +31,21 @@ type Product = {
   isFeatured: boolean;
   isNew: boolean;
   isOnSale: boolean;
+  categoryId?: string;
 };
 
 interface ProductEditFormProps {
   product: Product;
+  categories?: Category[];
 }
 
-export function ProductEditForm({ product }: ProductEditFormProps) {
+export function ProductEditForm({ product, categories = [] }: ProductEditFormProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState(
+    product.categoryId ?? ""
+  );
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -54,6 +69,7 @@ export function ProductEditForm({ product }: ProductEditFormProps) {
       isFeatured: formData.get("isFeatured") === "true",
       isNew: formData.get("isNew") === "true",
       isOnSale: formData.get("isOnSale") === "true",
+      categoryId: formData.get("categoryId") || null,
     };
 
     try {
@@ -77,6 +93,14 @@ export function ProductEditForm({ product }: ProductEditFormProps) {
       setSaving(false);
     }
   };
+
+  // Agrupar categorias por pai
+  const groupedCategories = categories.reduce((acc, cat) => {
+    const parentName = cat.parent?.name ?? "Sem categoria";
+    if (!acc[parentName]) acc[parentName] = [];
+    acc[parentName].push(cat);
+    return acc;
+  }, {} as Record<string, Category[]>);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -112,6 +136,28 @@ export function ProductEditForm({ product }: ProductEditFormProps) {
             required
             className="h-10 w-full rounded-xl border-2 border-zinc-200 px-4 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
           />
+        </div>
+
+        {/* CATEGORIA */}
+        <div>
+          <label className="block text-sm font-semibold text-zinc-700 mb-2">Categoria</label>
+          <select
+            name="categoryId"
+            value={selectedCategoryId}
+            onChange={(e) => setSelectedCategoryId(e.target.value)}
+            className="h-10 w-full rounded-xl border-2 border-zinc-200 px-4 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
+          >
+            <option value="">Selecionar categoria</option>
+            {Object.entries(groupedCategories).map(([parentName, cats]) => (
+              <optgroup key={parentName} label={parentName}>
+                {cats.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
@@ -168,7 +214,7 @@ export function ProductEditForm({ product }: ProductEditFormProps) {
             <input
               type="number"
               name="price"
-              defaultValue={Number(product.price).toFixed(2)}
+              defaultValue={product.price.toFixed(2)}
               step="0.01"
               min="0"
               required
@@ -180,7 +226,7 @@ export function ProductEditForm({ product }: ProductEditFormProps) {
             <input
               type="number"
               name="comparePrice"
-              defaultValue={product.comparePrice ? Number(product.comparePrice).toFixed(2) : ""}
+              defaultValue={product.comparePrice ? product.comparePrice.toFixed(2) : ""}
               step="0.01"
               min="0"
               className="h-10 w-full rounded-xl border-2 border-zinc-200 px-4 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
@@ -252,31 +298,23 @@ export function ProductEditForm({ product }: ProductEditFormProps) {
       </div>
 
       {/* BOTÕES */}
-        <div className="flex gap-3">
+      <div className="flex gap-3">
         <button
-            type="submit"
-            disabled={saving}
-            className="
-            h-11 px-6 text-sm font-bold rounded-xl
-            bg-pink-500 text-white hover:bg-pink-600
-            transition-all disabled:opacity-50 cursor-pointer
-            "
+          type="submit"
+          disabled={saving}
+          className="h-11 px-6 text-sm font-bold rounded-xl bg-pink-500 text-white hover:bg-pink-600 transition-all disabled:opacity-50 cursor-pointer"
         >
-            {saving ? "A guardar..." : "Guardar Alterações"}
+          {saving ? "A guardar..." : "Guardar Alterações"}
         </button>
 
         <button
-            type="button"
-            onClick={() => router.push(`/admin/products/${product.id}`)}
-            className="
-            h-11 px-6 text-sm font-bold rounded-xl
-            bg-zinc-100 text-zinc-700 hover:bg-zinc-200
-            transition-all cursor-pointer
-            "
+          type="button"
+          onClick={() => router.push(`/admin/products/${product.id}`)}
+          className="h-11 px-6 text-sm font-bold rounded-xl bg-zinc-100 text-zinc-700 hover:bg-zinc-200 transition-all cursor-pointer"
         >
-            Cancelar
+          Cancelar
         </button>
-        </div>
+      </div>
     </form>
   );
 }

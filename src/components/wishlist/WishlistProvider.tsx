@@ -1,3 +1,5 @@
+// src/components/wishlist/WishlistProvider.tsx
+
 "use client";
 
 import {
@@ -6,20 +8,41 @@ import {
   useContext,
   useEffect,
   useState,
+  useRef,
 } from "react";
+
+interface WishlistProduct {
+  id: string;
+  slug: string;
+  name: string;
+  price: number;
+  compareAtPrice?: number | null;
+  stock?: number;
+  brand: {
+    name: string;
+  };
+  images: {
+    url: string;
+  }[];
+}
 
 interface WishlistContextType {
   productIds: string[];
+  products: WishlistProduct[];
   count: number;
   loading: boolean;
+  isOpen: boolean;
+  openWishlist: () => void;
+  closeWishlist: () => void;
+  toggleWishlist: () => void;
   isFavorite: (productId: string) => boolean;
-  toggleFavorite: (productId: string) => Promise<void>;
+  toggleFavorite: (productId: string, productData?: WishlistProduct) => void; // ✅ Removido Promise
 }
 
 const WishlistContext =
-  createContext<WishlistContextType | undefined>(
-    undefined
-  );
+  createContext<WishlistContextType | undefined>(undefined);
+
+const STORAGE_KEY = "pleasure-shop-wishlist";
 
 export function WishlistProvider({
   children,
@@ -27,183 +50,111 @@ export function WishlistProvider({
   children: React.ReactNode;
 }) {
   const [productIds, setProductIds] = useState<string[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [products, setProducts] = useState<WishlistProduct[]>([]);
+  const [mounted, setMounted] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const previousOverflow = useRef<string>("");
 
-  /*
-   * Carregar favoritos quando o Provider monta.
-   */
+  const openWishlist = useCallback(() => setIsOpen(true), []);
+  const closeWishlist = useCallback(() => setIsOpen(false), []);
+  const toggleWishlist = useCallback(() => setIsOpen(prev => !prev), []);
+
+  // ✅ Carregar do localStorage
   useEffect(() => {
-    let cancelled = false;
-
-    async function loadWishlist() {
+    const timer = setTimeout(() => {
       try {
-        const response = await fetch(
-          "/api/wishlist",
-          {
-            method: "GET",
-            credentials: "include",
-            cache: "no-store",
-          }
-        );
-
-        /*
-         * Utilizador não autenticado.
-         * Não é um erro para o Provider.
-         */
-        if (response.status === 401) {
-          if (!cancelled) {
-            setProductIds([]);
-            setLoading(false);
-          }
-
-          return;
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const data = JSON.parse(stored);
+          setProductIds(data.ids ?? []);
+          setProducts(data.products ?? []);
         }
-
-        if (!response.ok) {
-          throw new Error(
-            "Failed to load wishlist"
-          );
-        }
-
-        const wishlist = await response.json();
-
-        const ids =
-          wishlist.items?.map(
-            (item: { productId: string }) =>
-              item.productId
-          ) ?? [];
-
-        if (!cancelled) {
-          setProductIds(ids);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error(
-          "Erro ao carregar favoritos:",
-          error
-        );
-
-        if (!cancelled) {
-          setProductIds([]);
-          setLoading(false);
-        }
+      } catch {
+        // Ignorar
       }
-    }
+      setMounted(true);
+    }, 0);
 
-    loadWishlist();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => clearTimeout(timer);
   }, []);
 
-  /*
-   * Verificar se determinado produto está nos favoritos.
-   */
+  // ✅ Salvar no localStorage
+  useEffect(() => {
+    if (!mounted) return;
+    
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify({
+          ids: productIds,
+          products: products.filter(p => productIds.includes(p.id)),
+        }));
+      } catch {
+        // Ignorar
+      }
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [productIds, products, mounted]);
+
+  // ✅ Bloquear scroll + ESC
+  useEffect(() => {
+    if (!isOpen) return;
+
+    previousOverflow.current = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleEsc);
+
+    return () => {
+      document.body.style.overflow = previousOverflow.current;
+      document.removeEventListener("keydown", handleEsc);
+    };
+  }, [isOpen]);
+
   const isFavorite = useCallback(
-    (productId: string) => {
-      return productIds.includes(productId);
-    },
+    (productId: string) => productIds.includes(productId),
     [productIds]
   );
 
-  /*
-   * Adicionar / remover favorito.
-   */
+  // ✅ Toggle INSTANTÂNEO (sem fetch à API - só localStorage)
   const toggleFavorite = useCallback(
-    async (productId: string) => {
-      const favorite =
-        productIds.includes(productId);
+    (productId: string, productData?: WishlistProduct) => {
+      const favorite = productIds.includes(productId);
 
-      /*
-       * Atualização otimista.
-       *
-       * O coração muda imediatamente,
-       * sem esperar pela API.
-       */
+      // ✅ Atualização síncrona imediata
       setProductIds((current) =>
         favorite
-          ? current.filter(
-              (id) => id !== productId
-            )
+          ? current.filter((id) => id !== productId)
           : [...current, productId]
       );
 
-      try {
-        const response = await fetch(
-          favorite
-            ? "/api/wishlist/remove"
-            : "/api/wishlist/add",
-          {
-            method: favorite
-              ? "DELETE"
-              : "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-
-            credentials: "include",
-
-            body: JSON.stringify({
-              productId,
-            }),
-          }
-        );
-
-        /*
-         * Não autenticado.
-         *
-         * Reverter a alteração otimista
-         * e mandar o utilizador para login.
-         */
-        if (response.status === 401) {
-          setProductIds((current) =>
-            favorite
-              ? [...current, productId]
-              : current.filter(
-                  (id) => id !== productId
-                )
-          );
-
-          const redirect =
-            `${window.location.pathname}` +
-            `${window.location.search}`;
-
-          window.location.href =
-            `/login?redirect=${encodeURIComponent(
-              redirect
-            )}`;
-
-          return;
-        }
-
-        /*
-         * API devolveu outro erro.
-         */
-        if (!response.ok) {
-          throw new Error(
-            "Não foi possível atualizar os favoritos"
-          );
-        }
-      } catch (error) {
-        console.error(
-          "Erro ao atualizar favorito:",
-          error
-        );
-
-        /*
-         * Reverter alteração otimista.
-         */
-        setProductIds((current) =>
-          favorite
-            ? [...current, productId]
-            : current.filter(
-                (id) => id !== productId
-              )
-        );
+      if (favorite) {
+        setProducts((current) => current.filter(p => p.id !== productId));
+      } else if (productData) {
+        setProducts((current) => {
+          const exists = current.find(p => p.id === productId);
+          return exists ? current : [...current, productData];
+        });
       }
+
+      // ✅ API em background (não bloqueia a UI)
+      fetch(
+        favorite ? "/api/wishlist/remove" : "/api/wishlist/add",
+        {
+          method: favorite ? "DELETE" : "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ productId }),
+        }
+      ).catch((error) => {
+        console.error("Erro na API (não bloqueia UI):", error);
+      });
     },
     [productIds]
   );
@@ -212,8 +163,13 @@ export function WishlistProvider({
     <WishlistContext.Provider
       value={{
         productIds,
+        products,
         count: productIds.length,
-        loading,
+        loading: !mounted,
+        isOpen,
+        openWishlist,
+        closeWishlist,
+        toggleWishlist,
         isFavorite,
         toggleFavorite,
       }}
@@ -224,13 +180,10 @@ export function WishlistProvider({
 }
 
 export function useWishlist() {
-  const context =
-    useContext(WishlistContext);
+  const context = useContext(WishlistContext);
 
   if (!context) {
-    throw new Error(
-      "useWishlist must be used inside WishlistProvider"
-    );
+    throw new Error("useWishlist must be used inside WishlistProvider");
   }
 
   return context;

@@ -1,32 +1,23 @@
 // lib/category-mapping.ts
 
 export const mainCategorySlugs = [
-  "vibradores",
+  "sex-toys",
   "para-ele",
-  "para-ela",
-  "acessorios",
-  "bdsm",
-  "roupa",
   "essenciais",
-  "cbd",
+  "roupa",
+  "bdsm",
 ];
 
 // Mapeamento de keywords para categorias principais
 // ORDEM IMPORTANTE: categorias mais específicas primeiro
 export const categoryMappings: { slug: string; keywords: string[] }[] = [
   {
-    slug: "cbd",
-    keywords: [
-      "cbd", "vape", "joint", "flor", "flores", "cannabis", "hemp",
-      "vapeador", "vapeadores",
-    ],
-  },
-  {
     slug: "bdsm",
     keywords: [
       "bondage", "esposas", "collar", "bdsm", "fetiche", "fetish",
       "dominación", "dominacao", "máscara", "mascara", "látigo", "latigo",
       "mordaza", "palas", "pinzas", "cuerdas", "jaula",
+      "algema", "coleira", "chicote", "mordaça", "corda",
     ],
   },
   {
@@ -34,13 +25,7 @@ export const categoryMappings: { slug: string; keywords: string[] }[] = [
     keywords: [
       "masturbador", "anel peniano", "anillo", "para el", "para ele",
       "hombre", "homem", "masculino", "pene", "peniano", "vagina",
-      "prostático", "prostatico",
-    ],
-  },
-  {
-    slug: "para-ela",
-    keywords: [
-      "para ella", "para ela", "mujer", "mulher", "femenino", "feminino",
+      "prostático", "prostatico", "pénis", "penis",
     ],
   },
   {
@@ -59,22 +44,18 @@ export const categoryMappings: { slug: string; keywords: string[] }[] = [
       "estimulante", "retardante", "potenciador", "aceite", "óleo",
       "oleo", "vela", "gel", "perfume", "crema", "masaje", "massagem",
       "limpieza", "limpeza", "cápsula", "capsula", "gotas",
+      "jogo", "juegos", "juego", "game", "cartas", "dados",
     ],
   },
   {
-    slug: "acessorios",
-    keywords: [
-      "bolas", "dilatador", "acessório", "accesorio", "acessórios",
-      "plug", "anal", "arnés", "arnes", "funda", "extensor", "bomba",
-      "succionador",
-    ],
-  },
-  {
-    slug: "vibradores",
+    slug: "sex-toys",
     keywords: [
       "vibrador", "dildo", "sugador", "estimulador", "clitoris",
       "clitóris", "punto g", "ponto g", "vibración", "vibracao",
       "rabbit", "wand", "bullet", "huevo", "ovo", "balas vibradoras",
+      "bolas", "dilatador", "plug", "anal", "arnés", "arnes",
+      "funda", "extensor", "bomba", "succionador",
+      "strap-on", "strap on",
     ],
   },
 ];
@@ -82,7 +63,6 @@ export const categoryMappings: { slug: string; keywords: string[] }[] = [
 export function findMainCategory(text: string): string | null {
   const lower = text.toLowerCase();
 
-  // Primeiro tenta correspondências exatas (maior prioridade)
   for (const mapping of categoryMappings) {
     if (mapping.keywords.some((kw) => lower.includes(kw))) {
       return mapping.slug;
@@ -92,7 +72,6 @@ export function findMainCategory(text: string): string | null {
   return null;
 }
 
-// Função para encontrar TODAS as categorias correspondentes (para debug)
 export function findAllMatchingCategories(text: string): string[] {
   const lower = text.toLowerCase();
   const matches: string[] = [];
@@ -106,7 +85,6 @@ export function findAllMatchingCategories(text: string): string[] {
   return matches;
 }
 
-// Função para debug: mostra que keywords corresponderam
 export function debugCategoryMatch(text: string): {
   category: string | null;
   matchedKeywords: string[];

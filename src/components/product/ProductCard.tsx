@@ -6,7 +6,9 @@ import {
   Heart,
   ShoppingBag,
   Star,
+  Check,
 } from "lucide-react";
+import { useState } from "react";
 
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
 import { useCart } from "@/components/cart/CartProvider";
@@ -40,6 +42,7 @@ export function ProductCard({
 }: ProductCardProps) {
   const { isFavorite, toggleFavorite } = useWishlist();
   const { addToCart } = useCart();
+  const [added, setAdded] = useState(false);
 
   const favorite = isFavorite(id);
 
@@ -48,15 +51,30 @@ export function ProductCard({
       ? Math.round(((oldPrice - price) / oldPrice) * 100)
       : null;
 
-  async function handleFavorite() {
-    await toggleFavorite(id);
+  function handleFavorite() {
+    toggleFavorite(id, {
+      id,
+      slug,
+      name,
+      price,
+      compareAtPrice: oldPrice ?? null,
+      stock: 10,
+      brand: { name: brand },
+      images: [{ url: image ?? "/placeholder-product.png" }],
+    });
   }
 
   async function handleAddToCart() {
-    const success = await addToCart(id, 1);
+    const success = await addToCart(id, 1, {
+      name,
+      slug,
+      image: image ?? "/placeholder-product.png",
+      price,
+    });
 
     if (success) {
-      console.log("Produto adicionado ao carrinho");
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
     }
   }
 
@@ -81,6 +99,7 @@ export function ProductCard({
         hover:shadow-[0_8px_30px_rgba(255,46,136,.10)]
       "
     >
+      {/* SECÇÃO DA IMAGEM */}
       <div className="relative">
         {/* Badge de desconto / promoção */}
         {(badge || discount) && (
@@ -113,13 +132,14 @@ export function ProductCard({
         {/* Botão favorito */}
         <button
           type="button"
-          onClick={() => void handleFavorite()}
+          onClick={handleFavorite}
           aria-label={
             favorite
               ? "Remover dos favoritos"
               : "Adicionar aos favoritos"
           }
-          className="
+          className={`
+            group/fav
             absolute
             right-2
             top-2
@@ -134,23 +154,29 @@ export function ProductCard({
             items-center
             justify-center
             rounded-full
-            bg-white/80
-            backdrop-blur
-            shadow-sm
-            transition
-            hover:bg-pink-500
-            hover:shadow-lg
-            hover:shadow-pink-500/30
-          "
+            transition-all
+            duration-300
+            hover:scale-110
+            active:scale-90
+            ${
+              favorite
+                ? "bg-white/80 backdrop-blur shadow-sm hover:bg-pink-500 hover:shadow-lg hover:shadow-pink-500/30"
+                : "bg-white/80 backdrop-blur shadow-sm hover:bg-pink-500 hover:shadow-lg hover:shadow-pink-500/30"
+            }
+          `}
         >
           <Heart
             size={16}
             className={`
-              ${favorite ? "fill-pink-500 text-pink-500" : "text-zinc-600"}
               sm:w-[18px]
               sm:h-[18px]
-              transition-colors
-              group-hover:text-pink-500
+              transition-all
+              duration-300
+              ${
+                favorite 
+                  ? "fill-pink-500 text-pink-500 scale-110 group-hover/fav:fill-white group-hover/fav:text-white"
+                  : "text-zinc-600 group-hover/fav:fill-white group-hover/fav:text-white"
+              }
             `}
           />
         </button>
@@ -176,7 +202,7 @@ export function ProductCard({
         </Link>
       </div>
 
-      {/* Conteúdo */}
+      {/* CONTEÚDO */}
       <div className="space-y-3 sm:space-y-4 p-3 sm:p-6">
         <div>
           <p className="text-[10px] sm:text-xs uppercase tracking-widest text-pink-500">
@@ -243,11 +269,11 @@ export function ProductCard({
           )}
         </div>
 
-        {/* Botão adicionar ao carrinho */}
+        {/* Botão adicionar ao carrinho - ÚNICO BOTÃO */}
         <button
           type="button"
           onClick={() => void handleAddToCart()}
-          className="
+          className={`
             flex
             w-full
             items-center
@@ -255,7 +281,6 @@ export function ProductCard({
             gap-1
             sm:gap-2
             rounded-full
-            bg-pink-500
             py-2
             sm:py-3
             text-sm
@@ -263,15 +288,27 @@ export function ProductCard({
             font-semibold
             text-white
             transition-all
-            hover:bg-pink-600
-            hover:shadow-lg
-            hover:shadow-pink-500/30
+            duration-300
             active:scale-95
-          "
+            cursor-pointer
+            ${
+              added
+                ? "bg-emerald-500 scale-[1.02]"
+                : "bg-pink-500 hover:bg-pink-600 hover:shadow-lg hover:shadow-pink-500/30 hover:scale-[1.02]"
+            }
+          `}
         >
-          <ShoppingBag size={16} className="sm:w-[18px] sm:h-[18px]" />
-
-          Adicionar ao carrinho
+          {added ? (
+            <>
+              <Check size={16} className="sm:w-[18px] sm:h-[18px] animate-bounce" />
+              Adicionado!
+            </>
+          ) : (
+            <>
+              <ShoppingBag size={16} className="sm:w-[18px] sm:h-[18px]" />
+              Adicionar ao carrinho
+            </>
+          )}
         </button>
       </div>
     </article>

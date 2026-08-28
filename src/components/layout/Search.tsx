@@ -15,7 +15,7 @@ export function Search() {
           left-4
           top-1/2
           -translate-y-1/2
-          text-zinc-400
+          text-zinc-500
         "
       />
 
@@ -28,20 +28,20 @@ export function Search() {
           h-12
           w-full
           rounded-full
-          border-2
-          border-pink-200
-          bg-white
+          border
+          border-zinc-800
+          bg-zinc-900
           pl-11
           pr-4
           text-sm
-          text-zinc-900
+          text-white
           outline-none
           transition-all
           duration-300
-          placeholder:text-zinc-400
+          placeholder:text-zinc-500
           focus:border-pink-500
           focus:ring-2
-          focus:ring-pink-200
+          focus:ring-pink-500/20
         "
       />
 
@@ -55,13 +55,12 @@ export function Search() {
             overflow-hidden
             rounded-2xl
             border
-            border-pink-100
-            bg-white
+            border-zinc-800
+            bg-zinc-950
             shadow-2xl
-            shadow-pink-500/10
           "
         >
-          <div className="p-4 text-sm text-zinc-500">
+          <div className="p-4 text-sm text-zinc-400">
             A pesquisa em tempo real será ligada à API.
           </div>
         </div>

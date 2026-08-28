@@ -17,11 +17,28 @@ export default async function EditProductPage({
 
   const product = await prisma.product.findUnique({
     where: { id },
+    include: {
+      categories: {
+        include: {
+          category: true,
+        },
+      },
+    },
   });
 
   if (!product) {
     notFound();
   }
+
+  // Buscar categorias com pais
+  const categories = await prisma.category.findMany({
+    where: { parentId: { not: null } },
+    include: { parent: true },
+    orderBy: { name: "asc" },
+  });
+
+  // Categoria atual do produto
+  const currentCategoryId = product.categories[0]?.categoryId ?? "";
 
   // Converter Decimal para number
   const plainProduct = {
@@ -42,6 +59,7 @@ export default async function EditProductPage({
     isFeatured: product.isFeatured,
     isNew: product.isNew,
     isOnSale: product.isOnSale,
+    categoryId: currentCategoryId,
   };
 
   return (
@@ -67,7 +85,7 @@ export default async function EditProductPage({
         </Link>
       </div>
 
-      <ProductEditForm product={plainProduct} />
+      <ProductEditForm product={plainProduct} categories={categories} />
     </div>
   );
 }

@@ -23,14 +23,29 @@ import {
 // =========================================================
 
 const FRONTEND_CATEGORY_SLUGS = [
-  "vibradores",
+  "sex-toys",
   "para-ele",
-  "para-ela",
-  "acessorios",
-  "bdsm",
-  "roupa",
   "essenciais",
-  "cbd",
+  "roupa",
+  "bdsm",
+  "vibradores",
+  "dildos",
+  "sugadores",
+  "bolas-anales",
+  "estimuladores",
+  "masturbadores",
+  "aneis-penianos",
+  "estimulantes",
+  "lubrificantes",
+  "afrodisiacos",
+  "jogos-eroticos",
+  "lingerie-sexy",
+  "bodystocking",
+  "bikinis",
+  "bondage",
+  "acessorios-bdsm",
+  "baterias-acessorios",
+  "vapers-eletronicos",
 ];
 
 interface ProductDetailPageProps {

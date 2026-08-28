@@ -1,120 +1,77 @@
+// src/components/layout/MegaMenu.tsx
 "use client";
 
 import Link from "next/link";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect } from "react";
 import { ChevronRight } from "lucide-react";
 
 interface MegaMenuProps {
-  categories: {
-    id: string;
-    name: string;
-    slug: string;
-  }[];
-  open: boolean;
+  activeCategory: string | null;
   onClose: () => void;
 }
 
-// Estrutura de categorias principais com subcategorias
-const menuCategories = [
+// Estrutura atualizada com Jogos Eróticos
+const menuStructure = [
   {
-    name: "Vibradores",
-    slug: "vibradores",
+    name: "Sex Toys",
+    slug: "sex-toys",
     subCategories: [
-      "Dildos",
-      "Dildos Anales",
-      "Dildos Punto G",
-      "Dildos sin Vibración",
-      "Dildos para Arneses",
-      "Sugadores",
-      "Estimuladores de Clitóris",
+      { name: "Vibradores", slug: "vibradores" },
+      { name: "Dildos", slug: "dildos" },
+      { name: "Sugadores", slug: "sugadores" },
+      { name: "Bolas Anales", slug: "bolas-anales" },
+      { name: "Estimuladores", slug: "estimuladores" },
+      { name: "Baterias e Acessórios", slug: "baterias-acessorios" },
     ],
   },
   {
-    name: "Para Ele",
+    name: "Para o Pénis",
     slug: "para-ele",
     subCategories: [
-      "Masturbadores",
-      "Masturbadores Manuais",
-      "Masturbadores Elétricos",
-      "Anéis Penianos",
-      "Estimulantes para Ellos",
+      { name: "Masturbadores", slug: "masturbadores" },
+      { name: "Anéis Penianos", slug: "aneis-penianos" },
+      { name: "Estimulantes", slug: "estimulantes" },
     ],
   },
   {
-    name: "Para Ela",
-    slug: "para-ela",
+    name: "Saúde e Bem-Estar",
+    slug: "essenciais",
     subCategories: [
-      "Estimulantes para Ellas",
-      "Vibradores para Ela",
-      "Sugadores para Ela",
+      { name: "Lubrificantes", slug: "lubrificantes" },
+      { name: "Afrodisíacos", slug: "afrodisiacos" },
+      { name: "Jogos Eróticos", slug: "jogos-eroticos" },
     ],
   },
   {
-    name: "Acessórios",
-    slug: "acessorios",
+    name: "Lingerie",
+    slug: "roupa",
     subCategories: [
-      "Bolas Anales",
-      "Bolas Básicas",
-      "Bolas Chinas",
-      "Bolas e Óvulos",
-      "Dilatadores",
-      "Estimuladores",
+      { name: "Lingerie Sexy", slug: "lingerie-sexy" },
+      { name: "Bodystocking", slug: "bodystocking" },
+      { name: "Bikinis", slug: "bikinis" },
     ],
   },
   {
     name: "BDSM",
     slug: "bdsm",
     subCategories: [
-      "Bondage",
-      "Esposas",
-      "Collares",
-      "Acessórios BDSM",
-    ],
-  },
-  {
-    name: "Roupa",
-    slug: "roupa",
-    subCategories: [
-      "Lingerie",
-      "Bikinis",
-      "Bodystocking",
-      "Camisetas Masculinas",
-    ],
-  },
-  {
-    name: "Essenciais",
-    slug: "essenciais",
-    subCategories: [
-      "Lubrificantes",
-      "DROGUERÍA",
-      "Con deliciosos Sabores",
-      "Potenciadores",
-      "Estimulantes",
-      "Afrodisíacos",
-      "Retardantes",
-    ],
-  },
-  {
-    name: "CBD",
-    slug: "cbd",
-    subCategories: [
-      "CBD Sex",
-      "Vapes",
-      "Joints",
-      "Flores",
+      { name: "Bondage", slug: "bondage" },
+      { name: "Acessórios BDSM", slug: "acessorios-bdsm" },
     ],
   },
 ];
 
 export function MegaMenu({
-  categories,
-  open,
+  activeCategory,
   onClose,
 }: MegaMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Limpar timeout ao desmontar
+  const activeMenu = menuStructure.find(
+    (cat) => cat.slug === activeCategory
+  );
+
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -123,7 +80,6 @@ export function MegaMenu({
     };
   }, []);
 
-  // Fechar ao clicar fora
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -131,16 +87,15 @@ export function MegaMenu({
       }
     };
 
-    if (open) {
+    if (activeMenu) {
       document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [open, onClose]);
+  }, [activeMenu, onClose]);
 
-  // Fechar ao pressionar ESC
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -148,23 +103,21 @@ export function MegaMenu({
       }
     };
 
-    if (open) {
+    if (activeMenu) {
       document.addEventListener("keydown", handleEsc);
     }
 
     return () => {
       document.removeEventListener("keydown", handleEsc);
     };
-  }, [open, onClose]);
+  }, [activeMenu, onClose]);
 
-  // Handler para mouse leave com delay
   const handleMouseLeave = () => {
     timeoutRef.current = setTimeout(() => {
       onClose();
     }, 150);
   };
 
-  // Handler para mouse enter - cancela o timeout
   const handleMouseEnter = () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -172,7 +125,7 @@ export function MegaMenu({
     }
   };
 
-  if (!open) return null;
+  if (!activeMenu) return null;
 
   return (
     <div
@@ -187,61 +140,44 @@ export function MegaMenu({
         z-40
         border-t
         border-zinc-800
-        bg-[#090909]
+        bg-[#0a0a0a]
         shadow-2xl
+        shadow-black/50
       "
     >
-      <div className="mx-auto max-w-7xl px-8 py-8">
-        {/* Grid com categorias e subcategorias */}
-        <div className="grid grid-cols-2 gap-8 md:grid-cols-3 lg:grid-cols-4">
-          {menuCategories.map((category) => (
-            <div key={category.slug}>
-              {/* Categoria principal */}
-              <Link
-                href={`/product?category=${category.slug}`}
-                onClick={onClose}
-                className="
-                  block
-                  text-sm
-                  font-semibold
-                  uppercase
-                  tracking-wider
-                  text-pink-500
-                  transition-colors
-                  hover:text-pink-400
-                "
-              >
-                {category.name}
-              </Link>
-
-              {/* Subcategorias */}
-              <ul className="mt-3 space-y-2">
-                {category.subCategories.map((sub) => (
-                  <li key={sub}>
-                    <Link
-                      href={`/product?subcategory=${encodeURIComponent(sub)}`}
-                      onClick={onClose}
-                      className="
-                        block
-                        text-sm
-                        text-zinc-400
-                        transition-colors
-                        hover:text-pink-500
-                      "
-                    >
-                      {sub}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </div>
+      <div className="mx-auto max-w-[1545px] px-10 py-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
+          {activeMenu.subCategories.map((subCat) => (
+            <Link
+              key={subCat.slug}
+              href={`/product?category=${activeMenu.slug}&subcategory=${subCat.slug}`}
+              onClick={onClose}
+              className="
+                group
+                flex
+                items-center
+                justify-between
+                rounded-lg
+                px-4
+                py-3
+                text-sm
+                font-semibold
+                text-zinc-300
+                transition-all
+                hover:bg-pink-500/10
+                hover:text-pink-500
+              "
+            >
+              <span>{subCat.name}</span>
+              <ChevronRight className="h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100" />
+            </Link>
           ))}
         </div>
 
-        {/* Botão Ver todos os produtos */}
+        {/* Ver todos */}
         <div className="mt-8 border-t border-zinc-800 pt-5">
           <Link
-            href="/product"
+            href={`/product?category=${activeMenu.slug}`}
             onClick={onClose}
             className="
               inline-flex
@@ -254,7 +190,7 @@ export function MegaMenu({
               hover:text-pink-400
             "
           >
-            Ver todos os produtos
+            Ver todos {activeMenu.name.toLowerCase()}
             <ChevronRight className="h-4 w-4" />
           </Link>
         </div>

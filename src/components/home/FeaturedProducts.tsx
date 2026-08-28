@@ -1,3 +1,5 @@
+// FeaturedProducts.tsx
+
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
@@ -10,6 +12,9 @@ export async function FeaturedProducts() {
   if (products.length === 0) {
     return null;
   }
+
+  // Limitar a 8 produtos (2 linhas de 4)
+  const displayedProducts = products.slice(0, 8);
 
   return (
     <section className="arabesque-bg relative overflow-hidden">
@@ -52,9 +57,9 @@ export async function FeaturedProducts() {
           </Link>
         </div>
 
-        {/* Grelha de produtos */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-6 xl:grid-cols-5">
-          {products.map((product) => (
+        {/* Grelha de produtos - 4 colunas no máximo */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-6">
+          {displayedProducts.map((product) => (
             <ProductCard
               key={product.id}
               id={product.id}

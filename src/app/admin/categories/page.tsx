@@ -6,14 +6,29 @@ import { ToggleCategoryStatusButton } from "@/components/admin/categories/Toggle
 import { ToggleFeaturedCategoryButton } from "@/components/admin/categories/ToggleFeaturedCategoryButton";
 
 const frontendSlugs = [
-  "vibradores",
+  "sex-toys",
   "para-ele",
-  "para-ela",
-  "acessorios",
-  "bdsm",
-  "roupa",
   "essenciais",
-  "cbd",
+  "roupa",
+  "bdsm",
+  "vibradores",
+  "dildos",
+  "sugadores",
+  "bolas-anales",
+  "estimuladores",
+  "masturbadores",
+  "aneis-penianos",
+  "estimulantes",
+  "lubrificantes",
+  "afrodisiacos",
+  "jogos-eroticos",
+  "lingerie-sexy",
+  "bodystocking",
+  "bikinis",
+  "bondage",
+  "acessorios-bdsm",
+  "baterias-acessorios",
+  "vapers-eletronicos",
 ];
 
 export default async function CategoriesPage() {

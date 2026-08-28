@@ -1,519 +1,319 @@
+// src/components/cart/CartProvider.tsx
+
 "use client";
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
-
-/* =========================================================
-   TYPES
-========================================================= */
-
-export interface CartProduct {
-  id: string;
-  name: string;
-  slug: string;
-  price: number;
-  image: string;
-  brand: string;
-}
+import { createContext, useContext, useState, useCallback, useEffect, useRef } from "react";
 
 export interface CartItem {
   id: string;
-  productId: string;
-  variantId: string | null;
   quantity: number;
-  price: number;
-  subtotal: number;
-  product: CartProduct;
-}
-
-export interface CartSummary {
-  subtotal: number;
-  shipping: number;
-  discount: number;
-  total: number;
-  items: number;
-}
-
-export interface Cart {
-  id: string;
-  items: CartItem[];
-  summary: CartSummary;
+  product: {
+    id: string;
+    name: string;
+    slug: string;
+    image: string;
+    price: number;
+  };
 }
 
 interface CartContextType {
-  cart: Cart | null;
+  cart: {
+    items: CartItem[];
+    summary: {
+      items: number;
+      subtotal: number;
+      shipping: number;
+      discount: number;
+      total: number;
+    };
+  } | null;
   loading: boolean;
+  items: CartItem[];
   itemCount: number;
-
-  refreshCart: () => Promise<void>;
-
+  total: number;
+  isOpen: boolean;
+  openCart: () => void;
+  closeCart: () => void;
+  toggleCart: () => void;
   addToCart: (
-    productId: string,
+    productId: string, 
     quantity?: number,
-    variantId?: string
+    productData?: {
+      name?: string;
+      slug?: string;
+      image?: string;
+      price?: number;
+    }
   ) => Promise<boolean>;
-
-  updateQuantity: (
-    itemId: string,
-    quantity: number
-  ) => Promise<boolean>;
-
-  removeItem: (
-    itemId: string
-  ) => Promise<boolean>;
-
-  clearCart: () => Promise<boolean>;
+  removeFromCart: (productId: string) => void;
+  removeItem: (itemId: string) => void;
+  updateQuantity: (itemId: string, quantity: number) => void;
+  clearCart: () => void;
 }
 
-/* =========================================================
-   CONTEXT
-========================================================= */
+const CartContext = createContext<CartContextType | null>(null);
 
-const CartContext = createContext<
-  CartContextType | undefined
->(undefined);
+const STORAGE_KEY = "pleasure-shop-cart";
 
-/* =========================================================
-   PROVIDER
-========================================================= */
+// ✅ Tipo para dados antigos do localStorage
+interface LegacyCartItem {
+  id?: string;
+  productId?: string;
+  name?: string;
+  slug?: string;
+  image?: string;
+  price?: number;
+  quantity?: number;
+  product?: {
+    id: string;
+    name: string;
+    slug: string;
+    image: string;
+    price: number;
+  };
+}
 
-export function CartProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const [cart, setCart] = useState<Cart | null>(null);
-  const [loading, setLoading] = useState(false);
+// ✅ Função para migrar dados antigos (sem any)
+function migrateCartItems(items: LegacyCartItem[]): CartItem[] {
+  const migrated: CartItem[] = [];
 
-  /* =======================================================
-     REFRESH CART
-  ======================================================= */
-
-  const refreshCart = useCallback(async (): Promise<void> => {
-    setLoading(true);
-
-    try {
-      const response = await fetch("/api/cart", {
-        method: "GET",
-        credentials: "include",
-        cache: "no-store",
+  for (const item of items) {
+    // Se já tem a estrutura nova
+    if (item.product && typeof item.product.price === "number") {
+      migrated.push({
+        id: item.id ?? item.product.id,
+        quantity: item.quantity ?? 1,
+        product: item.product,
       });
-
-      /* -----------------------------------------------
-         NÃO AUTENTICADO
-      ------------------------------------------------ */
-
-      if (response.status === 401) {
-        setCart(null);
-        return;
-      }
-
-      /* -----------------------------------------------
-         ERRO
-      ------------------------------------------------ */
-
-      if (!response.ok) {
-        throw new Error(
-          "Não foi possível carregar o carrinho"
-        );
-      }
-
-      /* -----------------------------------------------
-         SUCCESS
-      ------------------------------------------------ */
-
-      const data: Cart = await response.json();
-
-      setCart(data);
-    } catch (error) {
-      console.error(
-        "Erro ao carregar carrinho:",
-        error
-      );
-
-      setCart(null);
-    } finally {
-      setLoading(false);
+      continue;
     }
-  }, []);
 
-  /* =======================================================
-     ADD TO CART
-     POST /api/cart
-  ======================================================= */
+    // Se tem a estrutura antiga (name, image, price diretos)
+    if (typeof item.name === "string" && typeof item.price === "number") {
+      const id = item.productId ?? item.id ?? "";
+      
+      migrated.push({
+        id,
+        quantity: item.quantity ?? 1,
+        product: {
+          id,
+          name: item.name,
+          slug: item.slug ?? "",
+          image: item.image ?? "/placeholder-product.png",
+          price: item.price,
+        },
+      });
+      continue;
+    }
 
-  const addToCart = useCallback(
-    async (
-      productId: string,
-      quantity = 1,
-      variantId?: string
-    ): Promise<boolean> => {
-      setLoading(true);
+    // Se tem productId mas não product
+    if (item.productId) {
+      migrated.push({
+        id: item.productId,
+        quantity: item.quantity ?? 1,
+        product: {
+          id: item.productId,
+          name: item.name ?? "Produto",
+          slug: item.slug ?? "",
+          image: item.image ?? "/placeholder-product.png",
+          price: item.price ?? 0,
+        },
+      });
+    }
+  }
 
-      try {
-        const response = await fetch("/api/cart", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            productId,
-            quantity,
-            ...(variantId
-              ? { variantId }
-              : {}),
-          }),
-        });
+  return migrated;
+}
 
-        /* -----------------------------------------------
-           NÃO AUTENTICADO
-        ------------------------------------------------ */
+function loadCartFromStorage(): CartItem[] {
+  if (typeof window === "undefined") return [];
+  
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return [];
+    
+    const parsed: unknown = JSON.parse(stored);
+    
+    // Se for array
+    if (Array.isArray(parsed)) {
+      return migrateCartItems(parsed as LegacyCartItem[]);
+    }
+    
+    // Se for { items: [...] }
+    if (
+      typeof parsed === "object" && 
+      parsed !== null &&
+      "items" in parsed &&
+      Array.isArray((parsed as { items: LegacyCartItem[] }).items)
+    ) {
+      return migrateCartItems((parsed as { items: LegacyCartItem[] }).items);
+    }
+    
+    return [];
+  } catch {
+    return [];
+  }
+}
 
-        if (response.status === 401) {
-          window.location.href =
-            `/login?redirect=${encodeURIComponent(
-              window.location.pathname
-            )}`;
+export function CartProvider({ children }: { children: React.ReactNode }) {
+  const [items, setItems] = useState<CartItem[]>(loadCartFromStorage);
+  const [isOpen, setIsOpen] = useState(false);
+  const [loading] = useState(false);
+  const previousOverflow = useRef<string>("");
 
-          return false;
-        }
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    } catch {
+      // Ignorar
+    }
+  }, [items]);
 
-        /* -----------------------------------------------
-           ERRO
-        ------------------------------------------------ */
+  const itemCount = items.reduce((total, item) => total + (item.quantity ?? 1), 0);
+  const subtotal = items.reduce((sum, item) => sum + (item.product?.price ?? 0) * (item.quantity ?? 1), 0);
+  const shipping = 0;
+  const discount = 0;
+  const total = subtotal + shipping - discount;
 
-        if (!response.ok) {
-          const data =
-            await response
-              .json()
-              .catch(() => null);
-
-          throw new Error(
-            data?.message ??
-              "Não foi possível adicionar o produto"
-          );
-        }
-
-        /* -----------------------------------------------
-           SUCCESS
-        ------------------------------------------------ */
-
-        const data: Cart =
-          await response.json();
-
-        setCart(data);
-
-        return true;
-      } catch (error) {
-        console.error(
-          "Erro ao adicionar ao carrinho:",
-          error
-        );
-
-        return false;
-      } finally {
-        setLoading(false);
-      }
+  const cart = {
+    items,
+    summary: {
+      items: itemCount,
+      subtotal,
+      shipping,
+      discount,
+      total,
     },
-    []
-  );
+  };
 
-  /* =======================================================
-     REMOVE ITEM
-     DELETE /api/cart/remove
-  ======================================================= */
+  const openCart = useCallback(() => setIsOpen(true), []);
+  const closeCart = useCallback(() => setIsOpen(false), []);
+  const toggleCart = useCallback(() => setIsOpen(prev => !prev), []);
 
-  const removeItem = useCallback(
-    async (
-      itemId: string
-    ): Promise<boolean> => {
-      setLoading(true);
+  useEffect(() => {
+    if (isOpen) {
+      previousOverflow.current = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = previousOverflow.current;
+    }
 
-      try {
-        const response = await fetch(
-          "/api/cart/remove",
-          {
-            method: "DELETE",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            credentials: "include",
-            body: JSON.stringify({
-              itemId,
-            }),
-          }
-        );
+    return () => {
+      document.body.style.overflow = previousOverflow.current;
+    };
+  }, [isOpen]);
 
-        /* -----------------------------------------------
-           NÃO AUTENTICADO
-        ------------------------------------------------ */
-
-        if (response.status === 401) {
-          window.location.href =
-            `/login?redirect=${encodeURIComponent(
-              window.location.pathname
-            )}`;
-
-          return false;
-        }
-
-        /* -----------------------------------------------
-           ERRO
-        ------------------------------------------------ */
-
-        if (!response.ok) {
-          const data =
-            await response
-              .json()
-              .catch(() => null);
-
-          throw new Error(
-            data?.message ??
-              "Não foi possível remover o produto"
-          );
-        }
-
-        /* -----------------------------------------------
-           REFRESH
-        ------------------------------------------------ */
-
-        await refreshCart();
-
-        return true;
-      } catch (error) {
-        console.error(
-          "Erro ao remover produto:",
-          error
-        );
-
-        return false;
-      } finally {
-        setLoading(false);
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsOpen(false);
       }
-    },
-    [refreshCart]
-  );
+    };
 
-  /* =======================================================
-     UPDATE QUANTITY
-     PATCH /api/cart/update
-  ======================================================= */
+    if (isOpen) {
+      document.addEventListener("keydown", handleEsc);
+    }
 
-  const updateQuantity = useCallback(
-    async (
-      itemId: string,
-      quantity: number
-    ): Promise<boolean> => {
-      /* -----------------------------------------------
-         QUANTIDADE <= 0
-         → remover
-      ------------------------------------------------ */
+    return () => {
+      document.removeEventListener("keydown", handleEsc);
+    };
+  }, [isOpen]);
 
-      if (quantity <= 0) {
-        return removeItem(itemId);
+  const addToCart = async (
+    productId: string, 
+    quantity: number = 1,
+    productData?: {
+      name?: string;
+      slug?: string;
+      image?: string;
+      price?: number;
+    }
+  ): Promise<boolean> => {
+    setItems(prev => {
+      const existing = prev.find(item => item.id === productId);
+      
+      if (existing) {
+        return prev.map(item => 
+          item.id === productId 
+            ? { ...item, quantity: item.quantity + quantity }
+            : item
+        );
       }
+      
+      const newItem: CartItem = {
+        id: productId,
+        quantity,
+        product: {
+          id: productId,
+          name: productData?.name ?? "Produto",
+          slug: productData?.slug ?? "",
+          image: productData?.image ?? "/placeholder-product.png",
+          price: productData?.price ?? 0,
+        },
+      };
+      
+      return [...prev, newItem];
+    });
+    
+    return true;
+  };
 
-      setLoading(true);
+  const removeFromCart = (productId: string) => {
+    setItems(prev => prev.filter(item => item.id !== productId));
+  };
 
-      try {
-        const response = await fetch(
-          "/api/cart/update",
-          {
-            method: "PATCH",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            credentials: "include",
-            body: JSON.stringify({
-              itemId,
-              quantity,
-            }),
-          }
-        );
+  const removeItem = (itemId: string) => {
+    setItems(prev => prev.filter(item => item.id !== itemId));
+  };
 
-        /* -----------------------------------------------
-           NÃO AUTENTICADO
-        ------------------------------------------------ */
+  const updateQuantity = (itemId: string, quantity: number) => {
+    setItems(prev => 
+      prev.map(item => 
+        item.id === itemId 
+          ? { ...item, quantity: Math.max(1, quantity) }
+          : item
+      )
+    );
+  };
 
-        if (response.status === 401) {
-          window.location.href =
-            `/login?redirect=${encodeURIComponent(
-              window.location.pathname
-            )}`;
-
-          return false;
-        }
-
-        /* -----------------------------------------------
-           ERRO
-        ------------------------------------------------ */
-
-        if (!response.ok) {
-          const data =
-            await response
-              .json()
-              .catch(() => null);
-
-          throw new Error(
-            data?.message ??
-              "Não foi possível atualizar o carrinho"
-          );
-        }
-
-        /* -----------------------------------------------
-           REFRESH
-        ------------------------------------------------ */
-
-        await refreshCart();
-
-        return true;
-      } catch (error) {
-        console.error(
-          "Erro ao atualizar quantidade:",
-          error
-        );
-
-        return false;
-      } finally {
-        setLoading(false);
-      }
-    },
-    [refreshCart, removeItem]
-  );
-
-  /* =======================================================
-     CLEAR CART
-     DELETE /api/cart/clear
-  ======================================================= */
-
-  const clearCart = useCallback(
-    async (): Promise<boolean> => {
-      setLoading(true);
-
-      try {
-        const response = await fetch(
-          "/api/cart/clear",
-          {
-            method: "DELETE",
-            credentials: "include",
-          }
-        );
-
-        /* -----------------------------------------------
-           NÃO AUTENTICADO
-        ------------------------------------------------ */
-
-        if (response.status === 401) {
-          window.location.href =
-            `/login?redirect=${encodeURIComponent(
-              window.location.pathname
-            )}`;
-
-          return false;
-        }
-
-        /* -----------------------------------------------
-           ERRO
-        ------------------------------------------------ */
-
-        if (!response.ok) {
-          const data =
-            await response
-              .json()
-              .catch(() => null);
-
-          throw new Error(
-            data?.message ??
-              "Não foi possível limpar o carrinho"
-          );
-        }
-
-        /* -----------------------------------------------
-           REFRESH
-        ------------------------------------------------ */
-
-        await refreshCart();
-
-        return true;
-      } catch (error) {
-        console.error(
-          "Erro ao limpar carrinho:",
-          error
-        );
-
-        return false;
-      } finally {
-        setLoading(false);
-      }
-    },
-    [refreshCart]
-  );
-
-  /* =======================================================
-     ITEM COUNT
-  ======================================================= */
-
-  const itemCount =
-    cart?.summary?.items ?? 0;
-
-  /* =======================================================
-     CONTEXT VALUE
-  ======================================================= */
-
-  const value = useMemo<CartContextType>(
-    () => ({
-      cart,
-      loading,
-      itemCount,
-      refreshCart,
-      addToCart,
-      updateQuantity,
-      removeItem,
-      clearCart,
-    }),
-    [
-      cart,
-      loading,
-      itemCount,
-      refreshCart,
-      addToCart,
-      updateQuantity,
-      removeItem,
-      clearCart,
-    ]
-  );
-
-  /* =======================================================
-     PROVIDER
-  ======================================================= */
+  const clearCart = () => {
+    setItems([]);
+    setIsOpen(false);
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      // Ignorar
+    }
+  };
 
   return (
-    <CartContext.Provider value={value}>
+    <CartContext.Provider
+      value={{
+        cart,
+        loading,
+        items,
+        itemCount,
+        total,
+        isOpen,
+        openCart,
+        closeCart,
+        toggleCart,
+        addToCart,
+        removeFromCart,
+        removeItem,
+        updateQuantity,
+        clearCart,
+      }}
+    >
       {children}
     </CartContext.Provider>
   );
 }
 
-/* =========================================================
-   HOOK
-========================================================= */
-
 export function useCart() {
   const context = useContext(CartContext);
-
   if (!context) {
-    throw new Error(
-      "useCart must be used inside CartProvider"
-    );
+    throw new Error("useCart deve ser usado dentro de CartProvider");
   }
-
   return context;
 }

@@ -19,16 +19,13 @@ interface MobileMenuProps {
   isAuthenticated?: boolean;
 }
 
-// Categorias principais
+// ✅ CATEGORIAS PRINCIPAIS REAIS
 const menuCategories = [
-  { name: "Vibradores", slug: "vibradores" },
-  { name: "Para Ele", slug: "para-ele" },
-  { name: "Para Ela", slug: "para-ela" },
-  { name: "Acessórios", slug: "acessorios" },
+  { name: "Sex Toys", slug: "sex-toys" },
+  { name: "Para o Pénis", slug: "para-ele" },
+  { name: "Saúde e Bem-Estar", slug: "essenciais" },
+  { name: "Lingerie", slug: "roupa" },
   { name: "BDSM", slug: "bdsm" },
-  { name: "Roupa", slug: "roupa" },
-  { name: "Essenciais", slug: "essenciais" },
-  { name: "CBD", slug: "cbd" },
 ];
 
 export function MobileMenu({

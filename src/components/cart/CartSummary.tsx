@@ -109,29 +109,27 @@ export function CartSummary() {
       </Link>
 
       <Link
-        href="/products"
-        className="
-          mt-4
-          inline-flex
-          h-12
-          w-full
-          items-center
-          justify-center
-          rounded-full
-          border
-          border-pink-200
-          bg-white
-          text-sm
-          font-medium
-          text-zinc-700
-          transition-all
-          hover:border-pink-300
-          hover:bg-pink-50
-          hover:text-pink-500
-        "
-      >
-        Continuar Compras
-      </Link>
+  href="/products"
+  className="
+    mt-4
+    inline-flex
+    h-12
+    w-full
+    items-center
+    justify-center
+    rounded-full
+    border
+    border-zinc-700
+    bg-black
+    text-sm
+    font-semibold
+    text-white
+    transition-all
+    hover:bg-zinc-900
+  "
+>
+  Continuar Compras
+</Link>
     </aside>
   );
 }

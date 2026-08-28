@@ -167,15 +167,15 @@ export default function AgeVerificationPage() {
 
           {/* LOGO */}
 
-            <div className="relative mb-7 h-32 w-96 sm:h-36 sm:w-[500px] lg:h-40 lg:w-[600px]">
-                <Image
-                    src="/images/logo_sexshop2.png"
-                    alt="Pleasure Shop"
-                    fill
-                    priority
-                    className="object-contain"
-                />
-            </div>
+            <div className="relative mb-4 h-12 w-48 sm:h-14 sm:w-56 lg:h-16 lg:w-64">
+  <Image
+    src="/images/logo_sexshop3.png"
+    alt="Pleasure Shop"
+    fill
+    priority
+    className="object-contain"
+  />
+</div>
 
           {/* EYEBROW */}
 
