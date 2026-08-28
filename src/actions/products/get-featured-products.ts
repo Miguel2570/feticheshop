@@ -27,6 +27,6 @@ export async function getFeaturedProducts() {
       createdAt: "desc",
     },
 
-    take: 5,
+    take: 8,
   });
 }
