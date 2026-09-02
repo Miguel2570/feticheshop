@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 import {
   ChevronDown,
@@ -27,6 +27,19 @@ interface NavbarCategory {
   slug: string;
 }
 
+interface SearchProduct {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  brand: {
+    name: string;
+  } | null;
+  images: {
+    url: string;
+  }[];
+}
+
 interface NavbarClientProps {
   categories: NavbarCategory[];
   isAuthenticated: boolean;
@@ -47,8 +60,12 @@ export function NavbarClient({
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+  const [searchResults, setSearchResults] = useState<SearchProduct[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // ✅ Adicionado wishlistLoading para evitar hidratação incorreta
   const { count: wishlistCount, openWishlist, loading: wishlistLoading } = useWishlist();
   const { itemCount: cartCount, openCart } = useCart();
 
@@ -72,6 +89,54 @@ export function NavbarClient({
     };
   }, []);
 
+  // ✅ NÃO fechar resultados quando clica fora
+  // A pesquisa só fecha quando: clica num produto, faz Enter, ou clica no X
+
+  const handleSearchChange = (value: string) => {
+    setSearchValue(value);
+
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    if (value.trim().length < 2) {
+      setSearchResults([]);
+      setShowResults(false);
+      return;
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      setIsLoading(true);
+      setShowResults(true);
+
+      try {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(value.trim())}`);
+        if (response.ok) {
+          const data = await response.json();
+          setSearchResults(data.products ?? []);
+        }
+      } catch (error) {
+        console.error("Erro na pesquisa:", error);
+        setSearchResults([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 300);
+  };
+
+  const handleSearchSubmit = () => {
+    if (searchValue.trim()) {
+      window.location.href = `/product?search=${encodeURIComponent(searchValue.trim())}`;
+    }
+  };
+
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setShowResults(false);
+    setSearchValue("");
+    setSearchResults([]);
+  };
+
   return (
     <header
       className={`sticky top-0 z-50 transition-all duration-300 ${
@@ -81,7 +146,7 @@ export function NavbarClient({
       }`}
       onMouseLeave={() => setActiveCategory(null)}
     >
-      <div className="mx-auto max-w-[1500px] px-10">
+      <div className="mx-auto max-w-[1545px] px-10">
         <div className="flex h-20 items-center justify-between gap-6">
           {/* ESQUERDA - LOGO + CATEGORIAS */}
           <div className="flex items-center gap-8">
@@ -100,7 +165,6 @@ export function NavbarClient({
               />
             </Link>
 
-            {/* CATEGORIAS PRINCIPAIS COM HOVER */}
             <nav className="hidden items-center gap-6 xl:flex">
               {menuCategories.map((cat) => (
                 <button
@@ -108,7 +172,6 @@ export function NavbarClient({
                   type="button"
                   onMouseEnter={() => {
                     setActiveCategory(cat.slug);
-                    setSearchOpen(false);
                   }}
                   onClick={() => {
                     setActiveCategory(activeCategory === cat.slug ? null : cat.slug);
@@ -140,12 +203,19 @@ export function NavbarClient({
 
           {/* DIREITA - PESQUISA + AÇÕES */}
           <div className="hidden items-center gap-2 lg:flex">
-            {/* PESQUISA INLINE */}
-            <div className="flex items-center">
+            {/* ✅ PESQUISA COM AUTOCOMPLETE */}
+            <div ref={searchRef} className="relative flex items-center">
               <button
                 type="button"
                 aria-label="Pesquisar"
-                onClick={() => setSearchOpen((value) => !value)}
+                onClick={() => {
+                  if (searchOpen) {
+                    // Fechar tudo
+                    closeSearch();
+                  } else {
+                    setSearchOpen(true);
+                  }
+                }}
                 className="rounded-full p-2.5 text-zinc-200 transition hover:bg-zinc-900 hover:text-pink-500 cursor-pointer"
               >
                 {searchOpen ? <X size={22} /> : <SearchIcon size={22} />}
@@ -157,16 +227,25 @@ export function NavbarClient({
                   transition-all
                   duration-300
                   ease-in-out
-                  ${searchOpen ? "w-72 opacity-100" : "w-0 opacity-0"}
+                  ${searchOpen ? "w-96 opacity-100" : "w-0 opacity-0"}
                 `}
               >
                 <input
                   type="text"
                   value={searchValue}
-                  onChange={(e) => setSearchValue(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && searchValue.trim()) {
-                      window.location.href = `/product?search=${encodeURIComponent(searchValue.trim())}`;
+                      handleSearchSubmit();
+                      closeSearch();
+                    }
+                    if (e.key === "Escape") {
+                      setShowResults(false);
+                    }
+                  }}
+                  onFocus={() => {
+                    if (searchValue.trim().length >= 2) {
+                      setShowResults(true);
                     }
                   }}
                   placeholder="Pesquisar produtos..."
@@ -187,6 +266,68 @@ export function NavbarClient({
                   "
                 />
               </div>
+
+              {/* ✅ RESULTADOS - MESMA LARGURA */}
+              {showResults && searchValue.trim().length >= 2 && (
+                <div className="absolute right-0 top-full mt-2 w-96 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl">
+                  {isLoading ? (
+                    <div className="flex justify-center py-8">
+                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-pink-200 border-t-pink-500" />
+                    </div>
+                  ) : searchResults.length > 0 ? (
+                    <>
+                      <div className="max-h-96 overflow-y-auto">
+                        {searchResults.map((product) => (
+                          <Link
+                            key={product.id}
+                            href={`/product/${product.slug}`}
+                            onClick={closeSearch}
+                            className="flex items-center gap-3 border-b border-zinc-100 px-4 py-3 transition hover:bg-pink-50"
+                          >
+                            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-pink-50/50">
+                              <Image
+                                src={product.images?.[0]?.url ?? "/placeholder-product.png"}
+                                alt={product.name}
+                                fill
+                                sizes="40px"
+                                className="object-contain p-1"
+                              />
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-zinc-900">
+                                {product.name}
+                              </p>
+                              <p className="text-xs text-zinc-500">
+                                {product.brand?.name ?? "Sem marca"}
+                              </p>
+                            </div>
+
+                            <span className="shrink-0 text-sm font-bold text-pink-500">
+                              €{Number(product.price || 0).toFixed(2)}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleSearchSubmit();
+                          closeSearch();
+                        }}
+                        className="w-full bg-zinc-50 px-4 py-3 text-center text-sm font-semibold text-pink-500 transition hover:bg-pink-50 cursor-pointer"
+                      >
+                        Ver todos os resultados para &quot;{searchValue}&quot;
+                      </button>
+                    </>
+                  ) : (
+                    <div className="px-4 py-8 text-center text-sm text-zinc-500">
+                      Nenhum produto encontrado para &quot;{searchValue}&quot;
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* ADMIN */}
@@ -224,7 +365,7 @@ export function NavbarClient({
               </Link>
             )}
 
-            {/* FAVORITOS - ✅ ABRE O MODAL */}
+            {/* FAVORITOS */}
             <button
               type="button"
               onClick={openWishlist}
@@ -232,11 +373,7 @@ export function NavbarClient({
               title="Favoritos"
               className="relative rounded-full p-2.5 text-zinc-200 transition hover:bg-zinc-900 hover:text-pink-500 cursor-pointer"
             >
-              <Heart
-                size={22}
-                className="text-zinc-200"
-              />
-              {/* ✅ Badge escondido durante carregamento (evita hidratação) */}
+              <Heart size={22} className="text-zinc-200" />
               {wishlistCount > 0 && !wishlistLoading && (
                 <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-pink-500 px-1 text-[10px] font-bold text-white">
                   {wishlistCount > 99 ? "99+" : wishlistCount}
@@ -244,7 +381,7 @@ export function NavbarClient({
               )}
             </button>
 
-            {/* CARRINHO - ✅ ABRE O SIDE PANEL */}
+            {/* CARRINHO */}
             <button
               type="button"
               onClick={openCart}
@@ -274,7 +411,7 @@ export function NavbarClient({
         </div>
       </div>
 
-      {/* MEGA MENU - ABRE POR CATEGORIA */}
+      {/* MEGA MENU */}
       <MegaMenu
         activeCategory={activeCategory}
         onClose={() => setActiveCategory(null)}

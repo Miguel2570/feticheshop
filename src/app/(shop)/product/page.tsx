@@ -11,7 +11,6 @@ import { Search } from "lucide-react";
 
 const PAGE_SIZE = 24;
 
-// ✅ LISTA COMPLETA DE CATEGORIAS REAIS
 const FRONTEND_CATEGORY_SLUGS = [
   "sex-toys",
   "para-ele",
@@ -66,6 +65,35 @@ export default async function ProductsPage({ searchParams }: Props) {
   const sort = params.sort ?? "newest";
   const page = Math.max(1, Number(params.page ?? "1"));
 
+  // ✅ BUSCAR IDs DAS CATEGORIAS
+  let categoryIds: string[] = [];
+
+  if (subcategory) {
+    // Filtrar apenas pela subcategoria
+    const subCat = await prisma.category.findUnique({
+      where: { slug: subcategory },
+      select: { id: true },
+    });
+    if (subCat) {
+      categoryIds = [subCat.id];
+    }
+  } else if (category) {
+    // ✅ Filtrar APENAS pelas subcategorias (não pela categoria principal)
+    const mainCat = await prisma.category.findUnique({
+      where: { slug: category },
+      include: {
+        children: {
+          select: { id: true },
+        },
+      },
+    });
+
+    if (mainCat) {
+      // ✅ SÓ os IDs das subcategorias
+      categoryIds = mainCat.children.map((c) => c.id);
+    }
+  }
+
   const where: Prisma.ProductWhereInput = {
     status: "ACTIVE",
     stock: { gt: 0 },
@@ -80,29 +108,12 @@ export default async function ProductsPage({ searchParams }: Props) {
         }
       : {}),
 
-    // ✅ FILTRO DE CATEGORIA PRINCIPAL (correto)
-    ...(category
+    // ✅ FILTRO POR IDs DAS SUBCATEGORIAS
+    ...(categoryIds.length > 0
       ? {
           categories: {
             some: {
-              category: {
-                slug: category,
-                isActive: true,
-              },
-            },
-          },
-        }
-      : {}),
-
-    // ✅ FILTRO DE SUBCATEGORIA (corrigido - filtra pela categoria real)
-    ...(subcategory
-      ? {
-          categories: {
-            some: {
-              category: {
-                slug: subcategory,
-                isActive: true,
-              },
+              categoryId: { in: categoryIds },
             },
           },
         }
@@ -204,7 +215,6 @@ export default async function ProductsPage({ searchParams }: Props) {
 
   const hasFilters = !!(search || category || subcategory || brand || minPrice || maxPrice || sale === "true" || isNew === "true");
 
-  // ✅ TÍTULO DA PÁGINA (corrigido)
   const pageTitle = search
     ? `Resultados para "${search}"`
     : activeSubcategory

@@ -37,24 +37,6 @@ export async function FeaturedProducts() {
               </span>
             </h2>
           </div>
-
-          {/* Link "Ver todos" para desktop */}
-          <Link
-            href="/products"
-            className="
-              hidden
-              lg:flex
-              items-center
-              gap-2
-              text-sm
-              font-medium
-              text-zinc-400
-              hover:text-pink-500
-            "
-          >
-            Ver todos
-            <ArrowRight size={18} />
-          </Link>
         </div>
 
         {/* Grelha de produtos - 4 colunas no máximo */}
@@ -88,17 +70,6 @@ export async function FeaturedProducts() {
               reviews={product.ratingCount}
             />
           ))}
-        </div>
-
-        {/* Link "Ver todos" para mobile */}
-        <div className="mt-8 pb-10 flex justify-center lg:hidden">
-          <Link
-            href="/products"
-            className="flex items-center gap-2 rounded-full border border-zinc-300 px-6 py-3 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100"
-          >
-            Ver todos
-            <ArrowRight size={16} />
-          </Link>
         </div>
       </div>
     </section>

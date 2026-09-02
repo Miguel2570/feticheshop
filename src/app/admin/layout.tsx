@@ -39,7 +39,6 @@ export default async function AdminLayout({
         min-h-screen
         w-full
         max-w-full
-        overflow-x-hidden
       "
       style={{
         backgroundColor: "#fafafa",
@@ -52,12 +51,10 @@ export default async function AdminLayout({
       <AdminMobileMenu />
 
       {/* =====================================================
-          SIDEBAR DESKTOP
+          SIDEBAR DESKTOP - ✅ STICKY DIRETO
       ===================================================== */}
 
-      <aside className="hidden shrink-0 lg:block">
-        <AdminSidebar />
-      </aside>
+      <AdminSidebar />
 
       {/* =====================================================
           ÁREA PRINCIPAL
@@ -69,13 +66,9 @@ export default async function AdminLayout({
           min-w-0
           flex-1
           flex-col
-          overflow-x-hidden
         "
       >
-        {/* ===================================================
-            TOPBAR
-        =================================================== */}
-
+        {/* TOPBAR */}
         <div
           className="
             w-full
@@ -104,17 +97,13 @@ export default async function AdminLayout({
           />
         </div>
 
-        {/* ===================================================
-            CONTEÚDO
-        =================================================== */}
-
+        {/* CONTEÚDO */}
         <main
           className="
             w-full
             min-w-0
             max-w-full
             flex-1
-            overflow-x-hidden
 
             p-4
             pt-20

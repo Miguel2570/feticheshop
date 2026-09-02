@@ -9,12 +9,14 @@ import {
   Eye,
   MoreHorizontal,
   Package,
+  Star,
   Trash2,
 } from "lucide-react";
 
 import { Prisma } from "@prisma/client";
 
 import { ProductStatusBadge } from "./ProductStatusBadge";
+import { ToggleFeaturedButton } from "./ToggleFeaturedButton";
 
 // Tipo atualizado para converter Decimal para number
 type ProductTableItem = Omit<
@@ -74,6 +76,9 @@ export function ProductsTable({
               </th>
               <th className="p-4 text-sm font-semibold" style={{ color: "#52525b" }}>
                 Estado
+              </th>
+              <th className="p-4 text-center text-sm font-semibold" style={{ color: "#52525b" }}>
+                Destaque
               </th>
               <th className="p-4 text-right text-sm font-semibold" style={{ color: "#52525b" }}>
                 Ações
@@ -143,6 +148,16 @@ export function ProductsTable({
                   <ProductStatusBadge status={product.status} />
                 </td>
 
+                {/* ✅ COLUNA DE DESTAQUE */}
+                <td className="p-4">
+                  <div className="flex justify-center">
+                    <ToggleFeaturedButton
+                      id={product.id}
+                      featured={product.isFeatured}
+                    />
+                  </div>
+                </td>
+
                 <td className="p-4">
                   <div className="flex items-center justify-end gap-2 whitespace-nowrap">
                     <Link
@@ -174,7 +189,7 @@ export function ProductsTable({
 
             {products.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-10 text-center" style={{ color: "#71717a" }}>
+                <td colSpan={7} className="p-10 text-center" style={{ color: "#71717a" }}>
                   Nenhum produto encontrado.
                 </td>
               </tr>
