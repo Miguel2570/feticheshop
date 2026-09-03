@@ -1,16 +1,12 @@
+// src/server/services/auth.service.ts
+
 import { Role, User } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
-
-import {
-  hashPassword,
-  verifyPassword,
-} from "@/server/auth/password";
-
-import {
-  generateAccessToken,
-  generateRefreshToken,
-} from "@/server/auth/jwt";
+import { hashPassword, verifyPassword } from "@/server/auth/password";
+import { generateAccessToken, generateRefreshToken } from "@/server/auth/jwt";
+import { emailService } from "@/server/services/email.service";
+import { emailVerificationService } from "@/server/services/email-verification.service";
 
 export class AuthService {
   async register(data: {
@@ -20,9 +16,7 @@ export class AuthService {
     password: string;
   }) {
     const exists = await prisma.user.findUnique({
-      where: {
-        email: data.email,
-      },
+      where: { email: data.email },
     });
 
     if (exists) {
@@ -38,19 +32,35 @@ export class AuthService {
         email: data.email,
         password: hashedPassword,
         role: Role.CUSTOMER,
-        emailVerified: true,        // ← Email verificado automaticamente
-        emailVerifiedAt: new Date(), // ← Data de verificação
+        emailVerified: false, // ✅ NÃO verificado até confirmar
+        emailVerifiedAt: null,
       },
     });
+
+    // ✅ Enviar email de verificação
+    try {
+      await emailVerificationService.createAndSend(data.email);
+    } catch (error) {
+      console.error("Erro ao enviar email de verificação:", error);
+      // Não bloquear o registo se o email falhar
+    }
+
+    // ✅ Enviar email de boas-vindas
+    try {
+      await emailService.sendWelcomeEmail({
+        email: user.email,
+        firstName: user.firstName ?? "Utilizador",
+      });
+    } catch (error) {
+      console.error("Erro ao enviar email de boas-vindas:", error);
+    }
 
     return await this.generateTokens(user);
   }
 
   async login(email: string, password: string) {
     const user = await prisma.user.findUnique({
-      where: {
-        email,
-      },
+      where: { email },
     });
 
     if (!user) {
@@ -61,27 +71,15 @@ export class AuthService {
       throw new Error("ACCOUNT_NO_PASSWORD");
     }
 
-    const valid = await verifyPassword(
-      password,
-      user.password
-    );
+    const valid = await verifyPassword(password, user.password);
 
     if (!valid) {
       throw new Error("INVALID_CREDENTIALS");
     }
 
-    // Remove a verificação de email - já está verificado no registo
-    // if (!user.emailVerified) {
-    //   throw new Error("EMAIL_NOT_VERIFIED");
-    // }
-
     await prisma.user.update({
-      where: {
-        id: user.id,
-      },
-      data: {
-        lastLoginAt: new Date(),
-      },
+      where: { id: user.id },
+      data: { lastLoginAt: new Date() },
     });
 
     return await this.generateTokens({
@@ -90,7 +88,7 @@ export class AuthService {
     });
   }
 
-  private async generateTokens(user: User) {
+  async generateTokens(user: User) {
     const payload = {
       userId: user.id,
       role: user.role,
@@ -103,9 +101,7 @@ export class AuthService {
       data: {
         userId: user.id,
         token: refreshToken,
-        expiresAt: new Date(
-          Date.now() + 30 * 24 * 60 * 60 * 1000
-        ),
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       },
     });
 

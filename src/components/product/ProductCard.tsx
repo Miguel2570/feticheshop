@@ -269,7 +269,6 @@ export function ProductCard({
           )}
         </div>
 
-        {/* Botão adicionar ao carrinho - ÚNICO BOTÃO */}
         <button
           type="button"
           onClick={() => void handleAddToCart()}
@@ -291,6 +290,8 @@ export function ProductCard({
             duration-300
             active:scale-95
             cursor-pointer
+            px-2
+            sm:px-4
             ${
               added
                 ? "bg-emerald-500 scale-[1.02]"
@@ -301,12 +302,14 @@ export function ProductCard({
           {added ? (
             <>
               <Check size={16} className="sm:w-[18px] sm:h-[18px] animate-bounce" />
-              Adicionado!
+              <span className="hidden sm:inline">Adicionado!</span>
+              <span className="sm:hidden">OK!</span>
             </>
           ) : (
             <>
-              <ShoppingBag size={16} className="sm:w-[18px] sm:h-[18px]" />
-              Adicionar ao carrinho
+              <ShoppingBag size={16} className="sm:w-[18px] sm:h-[18px] shrink-0" />
+              <span className="hidden sm:inline">Adicionar ao carrinho</span>
+              <span className="sm:hidden">Adicionar</span>
             </>
           )}
         </button>

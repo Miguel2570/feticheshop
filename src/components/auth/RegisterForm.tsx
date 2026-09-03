@@ -55,7 +55,6 @@ export function RegisterForm() {
     setLoading(true);
 
     try {
-      // 1. Registar
       const registerResponse = await fetch("/api/auth/register", {
         method: "POST",
         headers: {
@@ -75,31 +74,8 @@ export function RegisterForm() {
         throw new Error(registerData.message || "Não foi possível criar a conta.");
       }
 
-      // 2. Login automático
-      const loginResponse = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          email,
-          password,
-          remember: true,
-        }),
-      });
-
-      const loginData = await loginResponse.json();
-
-      if (!loginResponse.ok) {
-        throw new Error(
-          loginData.message || "Conta criada mas não foi possível iniciar sessão."
-        );
-      }
-
-      // 3. Redirecionar para a home
-      router.push("/");
-      router.refresh();
+      // ✅ Redirecionar para verificação de email
+      router.push(`/verify-email?email=${encodeURIComponent(email)}`);
     } catch (error) {
       setError(
         error instanceof Error ? error.message : "Ocorreu um erro."

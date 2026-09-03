@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ArrowRight, CheckCircle2, Mail } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function Newsletter() {
   const [email, setEmail] = useState("");
@@ -9,7 +10,6 @@ export function Newsletter() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Aqui podes integrar com a tua API de newsletter
     setSubscribed(true);
     setEmail("");
     setTimeout(() => setSubscribed(false), 3000);
@@ -43,7 +43,6 @@ export function Newsletter() {
               onSubmit={handleSubmit}
               className="mx-auto mt-6 flex w-full max-w-xl flex-col gap-3 md:flex-row"
             >
-              {/* Campo de email com ícone */}
               <div className="relative w-full flex-1">
                 <Mail
                   size={20}
@@ -77,10 +76,9 @@ export function Newsletter() {
                 />
               </div>
 
-              {/* Botão de subscrição */}
               <button
                 type="submit"
-                className="
+                className={`
                   inline-flex
                   h-14
                   w-full
@@ -88,7 +86,6 @@ export function Newsletter() {
                   justify-center
                   gap-2
                   rounded-full
-                  bg-pink-500
                   px-8
                   text-base
                   font-semibold
@@ -96,25 +93,77 @@ export function Newsletter() {
                   transition-all
                   duration-300
                   hover:scale-105
-                  hover:bg-pink-600
                   hover:shadow-[0_0_40px_rgba(255,46,136,.45)]
                   md:w-auto
                   md:min-w-[160px]
-                "
+                  ${subscribed ? "bg-emerald-500" : "bg-pink-500 hover:bg-pink-600"}
+                `}
               >
-                {subscribed ? (
-                  <>
-                    <CheckCircle2 size={20} />
-                    Subscrito!
-                  </>
-                ) : (
-                  <>
-                    Subscrever
-                    <ArrowRight size={20} />
-                  </>
-                )}
+                <AnimatePresence mode="wait" initial={false}>
+                  {subscribed ? (
+                    <motion.span
+                      key="subscribed"
+                      initial={{ scale: 0.5, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.5, opacity: 0 }}
+                      transition={{ 
+                        type: "spring", 
+                        stiffness: 400, 
+                        damping: 15 
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      <CheckCircle2 size={20} />
+                      Subscrito!
+                    </motion.span>
+                  ) : (
+                    <motion.span
+                      key="subscribe"
+                      initial={{ scale: 0.5, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0.5, opacity: 0 }}
+                      transition={{ 
+                        type: "spring", 
+                        stiffness: 400, 
+                        damping: 15 
+                      }}
+                      className="flex items-center gap-2"
+                    >
+                      Subscrever
+                      <ArrowRight size={20} />
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </button>
             </form>
+
+            {/* ✅ Animação de sucesso */}
+            <AnimatePresence>
+              {subscribed && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                  transition={{ duration: 0.4, ease: "easeOut" }}
+                  className="mt-4"
+                >
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ 
+                      type: "spring", 
+                      stiffness: 300, 
+                      damping: 20,
+                      delay: 0.1 
+                    }}
+                    className="inline-flex items-center gap-2 rounded-full bg-emerald-50 border border-emerald-200 px-5 py-2.5 text-sm font-semibold text-emerald-600"
+                  >
+                    <CheckCircle2 size={18} />
+                    Subscrição confirmada! Verifica o teu email.
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <div className="mt-5 flex flex-wrap justify-center gap-6 text-xs text-zinc-500">
               <span>✓ Sem spam</span>
