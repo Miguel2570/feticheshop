@@ -107,6 +107,10 @@ export async function getCurrentUser() {
         phone: true,
         vipLevel: true,
         totalSpent: true,
+        createdAt: true,
+        lastLoginAt: true,
+        updatedAt: true,
+        newsletter: true,
       },
     });
 
