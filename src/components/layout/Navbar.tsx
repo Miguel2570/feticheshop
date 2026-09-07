@@ -8,8 +8,6 @@ export const dynamic = "force-dynamic";
 export async function Navbar() {
   const user = await getCurrentUser();
 
-  console.log("🔍 User:", user?.email, "| Role:", user?.role);
-
   const [categories, newCount, saleCount] = await Promise.all([
     prisma.category.findMany({
       where: { isActive: true },

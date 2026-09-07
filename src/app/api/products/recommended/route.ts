@@ -5,13 +5,9 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   try {
-    console.log("📦 Buscar produtos recomendados...");
-
-    // Buscar produtos ativos, ordenados por mais vendidos ou melhor avaliação
     const products = await prisma.product.findMany({
       where: {
         status: "ACTIVE",
-        // Removido isActive - não existe no modelo
       },
       include: {
         images: {
@@ -28,7 +24,6 @@ export async function GET(request: NextRequest) {
 
     console.log(`✅ ${products.length} produtos encontrados`);
 
-    // Se não houver produtos suficientes, buscar outros
     let recommendedProducts = products;
 
     if (recommendedProducts.length < 4) {
@@ -49,9 +44,6 @@ export async function GET(request: NextRequest) {
       recommendedProducts = [...recommendedProducts, ...moreProducts];
     }
 
-    console.log(`✅ Total recomendados: ${recommendedProducts.length}`);
-
-    // Mapear para o formato esperado
     const mappedProducts = recommendedProducts.map((product) => ({
       id: product.id,
       name: product.name,
@@ -62,14 +54,11 @@ export async function GET(request: NextRequest) {
       reviews: product.ratingCount || 0,
     }));
 
-    console.log("📦 Produtos mapeados:", mappedProducts);
-
     return NextResponse.json({
       success: true,
       products: mappedProducts,
     });
   } catch (error) {
-    console.error("❌ Erro ao buscar produtos recomendados:", error);
     return NextResponse.json(
       { success: false, products: [] },
       { status: 500 }

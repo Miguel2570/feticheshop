@@ -76,7 +76,6 @@ export const auth = betterAuth({
 
 export async function getCurrentUser() {
   try {
-    console.log("🔍 getCurrentUser chamado");
     
     const headersList = await headers();
     
@@ -84,10 +83,7 @@ export async function getCurrentUser() {
       headers: headersList,
     });
 
-    console.log("📝 Sessão:", session ? "Encontrada" : "Não encontrada");
-
     if (!session?.user) {
-      console.log("❌ Sem sessão ativa");
       return null;
     }
 

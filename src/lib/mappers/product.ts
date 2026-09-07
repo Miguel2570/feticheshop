@@ -48,12 +48,6 @@ export function mapProduct(product: ProductWithRelations): Product {
   const specs = extractSpecifications(product.description ?? "");
   const description = extractDescription(product.description ?? "");
 
-  console.log("📝 Descrição original:", product.description);
-  console.log("📝 Descrição extraída:", description);
-  console.log("📋 Features extraídas:", features);
-  console.log("📋 Specs extraídas:", specs);
-
-  // Limpa as entidades HTML das características
   const cleanedFeatures = features.map(cleanText);
 
   return {
@@ -61,7 +55,7 @@ export function mapProduct(product: ProductWithRelations): Product {
     slug: product.slug,
     name: product.name,
     brand: product.brand?.name ?? "",
-    description: description, // ← USA A DESCRIÇÃO EXTRAÍDA
+    description: description,
     price: Number(product.price),
     oldPrice: product.comparePrice ? Number(product.comparePrice) : undefined,
     rating: product.ratingAverage,
