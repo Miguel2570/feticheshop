@@ -50,8 +50,8 @@ export function Hero() {
       <div className="absolute left-[-250px] top-[-200px] h-[550px] w-[550px] rounded-full bg-pink-500/20 blur-[180px]" />
       <div className="absolute bottom-[-150px] right-[-200px] h-[500px] w-[500px] rounded-full bg-fuchsia-700/20 blur-[180px]" />
 
-      {/* Texto posicionado - adicionado pb para espaço no mobile */}
-      <div className="relative z-10 container-custom flex min-h-[calc(100vh-80px)] items-start pt-16 pb-16 md:pt-20 md:pb-0">
+      {/* Texto posicionado - mais espaço no mobile */}
+      <div className="relative z-10 container-custom flex min-h-[calc(100vh-80px)] items-start pt-16 pb-24 md:pt-20 md:pb-0">
         <div className="max-w-2xl">
           <h1 className="font-display text-5xl font-bold leading-tight md:text-7xl">
             <span className="text-white">Prazer sem limites</span>
@@ -62,7 +62,8 @@ export function Hero() {
             prazer e experiências únicas, sempre com envio totalmente discreto.
           </p>
 
-          <div className="mt-8 md:mt-10 flex flex-wrap gap-4">
+          {/* Botões - mais espaço do texto */}
+          <div className="mt-12 md:mt-16 lg:mt-20 flex flex-wrap gap-4">
             {/* Botão Ver Produtos */}
             <Link
               href="/product"
@@ -118,8 +119,8 @@ export function Hero() {
             </button>
           </div>
 
-          {/* BENEFÍCIOS - mais espaço no mobile */}
-          <div className="mt-12 mb-8 md:mt-[200px] md:mb-0 lg:mt-[200px] grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {/* BENEFÍCIOS */}
+          <div className="mt-16 md:mt-[200px] lg:mt-[200px] grid grid-cols-2 gap-4 sm:grid-cols-4">
             {/* Item 1 */}
             <div className="flex items-center gap-2">
               <Truck size={16} className="shrink-0 text-pink-500" />
