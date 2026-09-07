@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
         hostname: "dreamlove.gesio.be",
       },
     ],
+    minimumCacheTTL: 60 * 60 * 24 * 7,
   },
 };
 

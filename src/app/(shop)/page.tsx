@@ -4,8 +4,8 @@ import { FeaturedProducts } from "@/components/home/FeaturedProducts";
 import { BestSellers } from "@/components/home/BestsellerProducts";
 import { WhyChooseUs } from "@/components/home/WhyChooseUs";
 import { Reviews } from "@/components/home/Reviews";
+import { FAQ } from "@/components/home/FAQ";
 import { Newsletter } from "@/components/home/Newsletter";
-import FAQList from "./faq/page";
 
 export default function Home() {
   return (
@@ -16,7 +16,7 @@ export default function Home() {
       <BestSellers />
       <WhyChooseUs />
       <Reviews />
-      <FAQList />
+      <FAQ />
       <Newsletter />
     </>
   );

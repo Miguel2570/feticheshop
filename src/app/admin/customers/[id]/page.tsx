@@ -45,6 +45,23 @@ export default async function CustomerDetailsPage({
     0,
   );
 
+  // ✅ Calcular progresso VIP
+  const vipProgress = customer.vipLevel === "GOLD"
+    ? 100
+    : customer.vipLevel === "SILVER"
+    ? Math.min(100, ((customer.totalSpent - 250) / (750 - 250)) * 100)
+    : Math.min(100, (customer.totalSpent / 250) * 100);
+
+  const vipNextLevel = customer.vipLevel === "BRONZE"
+    ? { name: "Prata", target: 250 }
+    : customer.vipLevel === "SILVER"
+    ? { name: "Ouro", target: 750 }
+    : null;
+
+  const vipRemaining = vipNextLevel
+    ? vipNextLevel.target - customer.totalSpent
+    : 0;
+
   return (
     <div className="space-y-6">
       {/* HEADER */}
@@ -99,6 +116,23 @@ export default async function CustomerDetailsPage({
               {customer.isActive
                 ? "Ativo"
                 : "Inativo"}
+            </Badge>
+
+            {/* ✅ VIP BADGE */}
+            <Badge
+              variant={
+                customer.vipLevel === "GOLD"
+                  ? "success"
+                  : customer.vipLevel === "SILVER"
+                  ? "secondary"
+                  : "outline"
+              }
+            >
+              {customer.vipLevel === "GOLD"
+                ? "👑 Ouro"
+                : customer.vipLevel === "SILVER"
+                ? "🎁 Prata"
+                : "⭐ Bronze"}
             </Badge>
           </CardContent>
         </Card>
@@ -158,6 +192,40 @@ export default async function CustomerDetailsPage({
                 </Badge>
               </div>
 
+              {/* ✅ VIP LEVEL */}
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Nível VIP
+                </p>
+
+                <Badge
+                  variant={
+                    customer.vipLevel === "GOLD"
+                      ? "success"
+                      : customer.vipLevel === "SILVER"
+                      ? "secondary"
+                      : "outline"
+                  }
+                >
+                  {customer.vipLevel === "GOLD"
+                    ? "👑 Ouro"
+                    : customer.vipLevel === "SILVER"
+                    ? "🎁 Prata"
+                    : "⭐ Bronze"}
+                </Badge>
+              </div>
+
+              {/* ✅ TOTAL SPENT VIP */}
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Total Gasto (VIP)
+                </p>
+
+                <p className="font-medium">
+                  {customer.totalSpent.toFixed(2)} €
+                </p>
+              </div>
+
               {/* DATA DE CRIAÇÃO */}
               <div>
                 <p className="text-sm text-muted-foreground">
@@ -184,6 +252,33 @@ export default async function CustomerDetailsPage({
                       ).toLocaleString("pt-PT")
                     : "-"}
                 </p>
+              </div>
+            </div>
+
+            {/* ✅ BARRA DE PROGRESSO VIP */}
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-sm font-medium">
+                  Progresso VIP
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {customer.vipLevel === "GOLD"
+                    ? "Nível máximo"
+                    : `Faltam €${vipRemaining.toFixed(0)} para ${vipNextLevel?.name}`}
+                </p>
+              </div>
+
+              <div className="relative h-3 w-full overflow-hidden rounded-full bg-zinc-100">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    customer.vipLevel === "GOLD"
+                      ? "bg-gradient-to-r from-yellow-400 to-amber-500"
+                      : customer.vipLevel === "SILVER"
+                      ? "bg-gradient-to-r from-zinc-400 to-zinc-500"
+                      : "bg-gradient-to-r from-amber-400 to-orange-500"
+                  }`}
+                  style={{ width: `${vipProgress}%` }}
+                />
               </div>
             </div>
           </CardContent>
@@ -313,7 +408,8 @@ export default async function CustomerDetailsPage({
           )}
         </CardContent>
       </Card>
-            {/* ÚLTIMAS ENCOMENDAS */}
+
+      {/* ÚLTIMAS ENCOMENDAS */}
       <Card>
         <CardHeader>
           <CardTitle>
@@ -361,19 +457,16 @@ export default async function CustomerDetailsPage({
                         key={order.id}
                         className="border-b"
                       >
-                        {/* NÚMERO */}
                         <td className="p-3">
                           {order.orderNumber}
                         </td>
 
-                        {/* ESTADO */}
                         <td className="p-3 text-center">
                           <Badge variant="secondary">
                             {order.status}
                           </Badge>
                         </td>
 
-                        {/* TOTAL */}
                         <td className="p-3 text-right font-medium">
                           {Number(
                             order.total,
@@ -381,7 +474,6 @@ export default async function CustomerDetailsPage({
                           €
                         </td>
 
-                        {/* DATA */}
                         <td className="p-3 text-right">
                           {new Date(
                             order.createdAt,
@@ -390,7 +482,6 @@ export default async function CustomerDetailsPage({
                           )}
                         </td>
 
-                        {/* AÇÕES */}
                         <td className="p-3 text-right">
                           <Button
                             asChild

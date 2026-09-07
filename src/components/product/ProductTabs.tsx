@@ -3,7 +3,6 @@
 import { useState } from "react";
 
 import { Product } from "@/types/product";
-import { extractDescription } from "@/utils/product-helpers";
 
 interface ProductTabsProps {
   product: Product;
@@ -13,31 +12,7 @@ const tabs = [
   "Descrição",
   "Características",
   "Especificações",
-  "Avaliações",
 ];
-
-// Função para limpar entidades HTML
-const cleanDescription = (html: string) => {
-  if (!html) return "";
-  return html
-    .replace(/&ntilde;/g, "ñ")
-    .replace(/&aacute;/g, "á")
-    .replace(/&eacute;/g, "é")
-    .replace(/&iacute;/g, "í")
-    .replace(/&oacute;/g, "ó")
-    .replace(/&uacute;/g, "ú")
-    .replace(/&Ntilde;/g, "Ñ")
-    .replace(/&Aacute;/g, "Á")
-    .replace(/&Eacute;/g, "É")
-    .replace(/&Iacute;/g, "Í")
-    .replace(/&Oacute;/g, "Ó")
-    .replace(/&Uacute;/g, "Ú")
-    .replace(/&quot;/g, '"')
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&nbsp;/g, " ");
-};
 
 export function ProductTabs({ product }: ProductTabsProps) {
   const [activeTab, setActiveTab] = useState("Descrição");
@@ -45,7 +20,6 @@ export function ProductTabs({ product }: ProductTabsProps) {
   const specs = product.specifications;
   const features = product.features || [];
 
-  // Verifica se há especificações para mostrar
   const hasSpecs = specs?.material || specs?.color || specs?.size || specs?.dimensions || specs?.weight;
 
   return (
@@ -92,25 +66,23 @@ export function ProductTabs({ product }: ProductTabsProps) {
         </div>
 
         <div className="rounded-[32px] border border-pink-100 bg-white p-10 shadow-sm">
-          {/* DESCRIÇÃO - CORRIGIDA */}
           {activeTab === "Descrição" && (
-          <div className="space-y-6">
-            <h3 className="font-display text-3xl text-zinc-900">Descrição</h3>
+            <div className="space-y-6">
+              <h3 className="font-display text-3xl text-zinc-900">Descrição</h3>
 
-            {product.description ? (
-              <div
-                className="prose max-w-none text-zinc-700 prose-p:leading-relaxed prose-ul:list-disc prose-ul:pl-5 prose-li:my-1 prose-strong:text-zinc-900 whitespace-pre-line"
-                dangerouslySetInnerHTML={{
-                  __html: product.description, // A descrição já vem limpa do mapper
-                }}
-              />
-            ) : (
-              <p className="text-zinc-500">Sem descrição disponível.</p>
-            )}
-          </div>
-        )}
+              {product.description ? (
+                <div
+                  className="prose max-w-none text-zinc-700 prose-p:leading-relaxed prose-ul:list-disc prose-ul:pl-5 prose-li:my-1 prose-strong:text-zinc-900 whitespace-pre-line"
+                  dangerouslySetInnerHTML={{
+                    __html: product.description,
+                  }}
+                />
+              ) : (
+                <p className="text-zinc-500">Sem descrição disponível.</p>
+              )}
+            </div>
+          )}
 
-          {/* CARACTERÍSTICAS */}
           {activeTab === "Características" && (
             <div>
               <h3 className="mb-8 font-display text-3xl text-zinc-900">Características</h3>
@@ -118,22 +90,21 @@ export function ProductTabs({ product }: ProductTabsProps) {
               {features.length === 0 ? (
                 <p className="text-zinc-500">Sem características disponíveis.</p>
               ) : (
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-3">
                   {features.map((feature) => (
-                    <div
+                    <p
                       key={feature}
-                      className="flex items-center gap-3 rounded-2xl border border-pink-100 bg-pink-50/50 p-5"
+                      className="flex items-start gap-3 text-base leading-8 text-zinc-700"
                     >
-                      <div className="h-2 w-2 rounded-full bg-pink-500" />
-                      <span className="text-zinc-700">{feature}</span>
-                    </div>
+                      <span className="mt-3 h-1.5 w-1.5 shrink-0 rounded-full bg-pink-500" />
+                      {feature}
+                    </p>
                   ))}
                 </div>
               )}
             </div>
           )}
 
-          {/* ESPECIFICAÇÕES */}
           {activeTab === "Especificações" && (
             <div>
               <h3 className="mb-8 font-display text-3xl text-zinc-900">Especificações</h3>
@@ -188,27 +159,6 @@ export function ProductTabs({ product }: ProductTabsProps) {
                   </table>
                 </div>
               )}
-            </div>
-          )}
-
-          {/* AVALIAÇÕES */}
-          {activeTab === "Avaliações" && (
-            <div>
-              <h3 className="mb-8 font-display text-3xl text-zinc-900">Avaliações</h3>
-
-              <div className="rounded-2xl border border-dashed border-pink-200 p-12 text-center bg-pink-50/30">
-                <p className="text-6xl font-bold text-zinc-900">
-                  {(product.rating || 0).toFixed(1)}
-                </p>
-                <p className="mt-3 text-zinc-600">
-                  Baseado em{" "}
-                  <strong className="text-zinc-900">{product.reviews || 0}</strong>{" "}
-                  avaliações.
-                </p>
-                <p className="mt-8 text-zinc-500">
-                  O sistema de avaliações será ligado após integração da base de dados.
-                </p>
-              </div>
             </div>
           )}
         </div>

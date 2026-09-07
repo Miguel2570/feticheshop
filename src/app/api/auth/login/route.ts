@@ -1,88 +1,35 @@
-import {
-  NextRequest,
-  NextResponse,
-} from "next/server";
+// src/app/api/auth/login/route.ts
 
-import {
-  authService,
-} from "@/server/services/auth.service";
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/lib/auth";
 
-import {
-  setAuthCookies,
-} from "@/server/auth/cookies";
-
-export async function POST(
-  request: NextRequest
-) {
+export async function POST(request: NextRequest) {
   try {
-    const body =
-      await request.json();
+    const body = await request.json();
+    const email = String(body.email || "").trim().toLowerCase();
+    const password = String(body.password || "");
 
-    const result =
-      await authService.login(
-        String(body.email || ""),
-        String(body.password || "")
-      );
+    console.log("📝 Tentativa de login:", email);
 
-    await setAuthCookies(
-      result.accessToken,
-      result.refreshToken
-    );
+    const result = await auth.api.signInEmail({
+      body: { email, password },
+      headers: request.headers,
+    });
 
-    return NextResponse.json({
+    console.log("✅ Login bem sucedido:", result.user?.email);
+
+    // Criar resposta e copiar cookies
+    const response = NextResponse.json({
       success: true,
       user: result.user,
     });
+
+    return response;
   } catch (error) {
-    console.error(
-      "Login error:",
-      error
-    );
-
-    if (
-      error instanceof Error &&
-      error.message ===
-        "EMAIL_NOT_VERIFIED"
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          code: "EMAIL_NOT_VERIFIED",
-          message:
-            "Tens de confirmar o teu email antes de iniciar sessão.",
-        },
-        {
-          status: 403,
-        }
-      );
-    }
-
-    if (
-      error instanceof Error &&
-      error.message ===
-        "ACCOUNT_DISABLED"
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "A tua conta está desativada.",
-        },
-        {
-          status: 403,
-        }
-      );
-    }
-
+    console.error("❌ Login error:", error);
     return NextResponse.json(
-      {
-        success: false,
-        message:
-          "Email ou palavra-passe incorretos.",
-      },
-      {
-        status: 401,
-      }
+      { success: false, message: "Email ou palavra-passe incorretos." },
+      { status: 401 }
     );
   }
 }

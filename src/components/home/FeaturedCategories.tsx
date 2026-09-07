@@ -4,46 +4,65 @@ import { ArrowRight } from "lucide-react";
 import { getFeaturedCategories } from "@/actions/categories/get-featured-categories";
 import { CategoryCard } from "../categories/CategoryCard";
 
+// Tipo para categorias com subcategory opcional
+type CategoryWithSubcategory = {
+  id: string;
+  slug: string;
+  name: string;
+  description?: string | null;
+  image?: string | null;
+  subcategory?: string;
+};
+
 // Categorias fixas (estilo Vibrolandia)
-const fixedCategories = [
+const fixedCategories: CategoryWithSubcategory[] = [
   {
     id: "vibradores",
-    slug: "vibradores",
+    slug: "sex-toys",
     name: "Vibradores",
     description: null,
     image: "/images/vibrador.png",
+    subcategory: "vibradores",
   },
   {
     id: "lingeries",
-    slug: "lingeries",
-    name: "lingeries",
+    slug: "roupa",
+    name: "Lingerie",
     description: null,
     image: "/images/lingerie.png",
+    subcategory: "lingerie-sexy",
   },
   {
-    id: "BDSM",
-    slug: "BDSM",
+    id: "bdsm",
+    slug: "bdsm",
     name: "BDSM",
     description: null,
     image: "/images/BDSM2.png",
+    subcategory: "bondage",
   },
   {
     id: "lubrificantes",
-    slug: "lubrificantes",
+    slug: "essenciais",
     name: "Lubrificantes",
     description: null,
     image: "/images/lubrificante.png",
+    subcategory: "lubrificantes",
   },
 ];
 
 export async function CategoriesGrid() {
   const categories = await getFeaturedCategories();
 
-  const allCategories = [
+  const allCategories: CategoryWithSubcategory[] = [
     ...fixedCategories,
-    ...categories.filter(
-      (cat) => !fixedCategories.some((fixed) => fixed.slug === cat.slug)
-    ),
+    ...categories
+      .filter(
+        (cat) => !fixedCategories.some((fixed) => fixed.slug === cat.slug)
+      )
+      .map((cat) => ({
+        ...cat,
+        subcategory: undefined,
+      })),
   ];
 
   if (allCategories.length === 0) {
@@ -81,6 +100,7 @@ export async function CategoriesGrid() {
               name={category.name}
               description={category.description}
               image={category.image}
+              subcategory={category.subcategory}
             />
           ))}
         </div>

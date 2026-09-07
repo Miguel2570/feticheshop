@@ -7,14 +7,15 @@ type CategoryCardProps = {
   name: string;
   description?: string | null;
   image?: string | null;
+  subcategory?: string; // ← ADICIONAR
 };
 
 // Mapeamento: slug visual → slug real da BD
-const slugMapping: Record<string, string> = {
-  "vibradores": "vibradores",
-  "lingeries": "roupa",
-  "BDSM": "bdsm",
-  "lubrificantes": "essenciais",
+const slugMapping: Record<string, { category: string; subcategory?: string }> = {
+  "vibradores": { category: "sex-toys", subcategory: "vibradores" },
+  "lingeries": { category: "roupa", subcategory: "lingerie-sexy" },
+  "BDSM": { category: "bdsm", subcategory: "bondage" },
+  "lubrificantes": { category: "essenciais", subcategory: "lubrificantes" },
 };
 
 export function CategoryCard({
@@ -22,13 +23,21 @@ export function CategoryCard({
   name,
   description,
   image,
+  subcategory,
 }: CategoryCardProps) {
   // Usa o slug mapeado ou o original
-  const realSlug = slugMapping[slug] ?? slug.toLowerCase();
+  const mapping = slugMapping[slug] ?? { category: slug.toLowerCase() };
+  
+  // Gerar link com subcategory se existir
+  const href = subcategory
+    ? `/product?category=${mapping.category}&subcategory=${subcategory}`
+    : mapping.subcategory
+    ? `/product?category=${mapping.category}&subcategory=${mapping.subcategory}`
+    : `/product?category=${mapping.category}`;
 
   return (
     <Link
-      href={`/product?category=${realSlug}`}
+      href={href}
       className="
         group
         relative

@@ -1,5 +1,9 @@
 "use client";
 
+import { useState, useEffect, useRef, useCallback } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+
 import {
   ShieldCheck,
   Truck,
@@ -23,14 +27,14 @@ const items = [
     description: "Métodos de pagamento protegidos e encriptados.",
   },
   {
-    icon: BadgeCheck,
-    title: "Produtos Premium",
-    description: "Selecionamos apenas marcas reconhecidas pela sua qualidade.",
-  },
-  {
     icon: Headphones,
     title: "Apoio ao Cliente",
     description: "Estamos disponíveis para esclarecer qualquer dúvida.",
+  },
+  {
+    icon: BadgeCheck,
+    title: "Produtos Premium",
+    description: "Selecionamos apenas marcas reconhecidas pela sua qualidade.",
   },
   {
     icon: Sparkles,
@@ -55,10 +59,61 @@ const items = [
 ];
 
 export function WhyChooseUs() {
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [direction, setDirection] = useState(1);
+  const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
+
+  const totalSlides = 2;
+  const itemsPerSlide = 4;
+
+  const handleNext = useCallback(() => {
+    setDirection(1);
+    setCurrentSlide((prev) => (prev === 0 ? 1 : 0));
+  }, []);
+
+  const handlePrev = () => {
+    setDirection(-1);
+    setCurrentSlide((prev) => (prev === 0 ? 1 : 0));
+  };
+
+  const resetAutoPlay = () => {
+    if (autoPlayRef.current) {
+      clearInterval(autoPlayRef.current);
+    }
+
+    autoPlayRef.current = setInterval(() => {
+      handleNext();
+    }, 5000);
+  };
+
+  useEffect(() => {
+    resetAutoPlay();
+
+    return () => {
+      if (autoPlayRef.current) {
+        clearInterval(autoPlayRef.current);
+      }
+    };
+  }, [handleNext]);
+
+  const handleManualNext = () => {
+    handleNext();
+    resetAutoPlay();
+  };
+
+  const handleManualPrev = () => {
+    handlePrev();
+    resetAutoPlay();
+  };
+
+  const visibleItems = items.slice(
+    currentSlide * itemsPerSlide,
+    currentSlide * itemsPerSlide + itemsPerSlide
+  );
+
   return (
-    <section className="arabesque-bg relative overflow-hidden">
+    <section className="arabesque-bg relative overflow-visible">
       <div className="container-custom pt-10 pb-16 sm:pt-16">
-        {/* Cabeçalho */}
         <div className="mb-8 sm:mb-12 text-center">
           <p className="section-eyebrow text-sm font-medium uppercase tracking-wider text-brand-magenta">
             Confiança & Qualidade
@@ -76,73 +131,165 @@ export function WhyChooseUs() {
           </h2>
         </div>
 
-        {/* Grelha: 2 colunas no mobile, 2 em tablet, 4 em desktop */}
-        <div className="grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-4">
-          {items.map((item) => {
-            const Icon = item.icon;
+        <div className="relative mt-12 px-2 sm:px-4 lg:px-0">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={currentSlide}
+              initial={{ opacity: 0, x: direction * 60 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: direction * -60 }}
+              transition={{ duration: 0.35, ease: "easeInOut" }}
+              className="grid gap-6 lg:grid-cols-4"
+            >
+              {visibleItems.map((item) => {
+                const Icon = item.icon;
 
-            return (
-              <div
-                key={item.title}
-                className="
-                  group
-                  relative
-                  overflow-hidden
-                  rounded-2xl
-                  border
-                  border-pink-100
-                  bg-pink-50/50
-                  p-4
-                  sm:p-6
-                  shadow-sm
+                return (
+                  <div
+                    key={item.title}
+                    className="
+                      group
+                      relative
+                      overflow-hidden
+                      rounded-3xl
+                      border
+                      border-pink-100
+                      bg-white
+                      p-6
+                      shadow-sm
+                      transition-all
+                      duration-300
+                      hover:-translate-y-1
+                      hover:border-pink-300
+                      hover:shadow-lg
+                      hover:shadow-pink-500/10
+                    "
+                  >
+                    <div className="flex items-center justify-between">
+                      <div
+                        className="
+                          flex
+                          h-12
+                          w-12
+                          items-center
+                          justify-center
+                          rounded-2xl
+                          bg-pink-500/10
+                          text-pink-500
+                          transition-all
+                          duration-300
+                          group-hover:scale-110
+                          group-hover:bg-pink-500
+                          group-hover:text-white
+                        "
+                      >
+                        <Icon size={22} />
+                      </div>
+                    </div>
+
+                    <h3 className="mt-4 text-base font-bold text-zinc-900">
+                      {item.title}
+                    </h3>
+
+                    <p className="mt-2 text-sm leading-7 text-zinc-600">
+                      {item.description}
+                    </p>
+                  </div>
+                );
+              })}
+            </motion.div>
+          </AnimatePresence>
+
+          <button
+            onClick={handleManualPrev}
+            aria-label="Anterior"
+            className="
+              absolute
+              -left-3
+              sm:-left-5
+              lg:-left-16
+              top-1/2
+              -translate-y-1/2
+              z-30
+              flex
+              h-11
+              w-11
+              sm:h-12
+              sm:w-12
+              items-center
+              justify-center
+              rounded-full
+              bg-pink-500
+              text-white
+              shadow-xl
+              shadow-pink-500/30
+              transition-all
+              duration-300
+              cursor-pointer
+              hover:bg-pink-600
+              hover:scale-110
+            "
+          >
+            <ChevronLeft size={24} />
+          </button>
+
+          <button
+            onClick={handleManualNext}
+            aria-label="Seguinte"
+            className="
+              absolute
+              -right-3
+              sm:-right-5
+              lg:-right-16
+              top-1/2
+              -translate-y-1/2
+              z-30
+              flex
+              h-11
+              w-11
+              sm:h-12
+              sm:w-12
+              items-center
+              justify-center
+              rounded-full
+              bg-pink-500
+              text-white
+              shadow-xl
+              shadow-pink-500/30
+              transition-all
+              duration-300
+              cursor-pointer
+              hover:bg-pink-600
+              hover:scale-110
+            "
+          >
+            <ChevronRight size={24} />
+          </button>
+
+          <div className="mt-8 flex justify-center gap-2">
+            {Array.from({ length: totalSlides }).map((_, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  setDirection(index > currentSlide ? 1 : -1);
+                  setCurrentSlide(index);
+                  resetAutoPlay();
+                }}
+                aria-label={`Ir para slide ${index + 1}`}
+                className={`
+                  h-2.5
+                  rounded-full
                   transition-all
                   duration-300
-                  hover:border-pink-200
-                  hover:bg-pink-50
-                  hover:shadow-[0_8px_30px_rgba(255,46,136,.08)]
-                  hover:-translate-y-1
-                "
-              >
-                {/* Glow sutil no hover */}
-                <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-pink-200/30 blur-2xl opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-
-                <div
-                  className="
-                    mb-3
-                    sm:mb-4
-                    flex
-                    h-10
-                    w-10
-                    sm:h-14
-                    sm:w-14
-                    items-center
-                    justify-center
-                    rounded-xl
-                    sm:rounded-2xl
-                    bg-white
-                    text-pink-500
-                    shadow-sm
-                    transition-all
-                    duration-300
-                    group-hover:scale-110
-                    group-hover:bg-pink-500
-                    group-hover:text-white
-                    group-hover:shadow-[0_4px_16px_rgba(255,46,136,.30)]
-                  "
-                >
-                  <Icon size={18} className="sm:w-[26px] sm:h-[26px]" />
-                </div>
-
-                <h3 className="mb-1 sm:mb-2 text-sm sm:text-lg font-bold text-zinc-900">
-                  {item.title}
-                </h3>
-
-                <p className="text-[11px] leading-snug sm:text-sm sm:leading-relaxed text-zinc-600 line-clamp-2 sm:line-clamp-none">
-                  {item.description}
-                </p>
-              </div>
-            );
-          })}
+                  ${
+                    currentSlide === index
+                      ? "w-8 bg-pink-500"
+                      : "w-2.5 bg-zinc-300 hover:bg-pink-300 cursor-pointer"
+                  }
+                `}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </section>

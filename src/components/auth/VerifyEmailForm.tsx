@@ -11,7 +11,7 @@ export function VerifyEmailForm() {
 
   const initialEmail = searchParams.get("email") || "";
 
-  const [email, setEmail] = useState(initialEmail);
+  const [email] = useState(initialEmail);
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
@@ -25,7 +25,7 @@ export function VerifyEmailForm() {
     setSuccess("");
 
     if (!email || !/^\d{6}$/.test(code)) {
-      setError("Introduz o email e um código de 6 dígitos.");
+      setError("Introduz o código de 6 dígitos.");
       return;
     }
 
@@ -46,7 +46,6 @@ export function VerifyEmailForm() {
 
       setSuccess("Email confirmado com sucesso!");
 
-      // ✅ Guardar tokens no localStorage
       if (data.accessToken) {
         localStorage.setItem("accessToken", data.accessToken);
       }
@@ -54,7 +53,6 @@ export function VerifyEmailForm() {
         localStorage.setItem("refreshToken", data.refreshToken);
       }
 
-      // ✅ Redirecionar para a home com login feito
       setTimeout(() => {
         router.push("/");
         router.refresh();
@@ -67,36 +65,40 @@ export function VerifyEmailForm() {
   }
 
   async function resendCode() {
-    setError("");
-    setSuccess("");
+  setError("");
+  setSuccess("");
 
-    if (!email) {
-      setError("Introduz primeiro o teu email.");
-      return;
-    }
-
-    setResending(true);
-
-    try {
-      const response = await fetch("/api/auth/resend-verification", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Não foi possível reenviar o código.");
-      }
-
-      setSuccess("Se a conta existir e ainda não estiver verificada, foi enviado um novo código.");
-    } catch (error) {
-      setError(error instanceof Error ? error.message : "Ocorreu um erro.");
-    } finally {
-      setResending(false);
-    }
+  if (!email) {
+    setError("Email não encontrado.");
+    return;
   }
+
+  setResending(true);
+  console.log("📧 Reenviar código para:", email);
+
+  try {
+    const response = await fetch("/api/auth/resend-verification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await response.json();
+    console.log("📥 Resposta:", data);
+
+    if (!response.ok) {
+      throw new Error(data.message || "Não foi possível reenviar o código.");
+    }
+
+    console.log("✅ Código reenviado com sucesso");
+    setSuccess("Foi enviado um novo código para o teu email.");
+  } catch (error) {
+    console.error("❌ Erro ao reenviar:", error);
+    setError(error instanceof Error ? error.message : "Ocorreu um erro.");
+  } finally {
+    setResending(false);
+  }
+}
 
   return (
     <form
@@ -115,16 +117,18 @@ export function VerifyEmailForm() {
         Introduz o código de verificação que enviámos para o teu endereço de email.
       </p>
 
+      {/* ✅ Email bloqueado - só leitura */}
       <div className="mt-8">
         <label className="mb-2 block text-sm font-medium text-zinc-700">Email</label>
 
         <input
           type="email"
           value={email}
-          onChange={(event) => setEmail(event.target.value)}
+          readOnly
+          disabled
           autoComplete="email"
           placeholder="email@exemplo.pt"
-          className="h-12 w-full rounded-xl border border-pink-200 bg-white px-4 text-sm text-zinc-900 outline-none transition-all placeholder:text-zinc-400 hover:border-pink-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-200"
+          className="h-12 w-full cursor-not-allowed rounded-xl border border-zinc-200 bg-zinc-50 px-4 text-sm text-zinc-500 outline-none"
         />
       </div>
 

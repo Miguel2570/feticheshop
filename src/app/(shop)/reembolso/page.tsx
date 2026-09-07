@@ -88,44 +88,7 @@ export default function PoliticaReembolsoPage() {
 
             <section>
               <h2 className="font-display text-2xl text-zinc-900">
-                4. Reembolso
-              </h2>
-              <p className="mt-4">
-                Em caso de resolução do contrato, o cliente será reembolsado do
-                valor total dos artigos devolvidos, sem demora injustificada e,
-                em qualquer caso, no prazo de 14 (catorze) dias a contar da
-                data em que a FeticheShop for informada da decisão do cliente
-                de resolução do contrato.
-              </p>
-              <p className="mt-2">
-                A FeticheShop terá o direito de reter o reembolso até
-                rececionar os bens devolvidos nas condições mencionadas
-                anteriormente. O cliente tem o dever de devolver os bens, sem
-                demora injustificada, e no prazo de 14 (catorze) dias a contar
-                do dia em que informou a FeticheShop da livre resolução do
-                contrato.
-              </p>
-              <p className="mt-2">
-                O reembolso será efetuado por transferência bancária para o
-                IBAN indicado pelo cliente, salvo pagamentos efetuados por
-                PayPal, que serão restituídos pela mesma via.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="font-display text-2xl text-zinc-900">
-                5. Custos de Devolução
-              </h2>
-              <p className="mt-4">
-                O cliente terá de efetuar a sua devolução através de via postal
-                para a morada indicada pela FeticheShop, suportando na íntegra
-                os custos da devolução dos bens.
-              </p>
-            </section>
-
-            <section>
-              <h2 className="font-display text-2xl text-zinc-900">
-                6. Contacto
+                4. Contacto
               </h2>
               <p className="mt-4">
                 Para qualquer dúvida relacionada com devoluções ou reembolsos,

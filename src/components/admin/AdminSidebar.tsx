@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useState } from "react";
+import { authClient } from "@/lib/auth-client";
 
 import {
   LayoutDashboard,
@@ -15,58 +17,40 @@ import {
   Settings,
   LogOut,
   UserCircle2,
+  Shield,
 } from "lucide-react";
 
 const links = [
-  {
-    title: "Dashboard",
-    href: "/admin",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "Produtos",
-    href: "/admin/products",
-    icon: Package,
-  },
-  {
-    title: "Categorias",
-    href: "/admin/categories",
-    icon: FolderTree,
-  },
-  {
-    title: "Marcas",
-    href: "/admin/brands",
-    icon: BadgePercent,
-  },
-  {
-    title: "Encomendas",
-    href: "/admin/orders",
-    icon: ShoppingCart,
-  },
-  {
-    title: "Clientes",
-    href: "/admin/customers",
-    icon: Users,
-  },
-  {
-    title: "Fornecedor",
-    href: "/admin/suppliers",
-    icon: Truck,
-  },
-  {
-    title: "Cupões",
-    href: "/admin/coupons",
-    icon: Ticket,
-  },
-  {
-    title: "Definições",
-    href: "/admin/settings",
-    icon: Settings,
-  },
+  { title: "Dashboard", href: "/admin", icon: LayoutDashboard },
+  { title: "Produtos", href: "/admin/products", icon: Package },
+  { title: "Categorias", href: "/admin/categories", icon: FolderTree },
+  { title: "Marcas", href: "/admin/brands", icon: BadgePercent },
+  { title: "Encomendas", href: "/admin/orders", icon: ShoppingCart },
+  { title: "Clientes", href: "/admin/customers", icon: Users },
+  { title: "Cargos", href: "/admin/roles", icon: Shield },
+  { title: "Fornecedor", href: "/admin/suppliers", icon: Truck },
+  { title: "Cupões", href: "/admin/coupons", icon: Ticket },
+  { title: "Definições", href: "/admin/settings", icon: Settings },
 ];
 
 export default function AdminSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+
+  async function handleLogout() {
+    setLoading(true);
+    try {
+      await authClient.signOut();
+      console.log("✅ Logout bem sucedido");
+      router.push("/"); // Redirecionar para home
+      router.refresh();
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <aside
@@ -86,17 +70,10 @@ export default function AdminSidebar() {
     >
       {/* Logo */}
       <div className="border-b border-zinc-100 px-5 py-5 shrink-0">
-        <h1
-          className="text-lg font-bold"
-          style={{ color: "#18181b" }}
-        >
+        <h1 className="text-lg font-bold" style={{ color: "#18181b" }}>
           Pleasure Shop
         </h1>
-
-        <p
-          className="mt-0.5 text-xs"
-          style={{ color: "#71717a" }}
-        >
+        <p className="mt-0.5 text-xs" style={{ color: "#71717a" }}>
           Administração
         </p>
       </div>
@@ -105,7 +82,6 @@ export default function AdminSidebar() {
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
         {links.map((item) => {
           const Icon = item.icon;
-
           const active =
             item.href === "/admin"
               ? pathname === "/admin"
@@ -115,18 +91,7 @@ export default function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
-              className="
-                flex
-                items-center
-                gap-3
-                rounded-xl
-                px-3.5
-                py-2.5
-                text-sm
-                font-medium
-                transition-all
-                duration-200
-              "
+              className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200"
               style={{
                 backgroundColor: active ? "#ec4899" : "transparent",
                 color: active ? "#ffffff" : "#3f3f46",
@@ -150,24 +115,12 @@ export default function AdminSidebar() {
           );
         })}
 
-        {/* SEPARADOR */}
         <div className="border-t border-zinc-100 my-2" />
 
-        {/* PERFIL DO ADMINISTRADOR */}
+        {/* Perfil */}
         <Link
           href="/admin/profile"
-          className="
-            flex
-            items-center
-            gap-3
-            rounded-xl
-            px-3.5
-            py-2.5
-            text-sm
-            font-medium
-            transition-all
-            duration-200
-          "
+          className="flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all duration-200"
           style={{
             backgroundColor: pathname === "/admin/profile" ? "#ec4899" : "transparent",
             color: pathname === "/admin/profile" ? "#ffffff" : "#3f3f46",
@@ -192,10 +145,12 @@ export default function AdminSidebar() {
 
       {/* Footer - Logout */}
       <div className="border-t border-zinc-100 p-3 shrink-0">
-        <Link
-          href="/logout"
+        <button
+          onClick={handleLogout}
+          disabled={loading}
           className="
             flex
+            w-full
             items-center
             gap-3
             rounded-xl
@@ -206,6 +161,7 @@ export default function AdminSidebar() {
             transition-all
             duration-200
             cursor-pointer
+            disabled:opacity-50
           "
           style={{ color: "#ef4444" }}
           onMouseEnter={(e) => {
@@ -216,8 +172,8 @@ export default function AdminSidebar() {
           }}
         >
           <LogOut size={18} className="shrink-0" />
-          <span>Terminar Sessão</span>
-        </Link>
+          <span>{loading ? "A terminar..." : "Terminar Sessão"}</span>
+        </button>
       </div>
     </aside>
   );

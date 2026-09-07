@@ -1,6 +1,8 @@
+// src/components/home/FAQ.tsx
+
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronDown, HelpCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -13,17 +15,17 @@ const faqs = [
   {
     question: "Quais são os métodos de pagamento disponíveis?",
     answer:
-      "Aceitamos MB Way, Multibanco, Cartão de Crédito, PayPal e outros métodos seguros.",
+      "Aceitamos MB Way e Multibanco.",
   },
   {
     question: "Posso devolver um produto?",
     answer:
-      "Sim. Tens 14 dias para efetuar a devolução, desde que o produto esteja nas condições originais.",
+      "Sim. Tem 14 dias para efetuar a devolução, desde que o produto esteja nas condições originais.",
   },
   {
     question: "Como acompanho a minha encomenda?",
     answer:
-      "Após o envio receberás um email com o código de tracking para acompanhares a entrega.",
+      "Após o envio receberá um email com o código de tracking para acompanhares a entrega.",
   },
   {
     question: "Os pagamentos são seguros?",
@@ -33,7 +35,7 @@ const faqs = [
   {
     question: "Como posso contactar o apoio ao cliente?",
     answer:
-      "Podes contactar-nos por email, telefone ou através do formulário da página de contactos.",
+      "Podes contactar por email, telefone ou através do formulário da página de contactos.",
   },
 ];
 
@@ -108,10 +110,25 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
   );
 }
 
-export default function FAQPage() {
+export function FAQ() {
+  // ✅ Scroll suave ao montar se houver #faq na URL
+  useEffect(() => {
+    if (window.location.hash === "#faq") {
+      setTimeout(() => {
+        const faqSection = document.getElementById("faq");
+        if (faqSection) {
+          faqSection.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }
+      }, 300);
+    }
+  }, []);
+
   return (
-    <main className="arabesque-bg relative overflow-hidden">
-      <section className="container-custom pt-10 pb-16 sm:pt-16">
+    <section id="faq" className="arabesque-bg relative overflow-hidden scroll-mt-24">
+      <div className="container-custom pt-10 pb-16 sm:pt-16">
         <div className="mx-auto max-w-3xl text-center">
           <div
             className="
@@ -133,7 +150,7 @@ export default function FAQPage() {
             Perguntas Frequentes
           </p>
 
-          <h1 className="section-title mt-4">
+          <h2 className="section-title mt-4">
             <span 
               className="text-transparent bg-clip-text"
               style={{
@@ -142,7 +159,7 @@ export default function FAQPage() {
             >
               Como te podemos ajudar?
             </span>
-          </h1>
+          </h2>
 
           <p className="mt-3 text-sm leading-relaxed text-zinc-600">
             Encontra rapidamente respostas às dúvidas mais comuns.
@@ -154,7 +171,7 @@ export default function FAQPage() {
             <FAQItem key={faq.question} {...faq} />
           ))}
         </div>
-      </section>
-    </main>
+      </div>
+    </section>
   );
 }

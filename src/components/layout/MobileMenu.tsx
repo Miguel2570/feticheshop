@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { X, ChevronRight, ChevronDown, Shield, UserCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -82,6 +82,105 @@ export function MobileMenu({
 }: MobileMenuProps) {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
 
+  // Bloquear scroll do body quando o menu está aberto
+  useEffect(() => {
+    if (open) {
+      // Guardar a posição atual do scroll
+      const scrollY = window.scrollY;
+      
+      // Bloquear scroll
+      document.body.style.position = "fixed";
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.left = "0";
+      document.body.style.right = "0";
+      document.body.style.width = "100%";
+      document.body.style.overflow = "hidden";
+    } else {
+      // Restaurar scroll
+      const scrollY = document.body.style.top;
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.body.style.width = "";
+      document.body.style.overflow = "";
+      
+      // Restaurar posição do scroll
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || "0", 10) * -1);
+      }
+    }
+
+    // Cleanup
+    return () => {
+      document.body.style.position = "";
+      document.body.style.top = "";
+      document.body.style.left = "";
+      document.body.style.right = "";
+      document.body.style.width = "";
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  // Bloquear scroll com wheel event (alternativa)
+  useEffect(() => {
+    if (!open) return;
+
+    const preventScroll = (e: WheelEvent) => {
+      const target = e.target as HTMLElement;
+      const scrollable = target.closest(".overflow-y-auto");
+      
+      // Permitir scroll dentro do menu, mas bloquear no body
+      if (!scrollable) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener("wheel", preventScroll, { passive: false });
+
+    return () => {
+      document.removeEventListener("wheel", preventScroll);
+    };
+  }, [open]);
+
+  // Bloquear scroll com touch move (mobile)
+  useEffect(() => {
+    if (!open) return;
+
+    const preventTouchScroll = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      const scrollable = target.closest(".overflow-y-auto");
+      
+      // Permitir scroll dentro do menu, mas bloquear no body
+      if (!scrollable) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener("touchmove", preventTouchScroll, { passive: false });
+
+    return () => {
+      document.removeEventListener("touchmove", preventTouchScroll);
+    };
+  }, [open]);
+
+  // Fechar menu com tecla Escape
+  useEffect(() => {
+    if (!open) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [open, onClose]);
+
   if (!open) {
     return null;
   }
@@ -104,6 +203,7 @@ export function MobileMenu({
         z-[60]
         bg-black
         overflow-y-auto
+        overscroll-contain
         lg:hidden
       "
     >

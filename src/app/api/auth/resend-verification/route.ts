@@ -19,6 +19,8 @@ export async function POST(
         .trim()
         .toLowerCase();
 
+    console.log("📧 Reenviar código para:", email);
+
     if (!email) {
       return NextResponse.json(
         {
@@ -32,15 +34,14 @@ export async function POST(
       );
     }
 
-    /*
-     * Não revelamos se o email existe.
-     */
-
     try {
       await emailVerificationService.createAndSend(
         email
       );
-    } catch {
+      console.log("✅ Código reenviado com sucesso");
+    } catch (error) {
+      console.error("❌ Erro ao reenviar código:", error);
+      console.error("Mensagem:", error instanceof Error ? error.message : error);
       // resposta genérica
     }
 
@@ -49,7 +50,8 @@ export async function POST(
       message:
         "Se existir uma conta por verificar, receberás um novo código.",
     });
-  } catch {
+  } catch (error) {
+    console.error("❌ Erro na rota de reenvio:", error);
     return NextResponse.json(
       {
         success: false,

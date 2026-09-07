@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
 
 import {
   LayoutDashboard,
@@ -34,14 +35,29 @@ const links = [
 
 export default function AdminMobileMenu() {
   const [isOpen, setIsOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
-  // Fechar ao mudar de página - usar callback no onClick em vez de effect
   const handleNavigate = () => {
     setIsOpen(false);
   };
 
-  // Bloquear scroll quando aberto
+  async function handleLogout() {
+    setLoading(true);
+    try {
+      await authClient.signOut();
+      console.log("✅ Logout bem sucedido");
+      setIsOpen(false);
+      router.push("/"); // Redirecionar para home
+      router.refresh();
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
@@ -55,50 +71,21 @@ export default function AdminMobileMenu() {
 
   return (
     <>
-      {/* BOTÃO MOBILE */}
       <button
         onClick={() => setIsOpen(true)}
-        className="
-          lg:hidden
-          fixed
-          top-4
-          left-4
-          z-40
-          flex
-          h-11
-          w-11
-          items-center
-          justify-center
-          rounded-xl
-          bg-pink-500
-          text-white
-          shadow-lg
-          shadow-pink-500/25
-          transition
-          hover:bg-pink-600
-          cursor-pointer
-        "
+        className="lg:hidden fixed top-4 left-4 z-40 flex h-11 w-11 items-center justify-center rounded-xl bg-pink-500 text-white shadow-lg shadow-pink-500/25 transition hover:bg-pink-600 cursor-pointer"
         aria-label="Abrir menu"
       >
         <Menu size={22} />
       </button>
 
-      {/* OVERLAY */}
       {isOpen && (
         <div
-          className="
-            lg:hidden
-            fixed
-            inset-0
-            z-40
-            bg-black/50
-            backdrop-blur-sm
-          "
+          className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
           onClick={() => setIsOpen(false)}
         />
       )}
 
-      {/* DRAWER */}
       <div
         className={`
           lg:hidden
@@ -119,7 +106,6 @@ export default function AdminMobileMenu() {
           ${isOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
-        {/* HEADER DO DRAWER */}
         <div className="flex items-center justify-between border-b border-zinc-100 px-5 py-4">
           <div>
             <h2 className="text-lg font-bold" style={{ color: "#18181b" }}>
@@ -132,31 +118,16 @@ export default function AdminMobileMenu() {
 
           <button
             onClick={() => setIsOpen(false)}
-            className="
-              flex
-              h-9
-              w-9
-              items-center
-              justify-center
-              rounded-xl
-              bg-zinc-100
-              text-zinc-700
-              transition
-              hover:bg-pink-50
-              hover:text-pink-500
-              cursor-pointer
-            "
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 text-zinc-700 transition hover:bg-pink-50 hover:text-pink-500 cursor-pointer"
             aria-label="Fechar menu"
           >
             <X size={20} />
           </button>
         </div>
 
-        {/* NAVEGAÇÃO */}
         <nav className="flex-1 space-y-1 overflow-y-auto p-3">
           {links.map((item) => {
             const Icon = item.icon;
-
             const active =
               item.href === "/admin"
                 ? pathname === "/admin"
@@ -167,18 +138,7 @@ export default function AdminMobileMenu() {
                 key={item.href}
                 href={item.href}
                 onClick={handleNavigate}
-                className="
-                  flex
-                  items-center
-                  gap-3
-                  rounded-xl
-                  px-3.5
-                  py-3
-                  text-sm
-                  font-medium
-                  transition-all
-                  duration-200
-                "
+                className="flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-medium transition-all duration-200"
                 style={{
                   backgroundColor: active ? "#ec4899" : "transparent",
                   color: active ? "#ffffff" : "#3f3f46",
@@ -192,22 +152,10 @@ export default function AdminMobileMenu() {
 
           <div className="border-t border-zinc-100 my-2" />
 
-          {/* PERFIL */}
           <Link
             href="/admin/profile"
             onClick={handleNavigate}
-            className="
-              flex
-              items-center
-              gap-3
-              rounded-xl
-              px-3.5
-              py-3
-              text-sm
-              font-medium
-              transition-all
-              duration-200
-            "
+            className="flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-medium transition-all duration-200"
             style={{
               backgroundColor: pathname === "/admin/profile" ? "#ec4899" : "transparent",
               color: pathname === "/admin/profile" ? "#ffffff" : "#3f3f46",
@@ -217,12 +165,12 @@ export default function AdminMobileMenu() {
             <span>Perfil</span>
           </Link>
 
-          {/* LOGOUT */}
-          <Link
-            href="/logout"
-            onClick={handleNavigate}
+          <button
+            onClick={handleLogout}
+            disabled={loading}
             className="
               flex
+              w-full
               items-center
               gap-3
               rounded-xl
@@ -234,11 +182,12 @@ export default function AdminMobileMenu() {
               transition-all
               duration-200
               hover:bg-red-50
+              disabled:opacity-50
             "
           >
             <LogOut size={18} className="shrink-0" />
-            <span>Terminar Sessão</span>
-          </Link>
+            <span>{loading ? "A terminar..." : "Terminar Sessão"}</span>
+          </button>
         </nav>
       </div>
     </>

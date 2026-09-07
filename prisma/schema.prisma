@@ -45,11 +45,6 @@ enum PaymentStatus {
 enum PaymentMethod {
   MBWAY
   MULTIBANCO
-  CARD
-  PAYPAL
-  BANK_TRANSFER
-  APPLE_PAY
-  GOOGLE_PAY
 }
 
 enum SupplierSyncStatus {
@@ -92,6 +87,12 @@ enum StockMode {
   PHYSICAL
   SUPPLIER
   BOTH
+}
+
+enum VIPLevel {
+  BRONZE
+  SILVER
+  GOLD
 }
 
 model PasswordReset {
@@ -153,6 +154,9 @@ model User {
 
   role Role @default(CUSTOMER)
 
+  vipLevel      VIPLevel  @default(BRONZE)
+  totalSpent    Float     @default(0)
+
   isActive Boolean @default(true)
 
   emailVerifiedAt DateTime?
@@ -168,6 +172,8 @@ model User {
 
   addresses UserAddress[]
   orders    Order[]
+
+  reviews Review[]
 
   inventoryMovements InventoryMovement[]
   auditLogs          AuditLog[]
@@ -358,6 +364,8 @@ model Product {
   price        Decimal  @db.Decimal(10, 2)
   comparePrice Decimal? @db.Decimal(10, 2)
   costPrice    Decimal? @db.Decimal(10, 2)
+
+  reviews Review[]
 
   // NOVO: Modo de stock
   stockMode StockMode @default(PHYSICAL)
@@ -913,7 +921,8 @@ model Coupon {
   endsAt   DateTime?
 
   orders Order[]
-
+  vipLevel   VIPLevel?
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1023,4 +1032,23 @@ model AdminNotification {
 
   @@index([isRead])
   @@index([type])
+}
+
+model Review {
+  id          String   @id @default(cuid())
+  productId   String
+  userId      String
+  rating      Int      // 1-5
+  title       String?
+  comment     String
+  verified    Boolean  @default(false)
+  images      String[] @default([])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([userId])
 }

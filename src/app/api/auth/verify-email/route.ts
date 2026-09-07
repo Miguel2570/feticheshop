@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { emailVerificationService } from "@/server/services/email-verification.service";
-import { authService } from "@/server/services/auth.service";
 import { prisma } from "@/lib/prisma";
 
 export async function POST(request: NextRequest) {
@@ -10,32 +9,42 @@ export async function POST(request: NextRequest) {
     const email = String(body.email || "").trim().toLowerCase();
     const code = String(body.code || "").trim();
 
+    console.log("📧 Email recebido:", email);
+    console.log("🔢 Código recebido:", code);
+
     if (!email || !/^\d{6}$/.test(code)) {
+      console.log("❌ Validação falhou: email ou código inválido");
       return NextResponse.json(
         { success: false, message: "Email ou código inválido." },
         { status: 400 }
       );
     }
 
+    // Verificar o código
     await emailVerificationService.verify(email, code);
 
+    // Buscar usuário atualizado
     const user = await prisma.user.findUnique({
       where: { email },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        emailVerified: true,
+        emailVerifiedAt: true,
+      },
     });
 
-    let tokens = null;
-
-    if (user) {
-      tokens = await authService.generateTokens(user);
-    }
+    console.log("✅ Email verificado com sucesso para:", email);
 
     return NextResponse.json({
       success: true,
       message: "Email confirmado com sucesso.",
-      ...(tokens || {}),
+      user,
     });
   } catch (error) {
-    console.error("Email verification error:", error);
+    console.error("❌ Email verification error:", error);
 
     if (error instanceof Error && error.message === "VERIFICATION_EXPIRED") {
       return NextResponse.json(

@@ -10,7 +10,6 @@ const reviews = [
     name: "Marta S.",
     rating: 5,
     text: "Encomenda discreta e rápida. Os produtos são de excelente qualidade. Super recomendo!",
-    product: "Vibrador Premium",
     date: "Há 2 semanas",
     verified: true,
   },
@@ -19,7 +18,6 @@ const reviews = [
     name: "João P.",
     rating: 5,
     text: "Muito profissionalismo. O site é fácil de usar e a entrega foi super rápida e discreta.",
-    product: "Kit Casal",
     date: "Há 1 mês",
     verified: true,
   },
@@ -28,7 +26,6 @@ const reviews = [
     name: "Ana R.",
     rating: 4,
     text: "Gostei muito da variedade de produtos. O atendimento ao cliente foi excelente e atencioso.",
-    product: "Lubrificante",
     date: "Há 3 semanas",
     verified: true,
   },
@@ -37,7 +34,6 @@ const reviews = [
     name: "Carlos M.",
     rating: 5,
     text: "Embalagem totalmente discreta como prometido. Voltarei a comprar com certeza!",
-    product: "Kit BDSM",
     date: "Há 2 meses",
     verified: true,
   },
@@ -46,7 +42,6 @@ const reviews = [
     name: "Sofia L.",
     rating: 5,
     text: "Produtos premium a preços justos. A qualidade supera as expectativas. Aconselho!",
-    product: "Sugador Clitoriano",
     date: "Há 1 semana",
     verified: true,
   },
@@ -55,51 +50,75 @@ const reviews = [
     name: "Pedro A.",
     rating: 5,
     text: "Excelente experiência de compra. Site intuitivo, entrega rápida e produtos fantásticos.",
-    product: "Anel Vibratório",
+    date: "Há 5 dias",
+    verified: true,
+  },
+  {
+    id: 7,
+    name: "Rita C.",
+    rating: 5,
+    text: "A qualidade dos produtos superou as minhas expectativas. Embalagem super discreta e entrega rápida.",
+    date: "Há 3 dias",
+    verified: true,
+  },
+  {
+    id: 8,
+    name: "Miguel T.",
+    rating: 4,
+    text: "Muito satisfeito com a compra. O site é fácil de navegar e o atendimento foi impecável.",
+    date: "Há 1 semana",
+    verified: true,
+  },
+  {
+    id: 9,
+    name: "Beatriz F.",
+    rating: 5,
+    text: "Adorei a experiência de compra! Tudo super profissional e discreto. Recomendo a todos.",
+    date: "Há 2 semanas",
+    verified: true,
+  },
+  {
+    id: 10,
+    name: "Rui M.",
+    rating: 5,
+    text: "Site excelente com produtos de qualidade. A entrega foi rápida e sem problemas.",
+    date: "Há 1 mês",
+    verified: true,
+  },
+  {
+    id: 11,
+    name: "Carla V.",
+    rating: 5,
+    text: "Primeira vez que comprei e fiquei muito satisfeita. Tudo discreto e de alta qualidade.",
+    date: "Há 3 dias",
+    verified: true,
+  },
+  {
+    id: 12,
+    name: "André L.",
+    rating: 4,
+    text: "Boa experiência geral. O produto correspondeu às expectativas e chegou rápido.",
     date: "Há 5 dias",
     verified: true,
   },
 ];
 
 export function Reviews() {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [visibleCount, setVisibleCount] = useState(1);
+  const [currentSlide, setCurrentSlide] = useState(0);
   const [direction, setDirection] = useState(1);
   const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
 
-  useEffect(() => {
-    const handleResize = () => {
-      if (window.innerWidth >= 768) {
-        setVisibleCount(3);
-      } else {
-        setVisibleCount(1);
-      }
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  const reviewsPerSlide = 3;
+  const totalSlides = Math.ceil(reviews.length / reviewsPerSlide);
 
   const handleNext = useCallback(() => {
     setDirection(1);
-    setCurrentIndex((prev) => {
-      if (prev >= reviews.length - visibleCount) {
-        return 0;
-      }
-      return prev + 1;
-    });
-  }, [visibleCount]);
+    setCurrentSlide((prev) => (prev + 1) % totalSlides);
+  }, [totalSlides]);
 
   const handlePrev = () => {
     setDirection(-1);
-    setCurrentIndex((prev) => {
-      if (prev === 0) {
-        return reviews.length - visibleCount;
-      }
-      return Math.max(prev - 1, 0);
-    });
+    setCurrentSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
   };
 
   const resetAutoPlay = () => {
@@ -120,7 +139,7 @@ export function Reviews() {
         clearInterval(autoPlayRef.current);
       }
     };
-  }, [visibleCount, handleNext]);
+  }, [handleNext]);
 
   const handleManualNext = () => {
     handleNext();
@@ -132,9 +151,10 @@ export function Reviews() {
     resetAutoPlay();
   };
 
+  // ✅ Slide atual: 3 reviews
   const visibleReviews = reviews.slice(
-    currentIndex,
-    currentIndex + visibleCount
+    currentSlide * reviewsPerSlide,
+    currentSlide * reviewsPerSlide + reviewsPerSlide
   );
 
   return (
@@ -170,14 +190,14 @@ export function Reviews() {
               ))}
             </div>
             <span className="text-2xl font-bold text-zinc-900">4.9</span>
-            <span className="text-sm text-zinc-500">(127 avaliações)</span>
+            <span className="text-sm text-zinc-500">({reviews.length} avaliações)</span>
           </div>
         </div>
 
         <div className="relative mt-12 px-2 sm:px-4 lg:px-0">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
-              key={currentIndex}
+              key={currentSlide}
               initial={{ opacity: 0, x: direction * 60 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: direction * -60 }}
@@ -213,10 +233,6 @@ export function Reviews() {
 
                   <p className="mt-4 flex-1 text-sm leading-7 text-zinc-700">
                     {review.text}
-                  </p>
-
-                  <p className="mt-3 text-xs font-medium text-pink-600">
-                    {review.product}
                   </p>
 
                   <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-4">
@@ -301,31 +317,30 @@ export function Reviews() {
             <ChevronRight size={24} />
           </button>
 
+          {/* ✅ 4 indicadores (1 por slide) */}
           <div className="mt-8 flex justify-center gap-2">
-            {Array.from({ length: reviews.length - visibleCount + 1 }).map(
-              (_, index) => (
-                <button
-                  key={index}
-                  onClick={() => {
-                    setDirection(index > currentIndex ? 1 : -1);
-                    setCurrentIndex(index);
-                    resetAutoPlay();
-                  }}
-                  aria-label={`Ir para slide ${index + 1}`}
-                  className={`
-                    h-2.5
-                    rounded-full
-                    transition-all
-                    duration-300
-                    ${
-                      currentIndex === index
-                        ? "w-8 bg-pink-500"
-                        : "w-2.5 bg-zinc-300 hover:bg-pink-300 cursor-pointer"
-                    }
-                  `}
-                />
-              )
-            )}
+            {Array.from({ length: totalSlides }).map((_, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  setDirection(index > currentSlide ? 1 : -1);
+                  setCurrentSlide(index);
+                  resetAutoPlay();
+                }}
+                aria-label={`Ir para slide ${index + 1}`}
+                className={`
+                  h-2.5
+                  rounded-full
+                  transition-all
+                  duration-300
+                  ${
+                    currentSlide === index
+                      ? "w-8 bg-pink-500"
+                      : "w-2.5 bg-zinc-300 hover:bg-pink-300 cursor-pointer"
+                  }
+                `}
+              />
+            ))}
           </div>
         </div>
       </div>

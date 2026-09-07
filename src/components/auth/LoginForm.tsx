@@ -7,6 +7,7 @@ import { ArrowRight } from "lucide-react";
 
 import { PasswordInput } from "./PasswordInput";
 import { SocialLogin } from "./SocialLogin";
+import { authClient } from "@/lib/auth-client";
 
 export function LoginForm() {
   const router = useRouter();
@@ -21,7 +22,6 @@ export function LoginForm() {
     event: React.FormEvent<HTMLFormElement>
   ) {
     event.preventDefault();
-
     setError("");
 
     if (!email || !password) {
@@ -32,25 +32,20 @@ export function LoginForm() {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          email,
-          password,
-          remember,
-        }),
+      console.log("📝 Tentativa de login:", email.trim().toLowerCase());
+
+      // Usar cliente Better Auth diretamente
+      const { data, error } = await authClient.signIn.email({
+        email: email.trim().toLowerCase(),
+        password,
       });
 
-      const data = await response.json();
+      if (error) {
+        console.error("❌ Erro do Better Auth:", error);
 
-      if (!response.ok) {
         if (
-          response.status === 403 &&
-          data.code === "EMAIL_NOT_VERIFIED"
+          error.message?.includes("verify") ||
+          error.message?.includes("verified")
         ) {
           router.push(
             `/verify-email?email=${encodeURIComponent(
@@ -60,18 +55,20 @@ export function LoginForm() {
           return;
         }
 
-        throw new Error(
-          data.message || "Não foi possível iniciar sessão."
-        );
+        throw new Error(error.message || "Não foi possível iniciar sessão.");
       }
 
-      router.push("/");
-      router.refresh();
+      console.log("✅ Login bem sucedido, a redirecionar...");
+      
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 100);
+      
     } catch (error) {
+      console.error("❌ Erro:", error);
       setError(
         error instanceof Error ? error.message : "Ocorreu um erro."
       );
-    } finally {
       setLoading(false);
     }
   }
@@ -79,14 +76,7 @@ export function LoginForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="
-        rounded-[30px]
-        border
-        border-pink-100
-        bg-white
-        p-8
-        shadow-sm
-      "
+      className="rounded-[30px] border border-pink-100 bg-white p-8 shadow-sm"
     >
       <div className="space-y-6">
         <div>
@@ -101,24 +91,7 @@ export function LoginForm() {
             onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
             placeholder="email@exemplo.pt"
-            className="
-              h-12
-              w-full
-              rounded-xl
-              border
-              border-pink-200
-              bg-white
-              px-4
-              text-sm
-              text-zinc-900
-              outline-none
-              transition-all
-              placeholder:text-zinc-400
-              hover:border-pink-300
-              focus:border-pink-500
-              focus:ring-2
-              focus:ring-pink-200
-            "
+            className="h-12 w-full rounded-xl border border-pink-200 bg-white px-4 text-sm text-zinc-900 outline-none transition-all placeholder:text-zinc-400 hover:border-pink-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-200"
           />
         </div>
 
@@ -151,15 +124,7 @@ export function LoginForm() {
             type="checkbox"
             checked={remember}
             onChange={(event) => setRemember(event.target.checked)}
-            className="
-              h-4
-              w-4
-              rounded
-              border-pink-200
-              bg-white
-              accent-pink-500
-              cursor-pointer
-            "
+            className="h-4 w-4 rounded border-pink-200 bg-white accent-pink-500 cursor-pointer"
           />
 
           <span className="text-sm" style={{ color: "#52525b" }}>
@@ -169,19 +134,7 @@ export function LoginForm() {
       </div>
 
       {error && (
-        <div
-          className="
-            mt-5
-            rounded-xl
-            border
-            border-red-200
-            bg-red-50
-            px-4
-            py-3
-            text-sm
-            text-red-500
-          "
-        >
+        <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-500">
           {error}
         </div>
       )}
@@ -189,31 +142,9 @@ export function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="
-          mt-8
-          inline-flex
-          h-14
-          w-full
-          items-center
-          justify-center
-          gap-2
-          rounded-full
-          bg-pink-500
-          text-sm
-          font-semibold
-          text-white
-          transition-all
-          duration-300
-          cursor-pointer
-          hover:scale-[1.02]
-          hover:bg-pink-600
-          hover:shadow-[0_0_35px_rgba(255,46,136,.35)]
-          disabled:cursor-not-allowed
-          disabled:opacity-60
-        "
+        className="mt-8 inline-flex h-14 w-full items-center justify-center gap-2 rounded-full bg-pink-500 text-sm font-semibold text-white transition-all duration-300 cursor-pointer hover:scale-[1.02] hover:bg-pink-600 hover:shadow-[0_0_35px_rgba(255,46,136,.35)] disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading ? "A entrar..." : "Iniciar Sessão"}
-
         <ArrowRight size={18} />
       </button>
 

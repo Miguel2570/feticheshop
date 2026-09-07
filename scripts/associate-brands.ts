@@ -1,48 +1,51 @@
 import { prisma } from "@/lib/prisma";
 
-async function associateBrands() {
-  console.log("Iniciando associação de marcas...");
+async function associateBrandsFromDreamlove() {
+  console.log("🔗 A associar marcas via Dreamlove...");
 
-  // Buscar todas as marcas
-  const brands = await prisma.brand.findMany();
-  console.log(`Total de marcas: ${brands.length}`);
+  const supplierProducts = await prisma.supplierProduct.findMany({
+    where: {
+      product: { brandId: null },
+    },
+    select: {
+      productId: true,
+      rawData: true,
+    },
+  });
 
-  for (const brand of brands) {
-    // Buscar produtos sem marca que podem pertencer a esta marca
-    const products = await prisma.product.findMany({
+  console.log(`Produtos a processar: ${supplierProducts.length}`);
+
+  let associated = 0;
+
+  for (const sp of supplierProducts) {
+    if (!sp.rawData || !sp.productId) continue;
+
+    const raw = sp.rawData as Record<string, unknown>;
+    const brandData = raw.brand as { id?: number; name?: string } | undefined;
+
+    if (!brandData?.name) continue;
+
+    const brand = await prisma.brand.findFirst({
       where: {
-        brandId: null,
         OR: [
-          { name: { contains: brand.name, mode: "insensitive" } },
-          // Adicione outras condições se necessário
+          { name: { equals: brandData.name, mode: "insensitive" } },
+          ...(brandData.id ? [{ dreamloveId: brandData.id }] : []),
         ],
       },
-      select: { id: true, name: true },
     });
 
-    if (products.length > 0) {
-      console.log(`Associando ${products.length} produtos à marca "${brand.name}"`);
-      
-      for (const product of products) {
-        await prisma.product.update({
-          where: { id: product.id },
-          data: { brandId: brand.id },
-        });
-      }
-    } else {
-      console.log(`Nenhum produto encontrado para a marca "${brand.name}"`);
+    if (brand) {
+      await prisma.product.update({
+        where: { id: sp.productId },
+        data: { brandId: brand.id },
+      });
+      associated++;
     }
   }
 
-  // Verificar quantos produtos ainda estão sem marca
-  const productsWithoutBrand = await prisma.product.count({
-    where: { brandId: null },
-  });
-  
-  console.log(`Produtos ainda sem marca: ${productsWithoutBrand}`);
-  console.log("Associação concluída!");
+  console.log(`✅ Marcas associadas: ${associated}`);
 }
 
-associateBrands()
+associateBrandsFromDreamlove()
   .catch(console.error)
   .finally(() => prisma.$disconnect());

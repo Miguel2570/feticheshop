@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Mail, MapPin, Phone } from "lucide-react";
-import { FaFacebookF, FaInstagram, FaWhatsapp } from "react-icons/fa";
+import { FaFacebookF, FaInstagram, FaWhatsapp, FaTiktok } from "react-icons/fa";
 import type { ComponentType, ReactNode } from "react";
 
 import { getCurrentUser } from "@/lib/auth";
@@ -19,6 +19,12 @@ const socialLinks: SocialLink[] = [
     label: "Instagram",
     icon: FaInstagram,
     size: 18,
+  },
+  {
+    href: "https://www.tiktok.com/@feticheshop.leiri",
+    label: "TikTok",
+    icon: FaTiktok,
+    size: 16,
   },
   {
     href: "https://www.facebook.com/feticheshopleiria?locale=pt_PT",
@@ -51,7 +57,7 @@ function FooterColumn({ title, links }: FooterSection) {
 
       <ul className="mt-5 space-y-3">
         {links.map((link) => (
-          <li key={link.href}>
+          <li key={`${link.href}-${link.label}`}>
             <Link href={link.href} className={linkClass}>
               {link.label}
             </Link>
@@ -71,8 +77,6 @@ function ContactLink({
   icon: IconComponent;
   children: ReactNode;
 }) {
-  const isWhatsApp = href.startsWith("whatsapp://");
-
   return (
     <a
       href={href}
@@ -101,7 +105,6 @@ export async function Footer() {
   const hasSaleProducts = saleCount > 0;
 
   const shopLinks: FooterLink[] = [
-    { href: "/product", label: "Todos os produtos" },
     ...(hasNewProducts
       ? [{ href: "/new", label: "Novidades" }]
       : []),
@@ -112,15 +115,11 @@ export async function Footer() {
 
   const footerSections: FooterSection[] = [
     {
-      title: "Loja",
-      links: shopLinks,
-    },
-    {
       title: "Sobre Nós",
       links: [
         { href: "/about", label: "A nossa história" },
         { href: "/contact", label: "Contactos" },
-        { href: "/faq", label: "Perguntas frequentes" },
+        { href: "/#faq", label: "Perguntas frequentes" },
       ],
     },
     {
@@ -129,8 +128,8 @@ export async function Footer() {
         isAuthenticated
           ? { href: "/account", label: "A minha conta" }
           : { href: "/login", label: "Entrar" },
-        { href: "/wishlist", label: "Favoritos" },
-        { href: "/cart", label: "Carrinho" },
+        { href: "/account/orders", label: "Encomendas" },
+        { href: "/account/addresses", label: "Moradas" },
       ],
     },
     {
@@ -154,7 +153,7 @@ export async function Footer() {
   return (
     <footer className="border-t border-zinc-800 bg-black text-white">
       <div className="container-custom py-14">
-        <div className="grid gap-10 sm:grid-cols-3 lg:grid-cols-7">
+        <div className="grid gap-10 sm:grid-cols-3 lg:grid-cols-6">
           {/* Marca + contactos */}
           <div className="lg:col-span-2">
             <div className="space-y-3">
@@ -165,7 +164,6 @@ export async function Footer() {
                 feticheshop.leiria@gmail.com
               </ContactLink>
 
-              {/* Telefone agora abre WhatsApp */}
               <ContactLink
                 href="whatsapp://send?phone=351919292567"
                 icon={Phone}
@@ -200,7 +198,7 @@ export async function Footer() {
             </div>
           </div>
 
-          {/* 5 colunas de links */}
+          {/* 4 colunas de links */}
           {footerSections.map((section) => (
             <FooterColumn key={section.title} {...section} />
           ))}

@@ -51,23 +51,8 @@ export const auth = betterAuth({
               data: {
                 firstName,
                 lastName,
-                emailVerifiedAt: new Date(),
               },
             });
-
-            // Enviar email de boas-vindas
-            if (userData.email) {
-              try {
-                await emailService.sendWelcomeEmail({
-                  email: userData.email,
-                  firstName,
-                });
-
-                console.log(`📧 Email de boas-vindas enviado para ${userData.email}`);
-              } catch (emailError) {
-                console.error("Erro ao enviar email de boas-vindas:", emailError);
-              }
-            }
 
             console.log(`✅ Utilizador atualizado: ${firstName} ${lastName}`);
           } catch (error) {
@@ -91,21 +76,51 @@ export const auth = betterAuth({
 
 export async function getCurrentUser() {
   try {
+    console.log("🔍 getCurrentUser chamado");
+    
+    const headersList = await headers();
+    
     const session = await auth.api.getSession({
-      headers: await headers(),
+      headers: headersList,
     });
 
+    console.log("📝 Sessão:", session ? "Encontrada" : "Não encontrada");
+
     if (!session?.user) {
+      console.log("❌ Sem sessão ativa");
       return null;
     }
 
+    console.log("👤 Session user:", {
+      id: session.user.id,
+      email: session.user.email,
+    });
+
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        emailVerified: true,
+        emailVerifiedAt: true,
+        isActive: true,
+        avatarUrl: true,
+        phone: true,
+        vipLevel: true,
+        totalSpent: true,
+      },
     });
+
+    console.log("✅ User no banco:", user?.email);
+    console.log("✅ Role:", user?.role);
 
     return user;
   } catch (error) {
-    console.error("Erro ao obter sessão:", error);
+    console.error("❌ Erro no getCurrentUser:", error);
+    console.error("Stack:", error instanceof Error ? error.stack : "");
     return null;
   }
 }

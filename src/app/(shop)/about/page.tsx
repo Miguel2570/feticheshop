@@ -1,151 +1,55 @@
-import {
-  Award,
-  HeartHandshake,
-  ShieldCheck,
-  Truck,
-} from "lucide-react";
-
-const values = [
-  {
-    icon: Award,
-    title: "Qualidade",
-    description:
-      "Selecionamos apenas produtos de elevada qualidade e marcas reconhecidas.",
-  },
-  {
-    icon: Truck,
-    title: "Entrega Rápida",
-    description:
-      "Expedimos rapidamente para que recebas a tua encomenda o mais depressa possível.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Compra Segura",
-    description:
-      "Todos os pagamentos são protegidos por tecnologias de segurança modernas.",
-  },
-  {
-    icon: HeartHandshake,
-    title: "Apoio ao Cliente",
-    description:
-      "Estamos disponíveis para esclarecer dúvidas antes e depois da compra.",
-  },
-];
-
 export default function AboutPage() {
   return (
     <main className="arabesque-bg relative overflow-hidden">
-      <section className="container-custom py-20">
-        <div className="mx-auto max-w-4xl text-center">
-          <p className="section-eyebrow">
-            Sobre Nós
-          </p>
-
-          <h1 className="section-title mt-4">
-            <span 
-              className="text-transparent bg-clip-text"
-              style={{
-                backgroundImage: "linear-gradient(135deg, #d1105a 0%, #ff2e88 50%, #d1105a 100%)",
-              }}
-            >
-              Muito mais do que uma Loja Online
-            </span>
-          </h1>
-
-          <p className="mt-8 text-lg leading-8 text-zinc-600">
-            Trabalhamos diariamente para oferecer produtos de qualidade,
-            uma experiência de compra simples e um serviço de excelência
-            desde o primeiro clique até à entrega da encomenda.
-          </p>
-        </div>
-
-        <div className="mt-20 grid gap-8 lg:grid-cols-2">
-          <div
-            className="
-              rounded-[30px]
-              border
-              border-pink-100
-              bg-white/70
-              backdrop-blur-sm
-              p-10
-              shadow-sm
-            "
-          >
-            <h2 className="font-display text-3xl text-zinc-900">
-              A nossa missão
-            </h2>
-
-            <p className="mt-8 leading-8 text-zinc-600">
-              Queremos proporcionar uma experiência de compra moderna,
-              rápida e totalmente segura, disponibilizando uma seleção
-              cuidada de produtos e um atendimento próximo de todos os
-              nossos clientes.
+      <section className="container-custom py-16 sm:py-20">
+        <div className="mx-auto max-w-6xl">
+          {/* Título */}
+          <div className="text-center">
+            <p className="section-eyebrow">
+              Sobre Nós
             </p>
 
-            <p className="mt-6 leading-8 text-zinc-600">
-              Apostamos na transparência, rapidez de envio e apoio ao
-              cliente para construir relações duradouras baseadas na
-              confiança.
-            </p>
+            <h1 className="section-title mt-4">
+              <span 
+                className="text-transparent bg-clip-text"
+                style={{
+                  backgroundImage: "linear-gradient(135deg, #d1105a 0%, #ff2e88 50%, #d1105a 100%)",
+                }}
+              >
+                Muito mais do que uma Loja Online
+              </span>
+            </h1>
           </div>
 
-          <div
-            className="
-              rounded-[30px]
-              border
-              border-pink-100
-              bg-white/70
-              backdrop-blur-sm
-              p-10
-              shadow-sm
-            "
-          >
-            <h2 className="font-display text-3xl text-zinc-900">
-              Porque escolher-nos?
-            </h2>
+          {/* Texto */}
+          <div className="mt-12 space-y-6 text-left">
+            <p className="text-lg leading-9 text-zinc-700">
+              Há mais de uma década que a FeticheShop faz parte da vida de quem procura explorar a intimidade, o prazer e o bem-estar com liberdade, confiança e sem preconceitos.
+            </p>
 
-            <div className="mt-10 space-y-8">
-              {values.map((item) => {
-                const Icon = item.icon;
+            <p className="text-lg leading-9 text-zinc-700">
+              Ao longo destes anos, crescemos e evoluímos, mas mantivemos aquilo que sempre nos definiu: proximidade, discrição e um atendimento sem julgamentos.
+            </p>
 
-                return (
-                  <div
-                    key={item.title}
-                    className="flex gap-5"
-                  >
-                    <div
-                      className="
-                        flex
-                        h-14
-                        w-14
-                        shrink-0
-                        items-center
-                        justify-center
-                        rounded-2xl
-                        bg-gradient-to-br
-                        from-pink-500
-                        to-brand-wine
-                        text-white
-                        shadow-lg
-                        shadow-pink-500/25
-                      "
-                    >
-                      <Icon size={24} />
-                    </div>
+            <p className="text-lg leading-9 text-zinc-700">
+              Na FeticheShop acreditamos que cada pessoa, cada casal e cada relação são únicos. Por isso, selecionamos os nossos produtos pensando em diferentes gostos, necessidades e momentos, procurando oferecer qualidade, diversidade e opções para quem está a dar os primeiros passos neste universo e para quem já sabe exatamente aquilo que procura.
+            </p>
 
-                    <div>
-                      <h3 className="text-xl font-semibold text-zinc-900">
-                        {item.title}
-                      </h3>
+            <p className="text-lg leading-9 text-zinc-700">
+              A experiência adquirida ao longo de mais de uma década de contacto direto com os nossos clientes permite-nos fazer mais do que simplesmente vender produtos. Ouvimos, esclarecemos dúvidas e ajudamos a escolher, sempre com naturalidade, respeito e total discrição.
+            </p>
 
-                      <p className="mt-2 leading-7 text-zinc-600">
-                        {item.description}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <p className="text-lg leading-9 text-zinc-700">
+              Na nossa loja física ou através da nossa loja online, queremos que se sinta confortável para descobrir e explorar ao seu ritmo.
+            </p>
+
+            <p className="text-lg leading-9 text-zinc-700">
+              Porque para nós, falar de prazer é falar de bem-estar, cumplicidade e liberdade.
+            </p>
+
+            <p className="text-xl font-semibold text-pink-500 pt-4">
+              FeticheShop — prazer, confiança e discrição, sem tabus.
+            </p>
           </div>
         </div>
       </section>

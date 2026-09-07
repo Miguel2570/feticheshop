@@ -143,8 +143,8 @@ export default function TermosCondicoesPage() {
               </p>
               <p className="mt-2">
                 É possível realizar o pagamento através dos meios
-                disponibilizados no site (ex: Multibanco, MB Way, PayPal,
-                etc.). Para garantir um serviço de entrega rápido e eficiente,
+                disponibilizados no site (ex: Multibanco e MB Way). 
+                Para garantir um serviço de entrega rápido e eficiente,
                 a FeticheShop recorre a transportadoras parceiras, garantindo
                 que todas as encomendas serão entregues nos prazos
                 estipulados, após confirmação de pagamento e mediante a

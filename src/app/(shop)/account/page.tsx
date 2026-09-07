@@ -1,7 +1,15 @@
+import { getCurrentUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
 import { AccountHeader } from "@/components/account/AccountHeader";
 import { AccountSidebar } from "@/components/account/AccountSidebar";
 
-export default function AccountPage() {
+export default async function AccountPage() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/login?redirect=/account");
+  }
+
   return (
     <main className="arabesque-bg relative overflow-hidden min-h-screen">
       <section className="container-custom py-20">

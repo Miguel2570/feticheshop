@@ -6,17 +6,10 @@ import { findMainCategory } from "@/lib/category-mapping";
 
 const prisma = new PrismaClient();
 
-/*
- * =========================
- * CONFIGURAÇÃO
- * =========================
- */
-
 const API_URL = process.env.DREAMLOVE_API_URL;
 const USERNAME = process.env.DREAMLOVE_USERNAME;
 const PASSWORD = process.env.DREAMLOVE_PASSWORD;
 
-// ID do idioma português na API Dreamlove
 const PORTUGUESE_LANGUAGE_ID = 55;
 
 if (!API_URL || !USERNAME || !PASSWORD) {
@@ -27,32 +20,19 @@ type DreamloveProduct = {
   id: number;
   sku: string;
   name: string;
-
-  brand?: {
-    id: number;
-    name: string;
-  } | null;
-
+  brand?: { id: number; name: string } | null;
   description?: string | null;
   longDescription?: string | null;
-
   customerPrice?: string | null;
   price: string;
   stock: string;
-
   categories?: string[];
-
   images?: {
     image?: {
-      files?: {
-        url: string;
-      }[];
+      files?: { url: string }[];
     };
   }[];
-
-  barcodes?: {
-    code: string;
-  }[];
+  barcodes?: { code: string }[];
 };
 
 type ProductTranslation = {
@@ -61,17 +41,8 @@ type ProductTranslation = {
   longDescription?: string;
 };
 
-/*
- * =========================
- * HELPERS
- * =========================
- */
-
 function createSlug(text?: string | null): string {
-  if (!text) {
-    return "sem-nome";
-  }
-
+  if (!text) return "sem-nome";
   return text
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -81,18 +52,15 @@ function createSlug(text?: string | null): string {
     .replace(/(^-|-$)/g, "");
 }
 
-function getImage(product: DreamloveProduct): string | null {
-  return (
-    product.images?.find((img) => img.image?.files?.length)?.image?.files?.[0]
-      ?.url ?? null
-  );
-}
+// ✅ NOVA FUNÇÃO - busca TODAS as imagens
+function getImages(product: DreamloveProduct): string[] {
+  const images = product.images
+    ?.flatMap((img) => img.image?.files ?? [])
+    ?.map((file) => file.url)
+    ?.filter((url): url is string => Boolean(url)) ?? [];
 
-/*
- * =========================
- * LOGIN DREAMLOVE
- * =========================
- */
+  return images;
+}
 
 async function loginDreamlove(): Promise<string> {
   const response = await fetch(`${API_URL}/login_check`, {
@@ -130,12 +98,6 @@ async function loginDreamlove(): Promise<string> {
   return data.token;
 }
 
-/*
- * =========================
- * BUSCAR TODAS AS TRADUÇÕES EM PORTUGUÊS DE UMA VEZ
- * =========================
- */
-
 async function getAllTranslations(
   token: string
 ): Promise<Map<number, ProductTranslation>> {
@@ -155,22 +117,16 @@ async function getAllTranslations(
       }
     );
 
-    if (!response.ok) {
-      break;
-    }
+    if (!response.ok) break;
 
     const data = await response.json();
 
-    if (!Array.isArray(data) || data.length === 0) {
-      break;
-    }
+    if (!Array.isArray(data) || data.length === 0) break;
 
     for (const translation of data) {
       const productId = Number(translation.product?.split("/").pop() ?? "0");
 
-      if (!productId || isNaN(productId)) {
-        continue;
-      }
+      if (!productId || isNaN(productId)) continue;
 
       if (!translations.has(productId)) {
         translations.set(productId, {});
@@ -198,15 +154,8 @@ async function getAllTranslations(
   return translations;
 }
 
-/*
- * =========================
- * BUSCAR PRODUTOS
- * =========================
- */
-
 async function getProducts(token: string): Promise<DreamloveProduct[]> {
   const products: DreamloveProduct[] = [];
-
   let page = 1;
 
   while (true) {
@@ -263,9 +212,7 @@ async function getProducts(token: string): Promise<DreamloveProduct[]> {
       list = (data as { data: DreamloveProduct[] }).data;
     }
 
-    if (list.length === 0) {
-      break;
-    }
+    if (list.length === 0) break;
 
     products.push(...list);
     console.log(`Página ${page}: ${list.length} produtos`);
@@ -275,16 +222,8 @@ async function getProducts(token: string): Promise<DreamloveProduct[]> {
   return products;
 }
 
-/*
- * =========================
- * VALIDAR EAN
- * =========================
- */
-
 async function getValidEAN(ean: string | null, dreamloveId: number) {
-  if (!ean) {
-    return null;
-  }
+  if (!ean) return null;
 
   const exists = await prisma.product.findUnique({
     where: { ean },
@@ -297,16 +236,8 @@ async function getValidEAN(ean: string | null, dreamloveId: number) {
   return ean;
 }
 
-/*
- * =========================
- * SINCRONIZAR MARCA
- * =========================
- */
-
 async function syncBrand(brand: DreamloveProduct["brand"]) {
-  if (!brand?.id) {
-    return null;
-  }
+  if (!brand?.id) return null;
 
   const name = brand.name?.trim() || `Marca ${brand.id}`;
 
@@ -324,12 +255,6 @@ async function syncBrand(brand: DreamloveProduct["brand"]) {
   });
 }
 
-/*
- * =========================
- * ASSOCIAR CATEGORIA PRINCIPAL
- * =========================
- */
-
 async function syncMainCategory(
   productId: string,
   productName: string,
@@ -338,17 +263,13 @@ async function syncMainCategory(
   const text = `${productName} ${productDescription ?? ""}`;
   const categorySlug = findMainCategory(text);
 
-  if (!categorySlug) {
-    return null;
-  }
+  if (!categorySlug) return null;
 
   const category = await prisma.category.findUnique({
     where: { slug: categorySlug },
   });
 
-  if (!category) {
-    return null;
-  }
+  if (!category) return null;
 
   await prisma.productCategory.upsert({
     where: {
@@ -367,34 +288,22 @@ async function syncMainCategory(
   return category;
 }
 
-/*
- * =========================
- * SINCRONIZAR CATEGORIAS DO FORNECEDOR
- * =========================
- */
-
 async function syncDreamloveCategories(
   productId: string,
   categories?: string[]
 ) {
-  if (!categories?.length) {
-    return;
-  }
+  if (!categories?.length) return;
 
   for (const categoryUrl of categories) {
     const id = Number(categoryUrl.split("/").pop());
 
-    if (isNaN(id)) {
-      continue;
-    }
+    if (isNaN(id)) continue;
 
     const category = await prisma.category.findUnique({
       where: { dreamloveId: id },
     });
 
-    if (!category) {
-      continue;
-    }
+    if (!category) continue;
 
     await prisma.productCategory.upsert({
       where: {
@@ -411,12 +320,6 @@ async function syncDreamloveCategories(
     });
   }
 }
-
-/*
- * =========================
- * SINCRONIZAÇÃO PRINCIPAL
- * =========================
- */
 
 async function sync() {
   console.log(
@@ -437,7 +340,6 @@ async function sync() {
     })
   );
 
-  // Carrega todas as traduções de uma vez (muito mais rápido)
   const translations = await getAllTranslations(token);
 
   console.log(
@@ -489,9 +391,6 @@ async function sync() {
         where: { dreamloveId: item.id },
       });
 
-      /*
-       * USAR TRADUÇÕES DO MAPA (sem fazer pedidos extra)
-       */
       const translation = translations.get(item.id);
 
       const finalName = translation?.name || item.name;
@@ -505,7 +404,6 @@ async function sync() {
         console.log(`🇵🇹 ${finalName}`);
       }
 
-      // Limpar duplicados antes do upsert
       const existingProducts = await prisma.product.findMany({
         where: { dreamloveId: item.id },
       });
@@ -520,7 +418,8 @@ async function sync() {
       }
 
       const brand = await syncBrand(item.brand);
-      const image = getImage(item);
+      // ✅ USA getImages em vez de getImage
+      const images = getImages(item);
 
       const rawEan =
         item.barcodes?.find((b) => b.code.length === 13)?.code ?? null;
@@ -542,10 +441,15 @@ async function sync() {
           ean,
           brandId: brand?.id,
           status: "ACTIVE",
-          images: image
+          // ✅ TODAS as imagens
+          images: images.length > 0
             ? {
                 deleteMany: {},
-                create: [{ url: image, isPrimary: true }],
+                create: images.map((url, index) => ({
+                  url,
+                  isPrimary: index === 0,
+                  position: index,
+                })),
               }
             : undefined,
         },
@@ -560,15 +464,19 @@ async function sync() {
           status: "ACTIVE",
           ean,
           brandId: brand?.id,
-          images: image
-            ? { create: [{ url: image, isPrimary: true }] }
+          // ✅ TODAS as imagens
+          images: images.length > 0
+            ? {
+                create: images.map((url, index) => ({
+                  url,
+                  isPrimary: index === 0,
+                  position: index,
+                })),
+              }
             : undefined,
         },
       });
 
-      /*
-       * CATEGORIA PRINCIPAL
-       */
       const mainCategory = await syncMainCategory(
         product.id,
         finalName,
@@ -579,14 +487,8 @@ async function sync() {
         console.log(`📂 ${finalName} → ${mainCategory.name}`);
       }
 
-      /*
-       * CATEGORIAS DO FORNECEDOR
-       */
       await syncDreamloveCategories(product.id, item.categories);
 
-      /*
-       * RELAÇÃO SUPPLIER PRODUCT
-       */
       await prisma.supplierProduct.upsert({
         where: {
           supplierId_supplierProductId: {
@@ -633,7 +535,7 @@ async function sync() {
         JSON.stringify({
           type: "progress",
           progress,
-          step: `${processed}/${products.length} • ${finalName}`,
+          step: `${processed}/${products.length} • ${finalName} (${images.length} imagens)`,
         })
       );
 
@@ -653,8 +555,8 @@ async function sync() {
           level: "INFO",
           code: exists ? "PRODUCT_UPDATED" : "PRODUCT_IMPORTED",
           message: exists
-            ? `Produto atualizado: ${finalName}`
-            : `Produto importado: ${finalName}`,
+            ? `Produto atualizado: ${finalName} (${images.length} imagens)`
+            : `Produto importado: ${finalName} (${images.length} imagens)`,
           productSku: item.sku,
           productId: product.id,
         },
@@ -678,9 +580,6 @@ async function sync() {
     }
   }
 
-  /*
-   * FINALIZAR
-   */
   await prisma.supplierSync.update({
     where: { id: syncRecord.id },
     data: {

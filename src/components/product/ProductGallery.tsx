@@ -29,6 +29,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
         activeThumb.scrollIntoView({
           behavior: "smooth",
           block: "nearest",
+          inline: "nearest",
         });
       }
     }
@@ -49,16 +50,29 @@ export function ProductGallery({ images }: ProductGalleryProps) {
   }
 
   return (
-    <div className="flex gap-4 sm:gap-6">
-      {/* COLUNA DE MINIATURAS - ESQUERDA */}
-      <div className="flex w-24 sm:w-28 shrink-0 flex-col gap-2">
-        {/* SETA CIMA */}
+    <div className="flex w-full flex-col gap-4 sm:flex-row sm:gap-6">
+      {/* COLUNA DE MINIATURAS - MOBILE: HORIZONTAL EM BAIXO | DESKTOP: VERTICAL À ESQUERDA */}
+      <div className="
+        order-2                    // Em mobile, fica em baixo
+        sm:order-1                 // Em desktop, volta para esquerda
+        flex 
+        w-full                     // Largura total em mobile
+        sm:w-24 
+        sm:flex-col 
+        lg:w-28 
+        shrink-0 
+        gap-2
+        min-w-0                    // Impede overflow
+      ">
+        {/* SETA CIMA - Visível apenas em desktop */}
         <button
           type="button"
           onClick={handlePrev}
           aria-label="Imagem anterior"
           className="
-            flex h-9 w-9 mx-auto items-center justify-center
+            hidden
+            sm:flex 
+            h-9 w-9 mx-auto items-center justify-center
             rounded-full border-2 border-pink-200 bg-white
             text-pink-600 shadow-sm
             transition-all duration-300
@@ -71,10 +85,47 @@ export function ProductGallery({ images }: ProductGalleryProps) {
           <ChevronUp size={18} />
         </button>
 
-        {/* MINIATURAS */}
+        {/* SETA ESQUERDA - Visível apenas em mobile */}
+        <button
+          type="button"
+          onClick={handlePrev}
+          aria-label="Imagem anterior"
+          className="
+            sm:hidden
+            flex h-8 w-8 items-center justify-center
+            rounded-full border-2 border-pink-200 bg-white
+            text-pink-600 shadow-sm
+            transition-all duration-300
+            hover:border-pink-500 hover:bg-pink-500 hover:text-white
+            hover:shadow-lg hover:shadow-pink-500/25
+            hover:scale-105
+            cursor-pointer shrink-0 self-center
+          "
+        >
+          <ChevronLeft size={16} />
+        </button>
+
+        {/* MINIATURAS - Horizontal em mobile, vertical em desktop */}
         <div
           ref={thumbnailsRef}
-          className="flex max-h-[420px] flex-col items-center gap-2 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-pink-300 scrollbar-track-pink-50"
+          className="
+            flex-1
+            flex 
+            items-center 
+            gap-2 
+            overflow-x-auto
+            sm:max-h-[420px]
+            sm:flex-col 
+            sm:overflow-y-auto
+            sm:overflow-x-hidden
+            sm:pr-1 
+            scrollbar-thin 
+            scrollbar-thumb-pink-300 
+            scrollbar-track-pink-50
+            pb-1
+            sm:pb-0
+            min-w-0                    // Impede overflow
+          "
         >
           {images.map((image, index) => (
             <button
@@ -84,7 +135,8 @@ export function ProductGallery({ images }: ProductGalleryProps) {
               className={`
                 relative
                 aspect-square
-                w-full
+                w-16                     // Menor em mobile
+                sm:w-full
                 shrink-0
                 overflow-hidden
                 rounded-xl
@@ -104,20 +156,22 @@ export function ProductGallery({ images }: ProductGalleryProps) {
                 src={image}
                 alt={`Miniatura ${index + 1}`}
                 fill
-                sizes="112px"
-                className="object-contain p-2"
+                sizes="(max-width: 640px) 64px, 112px"
+                className="object-contain p-1.5 sm:p-2"
               />
             </button>
           ))}
         </div>
 
-        {/* SETA BAIXO */}
+        {/* SETA BAIXO - Visível apenas em desktop */}
         <button
           type="button"
           onClick={handleNext}
           aria-label="Imagem seguinte"
           className="
-            flex h-9 w-9 mx-auto items-center justify-center
+            hidden
+            sm:flex 
+            h-9 w-9 mx-auto items-center justify-center
             rounded-full border-2 border-pink-200 bg-white
             text-pink-600 shadow-sm
             transition-all duration-300
@@ -129,17 +183,46 @@ export function ProductGallery({ images }: ProductGalleryProps) {
         >
           <ChevronDown size={18} />
         </button>
+
+        {/* SETA DIREITA - Visível apenas em mobile */}
+        <button
+          type="button"
+          onClick={handleNext}
+          aria-label="Imagem seguinte"
+          className="
+            sm:hidden
+            flex h-8 w-8 items-center justify-center
+            rounded-full border-2 border-pink-200 bg-white
+            text-pink-600 shadow-sm
+            transition-all duration-300
+            hover:border-pink-500 hover:bg-pink-500 hover:text-white
+            hover:shadow-lg hover:shadow-pink-500/25
+            hover:scale-105
+            cursor-pointer shrink-0 self-center
+          "
+        >
+          <ChevronRight size={16} />
+        </button>
       </div>
 
       {/* IMAGEM PRINCIPAL */}
-      <div className="relative min-w-0 flex-1">
+      <div className="
+        relative 
+        min-w-0 
+        flex-1 
+        order-1                    // Em mobile, fica em cima
+        sm:order-2                 // Em desktop, volta para direita
+        w-full                     // Garante largura total
+      ">
         <div
           className="
             group
             relative
+            w-full
             aspect-square
             overflow-hidden
-            rounded-[32px]
+            rounded-2xl               // Raio menor em mobile
+            sm:rounded-[32px]
             border
             border-pink-100
             bg-pink-50/50
@@ -151,10 +234,11 @@ export function ProductGallery({ images }: ProductGalleryProps) {
             alt={`Imagem ${selectedImage + 1}`}
             fill
             priority
-            sizes="(max-width:768px)100vw,600px"
+            sizes="(max-width: 640px) 100vw, (max-width: 768px) 100vw, 600px"
             className="
               object-contain
-              p-8
+              p-4
+              sm:p-8
               transition-transform
               duration-700
               group-hover:scale-105
@@ -170,12 +254,15 @@ export function ProductGallery({ images }: ProductGalleryProps) {
                 aria-label="Anterior"
                 className="
                   absolute
-                  left-3
+                  left-2
+                  sm:left-3
                   top-1/2
                   -translate-y-1/2
                   flex
-                  h-11
-                  w-11
+                  h-9
+                  w-9
+                  sm:h-11
+                  sm:w-11
                   items-center
                   justify-center
                   rounded-full
@@ -190,7 +277,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
                   cursor-pointer
                 "
               >
-                <ChevronLeft size={22} />
+                <ChevronLeft size={20} className="sm:w-[22px] sm:h-[22px]" />
               </button>
 
               <button
@@ -199,12 +286,15 @@ export function ProductGallery({ images }: ProductGalleryProps) {
                 aria-label="Seguinte"
                 className="
                   absolute
-                  right-3
+                  right-2
+                  sm:right-3
                   top-1/2
                   -translate-y-1/2
                   flex
-                  h-11
-                  w-11
+                  h-9
+                  w-9
+                  sm:h-11
+                  sm:w-11
                   items-center
                   justify-center
                   rounded-full
@@ -219,14 +309,14 @@ export function ProductGallery({ images }: ProductGalleryProps) {
                   cursor-pointer
                 "
               >
-                <ChevronRight size={22} />
+                <ChevronRight size={20} className="sm:w-[22px] sm:h-[22px]" />
               </button>
             </>
           )}
         </div>
 
         {/* CONTADOR */}
-        <div className="mt-3 text-center text-sm text-zinc-500">
+        <div className="mt-2 sm:mt-3 text-center text-xs sm:text-sm text-zinc-500">
           {selectedImage + 1} / {images.length}
         </div>
       </div>

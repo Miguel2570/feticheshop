@@ -89,9 +89,6 @@ export function NavbarClient({
     };
   }, []);
 
-  // ✅ NÃO fechar resultados quando clica fora
-  // A pesquisa só fecha quando: clica num produto, faz Enter, ou clica no X
-
   const handleSearchChange = (value: string) => {
     setSearchValue(value);
 
@@ -267,7 +264,6 @@ export function NavbarClient({
                 />
               </div>
 
-              {/* ✅ RESULTADOS - MESMA LARGURA */}
               {showResults && searchValue.trim().length >= 2 && (
                 <div className="absolute right-0 top-full mt-2 w-96 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl">
                   {isLoading ? (

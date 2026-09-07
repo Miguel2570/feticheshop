@@ -9,14 +9,12 @@ import {
   MapPin,
   Settings,
   Shield,
-  Heart,
   LogOut,
 } from "lucide-react";
 
 const items = [
   { href: "/account", label: "Dashboard", icon: LayoutDashboard },
   { href: "/account/orders", label: "Encomendas", icon: Package },
-  { href: "/wishlist", label: "Favoritos", icon: Heart },
   { href: "/account/addresses", label: "Moradas", icon: MapPin },
   { href: "/account/settings", label: "Definições", icon: Settings },
   { href: "/account/security", label: "Segurança", icon: Shield },
@@ -28,13 +26,11 @@ export function AccountSidebar() {
 
   const handleLogout = async () => {
     try {
-      // Chamar a API de logout
       await fetch("/api/auth/logout", {
         method: "POST",
         credentials: "include",
       });
 
-      // Redirecionar para home
       router.push("/");
       router.refresh();
     } catch (error) {

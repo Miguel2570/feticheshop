@@ -1,6 +1,6 @@
 "use server";
 
-import { dashboardService } from "@/services/dashboard.service";
+import { dashboardService } from "@/server/services/dashboard.service";
 
 export async function getDashboard() {
   try {

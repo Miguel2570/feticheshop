@@ -47,25 +47,25 @@ export function ProductInfo({ product }: ProductInfoProps) {
   }
 
   return (
-    <div className="flex flex-col gap-5">
-      {/* Categoria */}
-      <span className="text-xs font-medium uppercase tracking-wider text-pink-500">
+    <div className="flex w-full min-w-0 max-w-full flex-col gap-4 sm:gap-5">
+      {/* Categoria - visível apenas em desktop */}
+      <span className="hidden lg:block text-xs font-medium uppercase tracking-wider text-pink-500">
         {product.category || "Produto"}
       </span>
 
-      {/* Título */}
-      <h1 className="text-xl font-bold leading-tight text-zinc-900 md:text-2xl lg:text-3xl">
+      {/* Título - visível apenas em desktop */}
+      <h1 className="hidden lg:block break-words text-xl font-bold leading-tight text-zinc-900 md:text-2xl lg:text-3xl">
         {product.name}
       </h1>
 
-      {/* Marca */}
+      {/* Marca - visível em todas as telas */}
       {product.brand && (
         <p className="text-sm text-zinc-500">{product.brand}</p>
       )}
 
       {/* Avaliação */}
-      <div className="flex items-center gap-3">
-        <div className="flex gap-0.5">
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        <div className="flex gap-0.5 shrink-0">
           {Array.from({ length: 5 }).map((_, index) => (
             <Star
               key={index}
@@ -82,13 +82,13 @@ export function ProductInfo({ product }: ProductInfoProps) {
       </div>
 
       {/* Preço */}
-      <div className="flex items-end gap-3">
-        <span className="text-3xl font-bold text-zinc-900 md:text-4xl">
+      <div className="flex flex-wrap items-end gap-2 sm:gap-3">
+        <span className="text-2xl font-bold text-zinc-900 sm:text-3xl md:text-4xl">
           €{product.price.toFixed(2)}
         </span>
 
         {oldPrice && oldPrice > product.price && (
-          <span className="pb-0.5 text-lg text-zinc-400 line-through md:text-xl">
+          <span className="pb-0.5 text-base text-zinc-400 line-through sm:text-lg md:text-xl">
             €{oldPrice.toFixed(2)}
           </span>
         )}
@@ -109,97 +109,134 @@ export function ProductInfo({ product }: ProductInfoProps) {
 
       {/* Ações */}
       {inStock && (
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          {/* Quantidade */}
-          <div className="flex h-11 overflow-hidden rounded-full border border-pink-200 bg-white md:h-12">
-            <button
-              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-              className="w-10 text-lg text-zinc-700 transition hover:bg-pink-50 hover:text-pink-500 md:w-12"
-              aria-label="Diminuir quantidade"
-            >
-              −
-            </button>
+        <div className="flex flex-col gap-3">
+          {/* Quantidade e favorito em mobile */}
+          <div className="flex items-center gap-3">
+            {/* Quantidade */}
+            <div className="flex h-11 overflow-hidden rounded-full border border-pink-200 bg-white md:h-12 shrink-0">
+              <button
+                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                className="w-10 text-lg text-zinc-700 transition hover:bg-pink-50 hover:text-pink-500 md:w-12"
+                aria-label="Diminuir quantidade"
+              >
+                −
+              </button>
 
-            <div className="flex w-10 items-center justify-center border-x border-pink-200 text-sm text-zinc-900 md:w-12">
-              {quantity}
+              <div className="flex w-10 items-center justify-center border-x border-pink-200 text-sm text-zinc-900 md:w-12">
+                {quantity}
+              </div>
+
+              <button
+                onClick={() => setQuantity((q) => q + 1)}
+                className="w-10 text-lg text-zinc-700 transition hover:bg-pink-50 hover:text-pink-500 md:w-12"
+                aria-label="Aumentar quantidade"
+              >
+                +
+              </button>
             </div>
 
+            {/* Botão favorito - visível apenas em mobile */}
             <button
-              onClick={() => setQuantity((q) => q + 1)}
-              className="w-10 text-lg text-zinc-700 transition hover:bg-pink-50 hover:text-pink-500 md:w-12"
-              aria-label="Aumentar quantidade"
+              onClick={handleToggleFavorite}
+              className={`
+                flex
+                h-11
+                w-11
+                items-center
+                justify-center
+                rounded-full
+                transition-all
+                duration-300
+                cursor-pointer
+                shrink-0
+                lg:hidden
+                ${
+                  favorite
+                    ? "bg-pink-500 text-white shadow-lg shadow-pink-500/30"
+                    : "border border-pink-200 bg-white text-zinc-700 hover:border-pink-500 hover:text-pink-500"
+                }
+              `}
+              aria-label={favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
             >
-              +
+              <Heart
+                size={18}
+                className={favorite ? "fill-white" : ""}
+              />
             </button>
           </div>
 
           {/* Adicionar ao carrinho */}
-          <button
-            className="
-              flex-1
-              rounded-full
-              bg-pink-500
-              px-6
-              py-3
-              font-semibold
-              text-white
-              transition
-              hover:bg-pink-600
-              hover:shadow-[0_0_40px_rgba(255,46,136,.3)]
-              md:px-8
-              md:py-3.5
-            "
-          >
-            <span className="flex items-center justify-center gap-2">
-              <ShoppingCart size={18} />
-              Adicionar ao Carrinho
-            </span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              className="
+                flex-1
+                min-w-0
+                rounded-full
+                bg-pink-500
+                px-4
+                py-3
+                font-semibold
+                text-white
+                transition
+                hover:bg-pink-600
+                hover:shadow-[0_0_40px_rgba(255,46,136,.3)]
+                md:px-8
+                md:py-3.5
+              "
+            >
+              <span className="flex items-center justify-center gap-2 text-sm sm:text-base">
+                <ShoppingCart size={18} className="shrink-0" />
+                <span className="whitespace-nowrap">Adicionar ao Carrinho</span>
+              </span>
+            </button>
 
-          {/* Botão favorito */}
-          <button
-            onClick={handleToggleFavorite}
-            className={`
-              flex
-              h-11
-              w-11
-              items-center
-              justify-center
-              rounded-full
-              transition-all
-              duration-300
-              cursor-pointer
-              md:h-12
-              md:w-12
-              ${
-                favorite
-                  ? "bg-pink-500 text-white shadow-lg shadow-pink-500/30"
-                  : "border border-pink-200 bg-white text-zinc-700 hover:border-pink-500 hover:text-pink-500"
-              }
-            `}
-            aria-label={favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-          >
-            <Heart
-              size={18}
-              className={favorite ? "fill-white" : ""}
-            />
-          </button>
+            {/* Botão favorito - visível apenas em desktop */}
+            <button
+              onClick={handleToggleFavorite}
+              className={`
+                hidden
+                h-11
+                w-11
+                items-center
+                justify-center
+                rounded-full
+                transition-all
+                duration-300
+                cursor-pointer
+                shrink-0
+                lg:flex
+                lg:h-12
+                lg:w-12
+                ${
+                  favorite
+                    ? "bg-pink-500 text-white shadow-lg shadow-pink-500/30"
+                    : "border border-pink-200 bg-white text-zinc-700 hover:border-pink-500 hover:text-pink-500"
+                }
+              `}
+              aria-label={favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+            >
+              <Heart
+                size={18}
+                className={favorite ? "fill-white" : ""}
+              />
+            </button>
+          </div>
         </div>
       )}
 
       {/* Benefícios */}
       <div className="space-y-3 rounded-xl border border-pink-100 bg-pink-50/50 p-4">
-        <div className="flex items-center gap-3">
-          <Truck size={18} className="shrink-0 text-pink-500" />
-          <div>
+        <div className="flex items-start gap-3">
+          <Truck size={18} className="shrink-0 text-pink-500 mt-0.5" />
+          <div className="min-w-0">
             <p className="text-sm font-medium text-zinc-900">Entrega Discreta</p>
             <p className="text-xs text-zinc-600">Embalagem totalmente anónima.</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <ShieldCheck size={18} className="shrink-0 text-pink-500" />
-          <div>
+        <div className="flex items-start gap-3">
+          <ShieldCheck size={18} className="shrink-0 text-pink-500 mt-0.5" />
+          <div className="min-w-0">
             <p className="text-sm font-medium text-zinc-900">Compra 100% Segura</p>
             <p className="text-xs text-zinc-600">Pagamentos protegidos.</p>
           </div>

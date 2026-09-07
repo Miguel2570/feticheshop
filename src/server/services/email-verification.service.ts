@@ -132,8 +132,8 @@ export class EmailVerificationService {
                 id: user.id,
               },
               data: {
-                emailVerifiedAt:
-                  new Date(),
+                emailVerified: true,
+                emailVerifiedAt:new Date(),
               },
             });
 
@@ -151,11 +151,6 @@ export class EmailVerificationService {
           return updated;
         }
       );
-
-    await emailService.sendWelcomeEmail({
-      email: updatedUser.email,
-      firstName: updatedUser.firstName ?? "Utilizador", // ← Corrige null
-    });
 
     return updatedUser;
   }

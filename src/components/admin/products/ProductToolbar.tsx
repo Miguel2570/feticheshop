@@ -1,9 +1,7 @@
-// src/components/admin/products/ProductToolbar.tsx
-
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, X, Eye, EyeOff } from "lucide-react";
+import { Search, X, Eye, EyeOff, Star } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
 type Category = {
@@ -67,7 +65,6 @@ export function ProductToolbar() {
     router.push("/admin/products");
   };
 
-  // ✅ Mostrar todos os produtos
   const handleShowAll = async () => {
     if (loadingAll) return;
     setLoadingAll("show");
@@ -98,11 +95,9 @@ export function ProductToolbar() {
     }
   };
 
-  // ✅ Ocultar todos os produtos (COM CONFIRMAÇÃO)
   const handleHideAll = async () => {
     if (loadingAll) return;
 
-    // ✅ Confirmação antes de ocultar
     if (!window.confirm("⚠️ Tens a certeza que queres ocultar TODOS os produtos do frontend?\n\nIsto vai fazer com que nenhum produto apareça na loja!")) {
       return;
     }
@@ -147,7 +142,7 @@ export function ProductToolbar() {
       <div className="w-full min-w-0 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm sm:rounded-2xl sm:p-4 lg:p-5">
         <div className="grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
           {/* PESQUISA */}
-          <div className="relative w-full min-w-0 lg:min-w-[220px] lg:flex-1">
+          <div className="relative w-full min-w-0 lg:min-w-[200px] lg:flex-1">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 sm:left-4" />
             <input
               type="text"
@@ -167,7 +162,7 @@ export function ProductToolbar() {
           <select
             value={searchParams.get("category") ?? ""}
             onChange={(e) => updateParam("category", e.target.value)}
-            className="h-11 w-full min-w-0 cursor-pointer rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-pink-500 focus:ring-2 focus:ring-pink-200 sm:px-4 lg:w-auto lg:min-w-[200px]"
+            className="h-11 w-full min-w-0 cursor-pointer rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-pink-500 focus:ring-2 focus:ring-pink-200 sm:px-4 lg:w-auto lg:min-w-[180px]"
           >
             <option value="">Todas as categorias</option>
             {Object.entries(groupedCategories).map(([parentName, cats]) => (
@@ -185,18 +180,29 @@ export function ProductToolbar() {
           <select
             value={searchParams.get("stock") ?? "in_stock"}
             onChange={(e) => updateParam("stock", e.target.value)}
-            className="h-11 w-full min-w-0 cursor-pointer rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-pink-500 focus:ring-2 focus:ring-pink-200 sm:px-4 lg:w-auto lg:min-w-[150px]"
+            className="h-11 w-full min-w-0 cursor-pointer rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-pink-500 focus:ring-2 focus:ring-pink-200 sm:px-4 lg:w-auto lg:min-w-[140px]"
           >
             <option value="in_stock">Em Stock</option>
             <option value="out_of_stock">Sem Stock</option>
             <option value="all">Todos</option>
           </select>
 
+          {/* ✅ DESTAQUE */}
+          <select
+            value={searchParams.get("featured") ?? ""}
+            onChange={(e) => updateParam("featured", e.target.value)}
+            className="h-11 w-full min-w-0 cursor-pointer rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-pink-500 focus:ring-2 focus:ring-pink-200 sm:px-4 lg:w-auto lg:min-w-[140px]"
+          >
+            <option value="">Todos</option>
+            <option value="true">⭐ Destacados</option>
+            <option value="false">Não destacados</option>
+          </select>
+
           {/* ESTADO */}
           <select
             value={searchParams.get("status") ?? ""}
             onChange={(e) => updateParam("status", e.target.value)}
-            className="h-11 w-full min-w-0 cursor-pointer rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-pink-500 focus:ring-2 focus:ring-pink-200 sm:px-4 lg:w-auto lg:min-w-[150px]"
+            className="h-11 w-full min-w-0 cursor-pointer rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-pink-500 focus:ring-2 focus:ring-pink-200 sm:px-4 lg:w-auto lg:min-w-[140px]"
           >
             <option value="">Todos Estados</option>
             <option value="ACTIVE">Ativos</option>
@@ -210,7 +216,7 @@ export function ProductToolbar() {
           <select
             value={searchParams.get("sort") ?? "newest"}
             onChange={(e) => updateParam("sort", e.target.value)}
-            className="h-11 w-full min-w-0 cursor-pointer rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-pink-500 focus:ring-2 focus:ring-pink-200 sm:px-4 lg:w-auto lg:min-w-[160px]"
+            className="h-11 w-full min-w-0 cursor-pointer rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-pink-500 focus:ring-2 focus:ring-pink-200 sm:px-4 lg:w-auto lg:min-w-[150px]"
           >
             <option value="newest">Mais recentes</option>
             <option value="oldest">Mais antigos</option>
@@ -221,7 +227,7 @@ export function ProductToolbar() {
             <option value="name">Nome</option>
           </select>
 
-          {(searchParams.get("search") || searchParams.get("category") || searchParams.get("status") || searchParams.get("stock") || searchParams.get("sort")) && (
+          {(searchParams.get("search") || searchParams.get("category") || searchParams.get("status") || searchParams.get("stock") || searchParams.get("featured") || searchParams.get("sort")) && (
             <button
               type="button"
               onClick={clearFilters}

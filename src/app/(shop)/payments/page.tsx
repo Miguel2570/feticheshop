@@ -50,23 +50,6 @@ export default function PagamentosEnvioPage() {
                     serviço.
                   </p>
                 </div>
-
-                <div className="rounded-xl border border-pink-100 bg-white p-5 shadow-sm">
-                  <h3 className="font-semibold text-zinc-900">Transferência Bancária</h3>
-                  <p className="mt-2 text-sm leading-6 text-zinc-600">
-                    Podes efetuar o pagamento por transferência bancária. A tua
-                    encomenda será processada após a receção e confirmação do
-                    valor.
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-pink-100 bg-white p-5 shadow-sm">
-                  <h3 className="font-semibold text-zinc-900">PayPal</h3>
-                  <p className="mt-2 text-sm leading-6 text-zinc-600">
-                    Podes pagar de forma rápida e segura através da tua conta
-                    PayPal.
-                  </p>
-                </div>
               </div>
             </section>
 
@@ -125,7 +108,6 @@ export default function PagamentosEnvioPage() {
                 </p>
                 <ul className="mt-2 list-disc pl-6 text-sm space-y-1">
                   <li>Número da encomenda</li>
-                  <li>Identificação do cliente (CC)</li>
                 </ul>
               </div>
             </section>
