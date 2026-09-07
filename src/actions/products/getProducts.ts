@@ -2,7 +2,7 @@
 
 import { ProductStatus } from "@prisma/client";
 
-import { productService } from "@/services/product.service";
+import { productService } from "@/server/services/product.service";
 
 interface GetProductsParams {
   search?: string;
