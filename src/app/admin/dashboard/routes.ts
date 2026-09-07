@@ -8,8 +8,8 @@ export async function GET() {
   try {
     await requireAdmin();
 
-    const stats =
-      await dashboardService.getStats();
+    // Usar getDashboard() em vez de getStats()
+    const stats = await dashboardService.getDashboard();
 
     return NextResponse.json(stats);
   } catch (error) {
