@@ -32,6 +32,7 @@ interface CartContextType {
   itemCount: number;
   total: number;
   isOpen: boolean;
+  isHydrated: boolean; // ← ADICIONADO
   openCart: () => void;
   closeCart: () => void;
   toggleCart: () => void;
@@ -55,7 +56,6 @@ const CartContext = createContext<CartContextType | null>(null);
 
 const STORAGE_KEY = "pleasure-shop-cart";
 
-// ✅ Tipo para dados antigos do localStorage
 interface LegacyCartItem {
   id?: string;
   productId?: string;
@@ -73,12 +73,10 @@ interface LegacyCartItem {
   };
 }
 
-// ✅ Função para migrar dados antigos (sem any)
 function migrateCartItems(items: LegacyCartItem[]): CartItem[] {
   const migrated: CartItem[] = [];
 
   for (const item of items) {
-    // Se já tem a estrutura nova
     if (item.product && typeof item.product.price === "number") {
       migrated.push({
         id: item.id ?? item.product.id,
@@ -88,7 +86,6 @@ function migrateCartItems(items: LegacyCartItem[]): CartItem[] {
       continue;
     }
 
-    // Se tem a estrutura antiga (name, image, price diretos)
     if (typeof item.name === "string" && typeof item.price === "number") {
       const id = item.productId ?? item.id ?? "";
       
@@ -106,7 +103,6 @@ function migrateCartItems(items: LegacyCartItem[]): CartItem[] {
       continue;
     }
 
-    // Se tem productId mas não product
     if (item.productId) {
       migrated.push({
         id: item.productId,
@@ -125,49 +121,53 @@ function migrateCartItems(items: LegacyCartItem[]): CartItem[] {
   return migrated;
 }
 
-function loadCartFromStorage(): CartItem[] {
-  if (typeof window === "undefined") return [];
-  
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return [];
-    
-    const parsed: unknown = JSON.parse(stored);
-    
-    // Se for array
-    if (Array.isArray(parsed)) {
-      return migrateCartItems(parsed as LegacyCartItem[]);
-    }
-    
-    // Se for { items: [...] }
-    if (
-      typeof parsed === "object" && 
-      parsed !== null &&
-      "items" in parsed &&
-      Array.isArray((parsed as { items: LegacyCartItem[] }).items)
-    ) {
-      return migrateCartItems((parsed as { items: LegacyCartItem[] }).items);
-    }
-    
-    return [];
-  } catch {
-    return [];
-  }
-}
-
 export function CartProvider({ children }: { children: React.ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>(loadCartFromStorage);
+  // ✅ Inicializar SEMPRE vazio - sem ler localStorage no SSR
+  const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [loading] = useState(false);
   const previousOverflow = useRef<string>("");
 
+  // ✅ Carregar do localStorage APÓS montagem no cliente
   useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          const parsed: unknown = JSON.parse(stored);
+          
+          if (Array.isArray(parsed)) {
+            setItems(migrateCartItems(parsed as LegacyCartItem[]));
+          } else if (
+            typeof parsed === "object" && 
+            parsed !== null &&
+            "items" in parsed &&
+            Array.isArray((parsed as { items: LegacyCartItem[] }).items)
+          ) {
+            setItems(migrateCartItems((parsed as { items: LegacyCartItem[] }).items));
+          }
+        }
+      } catch {
+        // Ignorar
+      } finally {
+        setIsHydrated(true);
+      }
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  // ✅ Guardar no localStorage APÓS hidratação
+  useEffect(() => {
+    if (!isHydrated) return;
+    
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
     } catch {
       // Ignorar
     }
-  }, [items]);
+  }, [items, isHydrated]);
 
   const itemCount = items.reduce((total, item) => total + (item.quantity ?? 1), 0);
   const subtotal = items.reduce((sum, item) => sum + (item.product?.price ?? 0) * (item.quantity ?? 1), 0);
@@ -295,6 +295,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         itemCount,
         total,
         isOpen,
+        isHydrated, // ← ADICIONADO
         openCart,
         closeCart,
         toggleCart,

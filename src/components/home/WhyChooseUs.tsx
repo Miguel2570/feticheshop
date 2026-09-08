@@ -61,19 +61,36 @@ const items = [
 export function WhyChooseUs() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [direction, setDirection] = useState(1);
+  const [itemsPerSlide, setItemsPerSlide] = useState(4);
   const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
 
-  const totalSlides = 2;
-  const itemsPerSlide = 4;
+  // Determinar quantos items mostrar por slide baseado no tamanho da tela
+  useEffect(() => {
+    function handleResize() {
+      if (window.innerWidth < 1024) {
+        setItemsPerSlide(1); // Mobile/Tablet: 1 item
+      } else {
+        setItemsPerSlide(4); // Desktop: 4 items
+      }
+      setCurrentSlide(0);
+    }
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const totalSlides = Math.ceil(items.length / itemsPerSlide);
+  const maxIndex = Math.max(0, totalSlides - 1);
 
   const handleNext = useCallback(() => {
     setDirection(1);
-    setCurrentSlide((prev) => (prev === 0 ? 1 : 0));
-  }, []);
+    setCurrentSlide((prev) => (prev + 1) % totalSlides);
+  }, [totalSlides]);
 
   const handlePrev = () => {
     setDirection(-1);
-    setCurrentSlide((prev) => (prev === 0 ? 1 : 0));
+    setCurrentSlide((prev) => (prev - 1 + totalSlides) % totalSlides);
   };
 
   const resetAutoPlay = () => {
@@ -110,6 +127,11 @@ export function WhyChooseUs() {
     currentSlide * itemsPerSlide,
     currentSlide * itemsPerSlide + itemsPerSlide
   );
+
+  // Calcular qual bolinha está ativa baseado no currentSlide
+  const activeDot = maxIndex > 0
+    ? Math.round((currentSlide / maxIndex) * 3) // 4 bolinhas = índices 0, 1, 2, 3
+    : 0;
 
   return (
     <section className="arabesque-bg relative overflow-visible">
@@ -266,23 +288,25 @@ export function WhyChooseUs() {
             <ChevronRight size={24} />
           </button>
 
+          {/* 4 Bolinhas fixas */}
           <div className="mt-8 flex justify-center gap-2">
-            {Array.from({ length: totalSlides }).map((_, index) => (
+            {[0, 1, 2, 3].map((index) => (
               <button
                 key={index}
                 onClick={() => {
-                  setDirection(index > currentSlide ? 1 : -1);
-                  setCurrentSlide(index);
+                  const targetIndex = Math.round((index / 3) * maxIndex);
+                  setDirection(targetIndex > currentSlide ? 1 : -1);
+                  setCurrentSlide(targetIndex);
                   resetAutoPlay();
                 }}
-                aria-label={`Ir para slide ${index + 1}`}
+                aria-label={`Ir para posição ${index + 1}`}
                 className={`
                   h-2.5
                   rounded-full
                   transition-all
                   duration-300
                   ${
-                    currentSlide === index
+                    index === activeDot
                       ? "w-8 bg-pink-500"
                       : "w-2.5 bg-zinc-300 hover:bg-pink-300 cursor-pointer"
                   }

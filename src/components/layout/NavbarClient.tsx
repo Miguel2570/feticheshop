@@ -57,6 +57,7 @@ export function NavbarClient({
 }: NavbarClientProps) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
@@ -76,6 +77,15 @@ export function NavbarClient({
     { name: "Lingerie", slug: "roupa" },
     { name: "BDSM", slug: "bdsm" },
   ];
+
+  // ✅ Usar setTimeout para evitar setState direto no useEffect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsClient(true);
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -143,20 +153,20 @@ export function NavbarClient({
       }`}
       onMouseLeave={() => setActiveCategory(null)}
     >
-      <div className="mx-auto max-w-[1545px] px-10">
-        <div className="flex h-20 items-center justify-between gap-6">
+      <div className="mx-auto max-w-[1545px] px-4 sm:px-6 lg:px-10">
+        <div className="flex h-20 items-center justify-between gap-3 sm:gap-6">
           {/* ESQUERDA - LOGO + CATEGORIAS */}
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-4 sm:gap-8">
             <Link
               href="/"
-              className="relative h-12 w-36 shrink-0"
+              className="relative h-10 w-28 sm:h-12 sm:w-36 shrink-0"
               aria-label="Fetiche Shop"
             >
               <Image
                 src="/images/logo_sexshop3.png"
                 alt="Fetiche Shop"
                 fill
-                sizes="144px"
+                sizes="(max-width: 640px) 112px, 144px"
                 className="object-contain"
                 priority
               />
@@ -198,16 +208,15 @@ export function NavbarClient({
             </nav>
           </div>
 
-          {/* DIREITA - PESQUISA + AÇÕES */}
+          {/* DIREITA - DESKTOP (lg+) */}
           <div className="hidden items-center gap-2 lg:flex">
-            {/* ✅ PESQUISA COM AUTOCOMPLETE */}
+            {/* PESQUISA COM AUTOCOMPLETE */}
             <div ref={searchRef} className="relative flex items-center">
               <button
                 type="button"
                 aria-label="Pesquisar"
                 onClick={() => {
                   if (searchOpen) {
-                    // Fechar tudo
                     closeSearch();
                   } else {
                     setSearchOpen(true);
@@ -361,7 +370,7 @@ export function NavbarClient({
               </Link>
             )}
 
-            {/* FAVORITOS */}
+            {/* FAVORITOS - DESKTOP */}
             <button
               type="button"
               onClick={openWishlist}
@@ -370,14 +379,14 @@ export function NavbarClient({
               className="relative rounded-full p-2.5 text-zinc-200 transition hover:bg-zinc-900 hover:text-pink-500 cursor-pointer"
             >
               <Heart size={22} className="text-zinc-200" />
-              {wishlistCount > 0 && !wishlistLoading && (
+              {isClient && wishlistCount > 0 && !wishlistLoading && (
                 <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-pink-500 px-1 text-[10px] font-bold text-white">
                   {wishlistCount > 99 ? "99+" : wishlistCount}
                 </span>
               )}
             </button>
 
-            {/* CARRINHO */}
+            {/* CARRINHO - DESKTOP */}
             <button
               type="button"
               onClick={openCart}
@@ -386,7 +395,7 @@ export function NavbarClient({
               className="relative rounded-full p-2.5 text-zinc-200 transition hover:bg-zinc-900 hover:text-pink-500 cursor-pointer"
             >
               <ShoppingBag size={22} />
-              {cartCount > 0 && (
+              {isClient && cartCount > 0 && (
                 <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-pink-500 px-1 text-[10px] font-bold text-white">
                   {cartCount > 99 ? "99+" : cartCount}
                 </span>
@@ -394,16 +403,51 @@ export function NavbarClient({
             </button>
           </div>
 
-          {/* MOBILE */}
-          <button
-            type="button"
-            aria-label={open ? "Fechar menu" : "Abrir menu"}
-            aria-expanded={open}
-            onClick={() => setOpen((value) => !value)}
-            className="ml-auto rounded-full p-2 text-zinc-200 transition hover:bg-zinc-900 hover:text-pink-500 lg:hidden cursor-pointer"
-          >
-            {open ? <X size={28} /> : <Menu size={28} />}
-          </button>
+          {/* MOBILE - ÍCONES DE AÇÕES + MENU */}
+          <div className="flex items-center gap-1 sm:gap-2 lg:hidden">
+            {/* FAVORITOS MOBILE */}
+            <button
+              type="button"
+              onClick={openWishlist}
+              aria-label="Abrir favoritos"
+              title="Favoritos"
+              className="relative rounded-full p-2.5 text-zinc-200 transition hover:bg-zinc-900 hover:text-pink-500 cursor-pointer"
+            >
+              <Heart size={22} className="text-zinc-200" />
+              {isClient && wishlistCount > 0 && !wishlistLoading && (
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-pink-500 px-1 text-[10px] font-bold text-white">
+                  {wishlistCount > 99 ? "99+" : wishlistCount}
+                </span>
+              )}
+            </button>
+
+            {/* CARRINHO MOBILE */}
+            <button
+              type="button"
+              onClick={openCart}
+              aria-label="Abrir carrinho"
+              title="Carrinho"
+              className="relative rounded-full p-2.5 text-zinc-200 transition hover:bg-zinc-900 hover:text-pink-500 cursor-pointer"
+            >
+              <ShoppingBag size={22} />
+              {isClient && cartCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-pink-500 px-1 text-[10px] font-bold text-white">
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </button>
+
+            {/* BOTÃO MENU MOBILE */}
+            <button
+              type="button"
+              aria-label={open ? "Fechar menu" : "Abrir menu"}
+              aria-expanded={open}
+              onClick={() => setOpen((value) => !value)}
+              className="ml-1 rounded-full p-2 text-zinc-200 transition hover:bg-zinc-900 hover:text-pink-500 cursor-pointer"
+            >
+              {open ? <X size={28} /> : <Menu size={28} />}
+            </button>
+          </div>
         </div>
       </div>
 

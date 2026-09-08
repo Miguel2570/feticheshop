@@ -51,7 +51,6 @@ type Props = {
   }>;
 };
 
-// Tipo simplificado para o que o ProductCard precisa
 type DisplayProduct = {
   id: string;
   slug: string;
@@ -167,13 +166,54 @@ export default async function ProductsPage({ searchParams }: Props) {
     ...(isNew === "true" ? { isNew: true } : {}),
   };
 
-  const total = await prisma.product.count({ where });
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-
+  let total: number;
+  let totalPages: number;
+  let currentPage: number;
   let displayProducts: DisplayProduct[] = [];
 
   if (sort === "random") {
+    // Contagem com os mesmos filtros
+    const totalResult = await prisma.$queryRaw<{ count: number }[]>`
+      SELECT COUNT(*)::int as count
+      FROM "Product" p
+      LEFT JOIN "Brand" b ON p."brandId" = b.id
+      WHERE p."status" = 'ACTIVE' AND p."stock" > 0
+      ${
+        search
+          ? Prisma.sql`AND (p."name" ILIKE ${`%${search}%`} OR p."sku" ILIKE ${`%${search}%`} OR p."description" ILIKE ${`%${search}%`})`
+          : Prisma.empty
+      }
+      ${
+        categoryIds.length > 0
+          ? Prisma.sql`AND p.id IN (
+              SELECT pc."productId" FROM "ProductCategory" pc 
+              WHERE pc."categoryId" IN (${Prisma.join(categoryIds)})
+            )`
+          : Prisma.empty
+      }
+      ${
+        brand
+          ? Prisma.sql`AND b.slug = ${brand}`
+          : Prisma.empty
+      }
+      ${
+        minPrice
+          ? Prisma.sql`AND p.price::numeric >= ${Number(minPrice)}::numeric`
+          : Prisma.empty
+      }
+      ${
+        maxPrice
+          ? Prisma.sql`AND p.price::numeric <= ${Number(maxPrice)}::numeric`
+          : Prisma.empty
+      }
+      ${sale === "true" ? Prisma.sql`AND p."isOnSale" = true` : Prisma.empty}
+      ${isNew === "true" ? Prisma.sql`AND p."isNew" = true` : Prisma.empty}
+    `;
+
+    total = totalResult[0]?.count ?? 0;
+    totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    currentPage = Math.min(page, totalPages);
+
     const rawProducts = await prisma.$queryRaw<RawProductRow[]>`
       SELECT 
         p.id,
@@ -214,6 +254,18 @@ export default async function ProductsPage({ searchParams }: Props) {
           ? Prisma.sql`AND b.slug = ${brand}`
           : Prisma.empty
       }
+      ${
+        minPrice
+          ? Prisma.sql`AND p.price::numeric >= ${Number(minPrice)}::numeric`
+          : Prisma.empty
+      }
+      ${
+        maxPrice
+          ? Prisma.sql`AND p.price::numeric <= ${Number(maxPrice)}::numeric`
+          : Prisma.empty
+      }
+      ${sale === "true" ? Prisma.sql`AND p."isOnSale" = true` : Prisma.empty}
+      ${isNew === "true" ? Prisma.sql`AND p."isNew" = true` : Prisma.empty}
       ORDER BY RANDOM()
       LIMIT ${PAGE_SIZE}
       OFFSET ${(currentPage - 1) * PAGE_SIZE}
@@ -234,6 +286,10 @@ export default async function ProductsPage({ searchParams }: Props) {
       images: (product.images || []).map((img) => ({ url: img.url })),
     }));
   } else {
+    total = await prisma.product.count({ where });
+    totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    currentPage = Math.min(page, totalPages);
+
     const dbProducts = await prisma.product.findMany({
       where,
       skip: (currentPage - 1) * PAGE_SIZE,
@@ -365,6 +421,9 @@ export default async function ProductsPage({ searchParams }: Props) {
                   {pageTitle}
                 </span>
               </h1>
+              <p className="mt-3 text-zinc-600">
+                {total} {total === 1 ? "produto encontrado" : "produtos encontrados"}
+              </p>
             </div>
 
             <ProductSort defaultSort={sort} />
@@ -392,6 +451,15 @@ export default async function ProductsPage({ searchParams }: Props) {
           </div>
 
           <form method="GET" className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+            {/* CAMPOS HIDDEN - preservam filtros existentes */}
+            {search && <input type="hidden" name="search" value={search} />}
+            {category && <input type="hidden" name="category" value={category} />}
+            {subcategory && <input type="hidden" name="subcategory" value={subcategory} />}
+            {brand && <input type="hidden" name="brand" value={brand} />}
+            {sale === "true" && <input type="hidden" name="sale" value="true" />}
+            {isNew === "true" && <input type="hidden" name="new" value="true" />}
+
+            {/* PESQUISA */}
             <div className="relative md:col-span-2 xl:col-span-2">
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
                 Pesquisar
@@ -408,7 +476,8 @@ export default async function ProductsPage({ searchParams }: Props) {
               </div>
             </div>
 
-            <div className="relative z-30">
+            {/* CATEGORIA - z-20 */}
+            <div className="relative z-20">
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
                 Categoria
               </label>
@@ -426,7 +495,8 @@ export default async function ProductsPage({ searchParams }: Props) {
               />
             </div>
 
-            <div className="relative z-30">
+            {/* MARCA - z-10 */}
+            <div className="relative z-10">
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
                 Marca
               </label>
@@ -444,6 +514,7 @@ export default async function ProductsPage({ searchParams }: Props) {
               />
             </div>
 
+            {/* PREÇO */}
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
                 Preço
@@ -470,6 +541,7 @@ export default async function ProductsPage({ searchParams }: Props) {
               </div>
             </div>
 
+            {/* BOTÃO FILTRAR */}
             <div className="flex items-end">
               <Button type="submit" className="w-full">
                 Filtrar

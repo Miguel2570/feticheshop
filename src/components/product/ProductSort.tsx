@@ -51,9 +51,6 @@ export function ProductSort({ defaultSort }: ProductSortProps) {
         <option value="price_desc" className="bg-white text-zinc-900">
           Preço decrescente
         </option>
-        <option value="best_sellers" className="bg-white text-zinc-900">
-          Mais vendidos
-        </option>
       </select>
     </div>
   );

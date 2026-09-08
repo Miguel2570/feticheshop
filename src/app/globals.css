@@ -350,3 +350,33 @@ button {
 .animate-bounce-in {
   animation: bounce-in 0.5s ease-out forwards;
 }
+
+/* ================================================= */
+/* ✅ FIX - COR DE TEXTO NOS INPUTS */
+/* ================================================= */
+
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="number"],
+input[type="password"],
+select,
+textarea {
+  color: #18181b !important;
+  -webkit-text-fill-color: #18181b !important;
+  caret-color: #18181b !important;
+  background-color: #ffffff !important;
+}
+
+/* Placeholder */
+input::placeholder,
+textarea::placeholder {
+  color: #a1a1aa !important;
+  -webkit-text-fill-color: #a1a1aa !important;
+}
+
+/* Options do select */
+select option {
+  color: #18181b !important;
+  background-color: #ffffff !important;
+}

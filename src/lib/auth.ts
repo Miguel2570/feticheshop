@@ -39,6 +39,7 @@ export const auth = betterAuth({
               id: string;
               name?: string;
               email?: string;
+              image?: string;
             };
 
             const name = userData.name || "Utilizador";
@@ -51,6 +52,7 @@ export const auth = betterAuth({
               data: {
                 firstName,
                 lastName,
+                ...(userData.image ? { avatarUrl: userData.image } : {}),
               },
             });
           } catch (error) {

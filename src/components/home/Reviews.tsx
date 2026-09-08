@@ -106,10 +106,27 @@ const reviews = [
 export function Reviews() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [direction, setDirection] = useState(1);
+  const [reviewsPerSlide, setReviewsPerSlide] = useState(3);
   const autoPlayRef = useRef<NodeJS.Timeout | null>(null);
 
-  const reviewsPerSlide = 3;
+  // Determinar quantos reviews mostrar por slide baseado no tamanho da tela
+  useEffect(() => {
+    function handleResize() {
+      if (window.innerWidth < 768) {
+        setReviewsPerSlide(1); // Mobile: 1 review
+      } else {
+        setReviewsPerSlide(3); // Desktop: 3 reviews
+      }
+      setCurrentSlide(0);
+    }
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   const totalSlides = Math.ceil(reviews.length / reviewsPerSlide);
+  const maxIndex = Math.max(0, totalSlides - 1);
 
   const handleNext = useCallback(() => {
     setDirection(1);
@@ -151,11 +168,15 @@ export function Reviews() {
     resetAutoPlay();
   };
 
-  // ✅ Slide atual: 3 reviews
   const visibleReviews = reviews.slice(
     currentSlide * reviewsPerSlide,
     currentSlide * reviewsPerSlide + reviewsPerSlide
   );
+
+  // Calcular qual bolinha está ativa baseado no currentSlide
+  const activeDot = maxIndex > 0
+    ? Math.round((currentSlide / maxIndex) * 3) // 4 bolinhas = índices 0, 1, 2, 3
+    : 0;
 
   return (
     <section className="arabesque-bg relative overflow-visible">
@@ -317,24 +338,25 @@ export function Reviews() {
             <ChevronRight size={24} />
           </button>
 
-          {/* ✅ 4 indicadores (1 por slide) */}
+          {/* 4 Bolinhas fixas */}
           <div className="mt-8 flex justify-center gap-2">
-            {Array.from({ length: totalSlides }).map((_, index) => (
+            {[0, 1, 2, 3].map((index) => (
               <button
                 key={index}
                 onClick={() => {
-                  setDirection(index > currentSlide ? 1 : -1);
-                  setCurrentSlide(index);
+                  const targetIndex = Math.round((index / 3) * maxIndex);
+                  setDirection(targetIndex > currentSlide ? 1 : -1);
+                  setCurrentSlide(targetIndex);
                   resetAutoPlay();
                 }}
-                aria-label={`Ir para slide ${index + 1}`}
+                aria-label={`Ir para posição ${index + 1}`}
                 className={`
                   h-2.5
                   rounded-full
                   transition-all
                   duration-300
                   ${
-                    currentSlide === index
+                    index === activeDot
                       ? "w-8 bg-pink-500"
                       : "w-2.5 bg-zinc-300 hover:bg-pink-300 cursor-pointer"
                   }
