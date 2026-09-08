@@ -117,6 +117,7 @@ export function ProductsMobile({
                 <Image
                   src={product.images[0].url}
                   alt={product.name}
+                  unoptimized
                   fill
                   sizes="
                     (max-width: 639px) 48px,

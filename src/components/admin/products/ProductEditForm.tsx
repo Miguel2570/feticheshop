@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 type Category = {
@@ -23,6 +23,7 @@ type Product = {
   description: string | null;
   price: number;
   comparePrice: number | null;
+  costPrice: number | null; // ← ADICIONAR
   stock: number;
   physicalStock: number;
   supplierStock: number;
@@ -46,6 +47,14 @@ export function ProductEditForm({ product, categories = [] }: ProductEditFormPro
   const [selectedCategoryId, setSelectedCategoryId] = useState(
     product.categoryId ?? ""
   );
+  
+  // ✅ Estado para preço de venda (para calcular margem em tempo real)
+  const [salePrice, setSalePrice] = useState(product.price);
+  const costPrice = product.costPrice ?? 0;
+
+  // Calcular margem e lucro
+  const profit = salePrice - costPrice;
+  const margin = salePrice > 0 ? (profit / salePrice) * 100 : 0;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -94,7 +103,6 @@ export function ProductEditForm({ product, categories = [] }: ProductEditFormPro
     }
   };
 
-  // Agrupar categorias por pai
   const groupedCategories = categories.reduce((acc, cat) => {
     const parentName = cat.parent?.name ?? "Sem categoria";
     if (!acc[parentName]) acc[parentName] = [];
@@ -208,9 +216,31 @@ export function ProductEditForm({ product, categories = [] }: ProductEditFormPro
           Preço e Stock
         </h2>
 
-        <div className="grid grid-cols-3 gap-4">
+        {/* ✅ PREÇO DO FORNECEDOR (CUSTO) */}
+        <div className="rounded-xl bg-zinc-50 border border-zinc-200 p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                Preço do Fornecedor (Custo)
+              </p>
+              <p className="mt-1 text-2xl font-bold text-zinc-900">
+                €{costPrice.toFixed(2)}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs text-zinc-500">
+                Este é o preço que pagas ao fornecedor
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          {/* ✅ PREÇO DE VENDA */}
           <div>
-            <label className="block text-sm font-semibold text-zinc-700 mb-2">Preço (€)</label>
+            <label className="block text-sm font-semibold text-zinc-700 mb-2">
+              Preço de Venda (€)
+            </label>
             <input
               type="number"
               name="price"
@@ -218,11 +248,15 @@ export function ProductEditForm({ product, categories = [] }: ProductEditFormPro
               step="0.01"
               min="0"
               required
+              onChange={(e) => setSalePrice(Number(e.target.value))}
               className="h-10 w-full rounded-xl border-2 border-zinc-200 px-4 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
             />
           </div>
+
           <div>
-            <label className="block text-sm font-semibold text-zinc-700 mb-2">Preço Antigo (€)</label>
+            <label className="block text-sm font-semibold text-zinc-700 mb-2">
+              Preço Antigo (€)
+            </label>
             <input
               type="number"
               name="comparePrice"
@@ -232,16 +266,38 @@ export function ProductEditForm({ product, categories = [] }: ProductEditFormPro
               className="h-10 w-full rounded-xl border-2 border-zinc-200 px-4 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
             />
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-zinc-700 mb-2">Stock Físico</label>
-            <input
-              type="number"
-              name="physicalStock"
-              defaultValue={product.physicalStock}
-              min="0"
-              className="h-10 w-full rounded-xl border-2 border-zinc-200 px-4 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
-            />
+        </div>
+
+        {/* ✅ MARGEM DE LUCRO */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+            <p className="text-xs font-semibold text-emerald-600">
+              💰 Lucro por venda
+            </p>
+            <p className="mt-1 text-xl font-bold text-emerald-700">
+              €{profit.toFixed(2)}
+            </p>
           </div>
+
+          <div className="rounded-xl border border-pink-200 bg-pink-50 p-4">
+            <p className="text-xs font-semibold text-pink-600">
+              📊 Margem de lucro
+            </p>
+            <p className={`mt-1 text-xl font-bold ${margin >= 30 ? "text-emerald-600" : margin >= 15 ? "text-yellow-600" : "text-red-500"}`}>
+              {margin.toFixed(0)}%
+            </p>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-semibold text-zinc-700 mb-2">Stock Físico</label>
+          <input
+            type="number"
+            name="physicalStock"
+            defaultValue={product.physicalStock}
+            min="0"
+            className="h-10 w-full rounded-xl border-2 border-zinc-200 px-4 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
+          />
         </div>
 
         <div>

@@ -349,6 +349,7 @@ export function CartSidePanel() {
                           <Image
                             src={product.image || "/images/product-placeholder.png"}
                             alt={product.name}
+                            unoptimized
                             fill
                             sizes="64px"
                             className="object-cover"

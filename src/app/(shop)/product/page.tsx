@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, Product, Brand, ProductImage } from "@prisma/client";
 import Link from "next/link";
 
 import { prisma } from "@/lib/prisma";
@@ -51,6 +51,37 @@ type Props = {
   }>;
 };
 
+// Tipo simplificado para o que o ProductCard precisa
+type DisplayProduct = {
+  id: string;
+  slug: string;
+  name: string;
+  shortDescription: string | null;
+  price: number;
+  comparePrice: number | null;
+  isNew: boolean;
+  isOnSale: boolean;
+  ratingAverage: number;
+  ratingCount: number;
+  brand: { name: string } | null;
+  images: Array<{ url: string }>;
+};
+
+type RawProductRow = {
+  id: string;
+  slug: string;
+  name: string;
+  shortDescription: string | null;
+  price: string | number;
+  comparePrice: string | number | null;
+  isNew: boolean;
+  isOnSale: boolean;
+  ratingAverage: number;
+  ratingCount: number;
+  brandName: string | null;
+  images: Array<{ id: string; url: string; isPrimary: boolean }> | null;
+};
+
 export default async function ProductsPage({ searchParams }: Props) {
   const params = await searchParams;
 
@@ -62,14 +93,12 @@ export default async function ProductsPage({ searchParams }: Props) {
   const maxPrice = params.maxPrice ?? "";
   const sale = params.sale ?? "";
   const isNew = params.new ?? "";
-  const sort = params.sort ?? "newest";
+  const sort = params.sort ?? "random";
   const page = Math.max(1, Number(params.page ?? "1"));
 
-  // ✅ BUSCAR IDs DAS CATEGORIAS
   let categoryIds: string[] = [];
 
   if (subcategory) {
-    // Filtrar apenas pela subcategoria
     const subCat = await prisma.category.findUnique({
       where: { slug: subcategory },
       select: { id: true },
@@ -78,7 +107,6 @@ export default async function ProductsPage({ searchParams }: Props) {
       categoryIds = [subCat.id];
     }
   } else if (category) {
-    // ✅ Filtrar APENAS pelas subcategorias (não pela categoria principal)
     const mainCat = await prisma.category.findUnique({
       where: { slug: category },
       include: {
@@ -89,7 +117,6 @@ export default async function ProductsPage({ searchParams }: Props) {
     });
 
     if (mainCat) {
-      // ✅ SÓ os IDs das subcategorias
       categoryIds = mainCat.children.map((c) => c.id);
     }
   }
@@ -108,7 +135,6 @@ export default async function ProductsPage({ searchParams }: Props) {
         }
       : {}),
 
-    // ✅ FILTRO POR IDs DAS SUBCATEGORIAS
     ...(categoryIds.length > 0
       ? {
           categories: {
@@ -145,31 +171,105 @@ export default async function ProductsPage({ searchParams }: Props) {
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
 
-  const products = await prisma.product.findMany({
-    where,
-    skip: (currentPage - 1) * PAGE_SIZE,
-    take: PAGE_SIZE,
-    orderBy:
-      sort === "price_asc"
-        ? { price: "asc" }
-        : sort === "price_desc"
-        ? { price: "desc" }
-        : sort === "best_sellers"
-        ? { soldCount: "desc" }
-        : { createdAt: "desc" },
-    include: {
-      brand: true,
-      images: {
-        where: { isPrimary: true },
-        take: 1,
-      },
-      categories: {
-        include: {
-          category: true,
+  let displayProducts: DisplayProduct[] = [];
+
+  if (sort === "random") {
+    const rawProducts = await prisma.$queryRaw<RawProductRow[]>`
+      SELECT 
+        p.id,
+        p.slug,
+        p.name,
+        p."shortDescription",
+        p.price,
+        p."comparePrice",
+        p."isNew",
+        p."isOnSale",
+        p."ratingAverage",
+        p."ratingCount",
+        b.name as "brandName",
+        (
+          SELECT json_agg(json_build_object('id', pi.id, 'url', pi.url, 'isPrimary', pi."isPrimary"))
+          FROM "ProductImage" pi 
+          WHERE pi."productId" = p.id AND pi."isPrimary" = true 
+          LIMIT 1
+        ) as images
+      FROM "Product" p
+      LEFT JOIN "Brand" b ON p."brandId" = b.id
+      WHERE p."status" = 'ACTIVE' AND p."stock" > 0
+      ${
+        search
+          ? Prisma.sql`AND (p."name" ILIKE ${`%${search}%`} OR p."sku" ILIKE ${`%${search}%`} OR p."description" ILIKE ${`%${search}%`})`
+          : Prisma.empty
+      }
+      ${
+        categoryIds.length > 0
+          ? Prisma.sql`AND p.id IN (
+              SELECT pc."productId" FROM "ProductCategory" pc 
+              WHERE pc."categoryId" IN (${Prisma.join(categoryIds)})
+            )`
+          : Prisma.empty
+      }
+      ${
+        brand
+          ? Prisma.sql`AND b.slug = ${brand}`
+          : Prisma.empty
+      }
+      ORDER BY RANDOM()
+      LIMIT ${PAGE_SIZE}
+      OFFSET ${(currentPage - 1) * PAGE_SIZE}
+    `;
+
+    displayProducts = rawProducts.map((product) => ({
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      shortDescription: product.shortDescription,
+      price: Number(product.price),
+      comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
+      isNew: product.isNew,
+      isOnSale: product.isOnSale,
+      ratingAverage: product.ratingAverage,
+      ratingCount: product.ratingCount,
+      brand: product.brandName ? { name: product.brandName } : null,
+      images: (product.images || []).map((img) => ({ url: img.url })),
+    }));
+  } else {
+    const dbProducts = await prisma.product.findMany({
+      where,
+      skip: (currentPage - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+      orderBy:
+        sort === "price_asc"
+          ? { price: "asc" }
+          : sort === "price_desc"
+          ? { price: "desc" }
+          : sort === "best_sellers"
+          ? { soldCount: "desc" }
+          : { createdAt: "desc" },
+      include: {
+        brand: true,
+        images: {
+          where: { isPrimary: true },
+          take: 1,
         },
       },
-    },
-  });
+    });
+
+    displayProducts = dbProducts.map((product) => ({
+      id: product.id,
+      slug: product.slug,
+      name: product.name,
+      shortDescription: product.shortDescription,
+      price: Number(product.price),
+      comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
+      isNew: product.isNew,
+      isOnSale: product.isOnSale,
+      ratingAverage: product.ratingAverage,
+      ratingCount: product.ratingCount,
+      brand: product.brand ? { name: product.brand.name } : null,
+      images: product.images.map((img) => ({ url: img.url })),
+    }));
+  }
 
   const [categories, brands] = await Promise.all([
     prisma.category.findMany({
@@ -180,7 +280,15 @@ export default async function ProductsPage({ searchParams }: Props) {
       orderBy: { sortOrder: "asc" },
     }),
     prisma.brand.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        products: {
+          some: {
+            status: "ACTIVE",
+            deletedAt: null,
+          },
+        },
+      },
       orderBy: { name: "asc" },
     }),
   ]);
@@ -257,9 +365,6 @@ export default async function ProductsPage({ searchParams }: Props) {
                   {pageTitle}
                 </span>
               </h1>
-              <p className="mt-3 text-zinc-600">
-                {total} {total === 1 ? "produto encontrado" : "produtos encontrados"}
-              </p>
             </div>
 
             <ProductSort defaultSort={sort} />
@@ -411,7 +516,7 @@ export default async function ProductsPage({ searchParams }: Props) {
         )}
 
         {/* PRODUTOS */}
-        {products.length === 0 ? (
+        {displayProducts.length === 0 ? (
           <div className="rounded-3xl border border-pink-100 bg-white p-20 text-center shadow-sm">
             <h2 className="text-lg font-semibold text-zinc-900">Nenhum produto encontrado</h2>
             <p className="mt-2 text-sm text-zinc-500">
@@ -428,7 +533,7 @@ export default async function ProductsPage({ searchParams }: Props) {
         ) : (
           <section>
             <div className="grid gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {products.map((product) => (
+              {displayProducts.map((product) => (
                 <ProductCard
                   key={product.id}
                   id={product.id}
@@ -437,8 +542,8 @@ export default async function ProductsPage({ searchParams }: Props) {
                   brand={product.brand?.name ?? ""}
                   description={product.shortDescription ?? ""}
                   image={product.images[0]?.url ?? "/placeholder-product.png"}
-                  price={Number(product.price)}
-                  oldPrice={product.comparePrice ? Number(product.comparePrice) : undefined}
+                  price={product.price}
+                  oldPrice={product.comparePrice ?? undefined}
                   badge={product.isNew ? "Novo" : product.isOnSale ? "Promoção" : undefined}
                   rating={product.ratingAverage}
                   reviews={product.ratingCount}

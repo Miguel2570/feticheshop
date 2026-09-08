@@ -7,7 +7,6 @@ const API_URL = process.env.DREAMLOVE_API_URL!;
 const USERNAME = process.env.DREAMLOVE_USERNAME!;
 const PASSWORD = process.env.DREAMLOVE_PASSWORD!;
 
-// ID do idioma português
 const PORTUGUESE_LANGUAGE_ID = 55;
 
 type DreamloveProduct = {
@@ -42,11 +41,8 @@ async function loginDreamlove(): Promise<string> {
   return data.token;
 }
 
-async function getProducts(
-  token: string
-): Promise<DreamloveProduct[]> {
+async function getProducts(token: string): Promise<DreamloveProduct[]> {
   let page = 1;
-
   const products: DreamloveProduct[] = [];
 
   while (true) {
@@ -73,7 +69,6 @@ async function getProducts(
     }
 
     products.push(...data);
-
     page++;
   }
 
@@ -82,19 +77,14 @@ async function getProducts(
 
 async function syncStock() {
   console.log("🔐 Login Dreamlove...");
-
   const token = await loginDreamlove();
-
   console.log("✅ Login efetuado");
 
   console.log("📦 A obter produtos...");
-
   const products = await getProducts(token);
-
   console.log(`Total Dreamlove: ${products.length}`);
 
   console.log("📚 A carregar produtos da BD...");
-
   const dbProducts = await prisma.product.findMany({
     where: {
       dreamloveId: {
@@ -107,6 +97,7 @@ async function syncStock() {
       name: true,
       stock: true,
       price: true,
+      costPrice: true,
     },
   });
 
@@ -131,29 +122,24 @@ async function syncStock() {
     }
 
     const newStock = Number(item.stock);
+    const newPrice = Number(item.customerPrice ?? item.price);
+    const newCostPrice = Number(item.price); // ← Preço do fornecedor
 
-    const newPrice = Number(
-      item.customerPrice ?? item.price
-    );
+    const stockChanged = product.stock !== newStock;
+    const priceChanged = Number(product.price) !== newPrice;
+    const costPriceChanged = Number(product.costPrice ?? 0) !== newCostPrice;
 
-    const stockChanged =
-      product.stock !== newStock;
-
-    const priceChanged =
-      Number(product.price) !== newPrice;
-
-    if (!stockChanged && !priceChanged) {
+    if (!stockChanged && !priceChanged && !costPriceChanged) {
       skipped++;
       continue;
     }
 
     await prisma.product.update({
-      where: {
-        id: product.id,
-      },
+      where: { id: product.id },
       data: {
         stock: newStock,
         price: newPrice,
+        costPrice: newCostPrice, // ← ADICIONADO
       },
     });
 
@@ -162,7 +148,8 @@ async function syncStock() {
     console.log(
       `✔ ${product.name}
 Stock: ${product.stock} → ${newStock}
-Preço: ${product.price} → ${newPrice}
+Preço Venda: ${product.price} → ${newPrice}
+Preço Custo: ${product.costPrice ?? 0} → ${newCostPrice}
 `
     );
   }

@@ -109,6 +109,7 @@ export function LowStockProducts({
                   <Image
                     src={product.image}
                     alt={product.name}
+                    unoptimized
                     fill
                     className="object-cover"
                   />

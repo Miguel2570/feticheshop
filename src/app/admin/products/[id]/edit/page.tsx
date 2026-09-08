@@ -51,6 +51,7 @@ export default async function EditProductPage({
     description: product.description,
     price: Number(product.price),
     comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
+    costPrice: product.costPrice ? Number(product.costPrice) : null, // ← ADICIONADO
     stock: product.stock,
     physicalStock: product.physicalStock,
     supplierStock: product.supplierStock,

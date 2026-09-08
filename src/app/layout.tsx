@@ -46,6 +46,7 @@ export default function RootLayout({
     <html
       lang="pt"
       suppressHydrationWarning
+      data-scroll-behavior="smooth"
       className={`${inter.variable} ${playfair.variable}`}
     >
       <body>

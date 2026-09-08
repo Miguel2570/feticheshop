@@ -52,7 +52,6 @@ function createSlug(text?: string | null): string {
     .replace(/(^-|-$)/g, "");
 }
 
-// ✅ NOVA FUNÇÃO - busca TODAS as imagens
 function getImages(product: DreamloveProduct): string[] {
   const images = product.images
     ?.flatMap((img) => img.image?.files ?? [])
@@ -418,30 +417,30 @@ async function sync() {
       }
 
       const brand = await syncBrand(item.brand);
-      // ✅ USA getImages em vez de getImage
       const images = getImages(item);
 
       const rawEan =
         item.barcodes?.find((b) => b.code.length === 13)?.code ?? null;
       const ean = await getValidEAN(rawEan, item.id);
 
-      const price = Number(item.customerPrice ?? item.price);
+      // ✅ PREÇOS CORRIGIDOS
+      const costPrice = Number(item.price); // Preço do fornecedor (custo)
+      const price = Number(item.customerPrice ?? item.price); // Preço de venda
       const stock = Number(item.stock);
 
-      /*
-       * PRODUTO
-       */
+      console.log(`💰 ${finalName}: custo €${costPrice.toFixed(2)} → venda €${price.toFixed(2)}`);
+
       const product = await prisma.product.upsert({
         where: { dreamloveId: item.id },
         update: {
           name: finalName,
           description: finalDescription,
           stock,
-          price,
+          price,        // Preço de venda
+          costPrice,    // ← Preço de custo (fornecedor)
           ean,
           brandId: brand?.id,
           status: "ACTIVE",
-          // ✅ TODAS as imagens
           images: images.length > 0
             ? {
                 deleteMany: {},
@@ -460,11 +459,11 @@ async function sync() {
           name: finalName,
           description: finalDescription,
           stock,
-          price,
+          price,        // Preço de venda
+          costPrice,    // ← Preço de custo (fornecedor)
           status: "ACTIVE",
           ean,
           brandId: brand?.id,
-          // ✅ TODAS as imagens
           images: images.length > 0
             ? {
                 create: images.map((url, index) => ({
@@ -500,7 +499,8 @@ async function sync() {
           productId: product.id,
           supplierSku: item.sku,
           supplierEan: ean,
-          supplierPrice: price,
+          supplierPrice: costPrice,         // ← Preço do fornecedor
+          supplierComparePrice: price,      // ← Preço de venda
           supplierStock: stock,
           supplierUpdatedAt: new Date(),
           lastSyncAt: new Date(),
@@ -513,7 +513,8 @@ async function sync() {
           supplierProductId: String(item.id),
           supplierSku: item.sku,
           supplierEan: ean,
-          supplierPrice: price,
+          supplierPrice: costPrice,         // ← Preço do fornecedor
+          supplierComparePrice: price,      // ← Preço de venda
           supplierStock: stock,
           supplierUpdatedAt: new Date(),
           lastSyncAt: new Date(),
@@ -555,8 +556,8 @@ async function sync() {
           level: "INFO",
           code: exists ? "PRODUCT_UPDATED" : "PRODUCT_IMPORTED",
           message: exists
-            ? `Produto atualizado: ${finalName} (${images.length} imagens)`
-            : `Produto importado: ${finalName} (${images.length} imagens)`,
+            ? `Produto atualizado: ${finalName} (${images.length} imagens) - custo €${costPrice.toFixed(2)}, venda €${price.toFixed(2)}`
+            : `Produto importado: ${finalName} (${images.length} imagens) - custo €${costPrice.toFixed(2)}, venda €${price.toFixed(2)}`,
           productSku: item.sku,
           productId: product.id,
         },

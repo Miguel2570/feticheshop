@@ -116,6 +116,7 @@ export function RecentProducts({
                   <Image
                     src={product.images[0].url}
                     alt={product.name}
+                    unoptimized
                     fill
                     className="object-cover"
                   />

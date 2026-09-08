@@ -53,8 +53,6 @@ export const auth = betterAuth({
                 lastName,
               },
             });
-
-            console.log(`✅ Utilizador atualizado: ${firstName} ${lastName}`);
           } catch (error) {
             console.error("Erro ao atualizar utilizador:", error);
           }
@@ -76,7 +74,6 @@ export const auth = betterAuth({
 
 export async function getCurrentUser() {
   try {
-    
     const headersList = await headers();
     
     const session = await auth.api.getSession({
@@ -86,11 +83,6 @@ export async function getCurrentUser() {
     if (!session?.user) {
       return null;
     }
-
-    console.log("👤 Session user:", {
-      id: session.user.id,
-      email: session.user.email,
-    });
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
@@ -114,13 +106,9 @@ export async function getCurrentUser() {
       },
     });
 
-    console.log("✅ User no banco:", user?.email);
-    console.log("✅ Role:", user?.role);
-
     return user;
   } catch (error) {
-    console.error("❌ Erro no getCurrentUser:", error);
-    console.error("Stack:", error instanceof Error ? error.stack : "");
+    console.error("Erro ao obter sessão:", error);
     return null;
   }
 }
