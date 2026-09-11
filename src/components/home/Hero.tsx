@@ -22,7 +22,7 @@ export function Hero() {
       {/* Imagem de Fundo - MOBILE */}
       <div className="absolute inset-0 md:hidden">
         <Image
-          src="/images/hero_telemovel2.png"
+          src="/images/hero/hero_telemovel2.png"
           alt="Pleasure Shop"
           fill
           priority
@@ -34,7 +34,7 @@ export function Hero() {
       {/* Imagem de Fundo - DESKTOP */}
       <div className="absolute inset-0 hidden md:block">
         <Image
-          src="/images/hero-bg2.png"
+          src="/images/hero/hero-bg2.png"
           alt="Pleasure Shop"
           fill
           priority
