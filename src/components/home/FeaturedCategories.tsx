@@ -37,7 +37,7 @@ const fixedCategories: CategoryWithSubcategory[] = [
     slug: "bdsm",
     name: "BDSM",
     description: null,
-    image: "/images/categorias/bdsm.png",
+    image: "/images/categorias/BDSM.png",
     subcategory: "bondage",
   },
   {
