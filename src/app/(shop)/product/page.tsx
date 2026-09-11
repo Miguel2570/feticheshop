@@ -1,4 +1,4 @@
-import { Prisma, Product, Brand, ProductImage } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import Link from "next/link";
 
 import { prisma } from "@/lib/prisma";
@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { ProductSort } from "@/components/product/ProductSort";
 import { FilterDropdown } from "@/components/ui/FilterDropdown";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
-import { Search } from "lucide-react";
+import { SearchInput } from "@/components/product/SearchInput";
 
 const PAGE_SIZE = 24;
 
@@ -38,16 +38,16 @@ const FRONTEND_CATEGORY_SLUGS = [
 
 type Props = {
   searchParams: Promise<{
-    search?: string;
-    category?: string;
-    subcategory?: string;
-    brand?: string;
-    minPrice?: string;
-    maxPrice?: string;
-    sale?: string;
-    new?: string;
-    sort?: string;
-    page?: string;
+    search?: string | string[];
+    category?: string | string[];
+    subcategory?: string | string[];
+    brand?: string | string[];
+    minPrice?: string | string[];
+    maxPrice?: string | string[];
+    sale?: string | string[];
+    new?: string | string[];
+    sort?: string | string[];
+    page?: string | string[];
   }>;
 };
 
@@ -81,19 +81,28 @@ type RawProductRow = {
   images: Array<{ id: string; url: string; isPrimary: boolean }> | null;
 };
 
+// ✅ Normaliza parâmetros - retorna o primeiro valor NÃO-VAZIO
+function getParam(value: string | string[] | undefined): string {
+  if (Array.isArray(value)) {
+    const filtered = value.filter((v) => v && v.trim().length > 0);
+    return filtered[0] ?? "";
+  }
+  return value ?? "";
+}
+
 export default async function ProductsPage({ searchParams }: Props) {
   const params = await searchParams;
 
-  const search = params.search ?? "";
-  const category = params.category ?? "";
-  const subcategory = params.subcategory ?? "";
-  const brand = params.brand ?? "";
-  const minPrice = params.minPrice ?? "";
-  const maxPrice = params.maxPrice ?? "";
-  const sale = params.sale ?? "";
-  const isNew = params.new ?? "";
-  const sort = params.sort ?? "random";
-  const page = Math.max(1, Number(params.page ?? "1"));
+  const search = getParam(params.search);
+  const category = getParam(params.category);
+  const subcategory = getParam(params.subcategory);
+  const brand = getParam(params.brand);
+  const minPrice = getParam(params.minPrice);
+  const maxPrice = getParam(params.maxPrice);
+  const sale = getParam(params.sale);
+  const isNew = getParam(params.new);
+  const sort = getParam(params.sort);
+  const page = Math.max(1, Number(getParam(params.page) || "1"));
 
   let categoryIds: string[] = [];
 
@@ -120,17 +129,14 @@ export default async function ProductsPage({ searchParams }: Props) {
     }
   }
 
+  // ✅ Pesquisa APENAS por nome
   const where: Prisma.ProductWhereInput = {
     status: "ACTIVE",
     stock: { gt: 0 },
 
     ...(search
       ? {
-          OR: [
-            { name: { contains: search, mode: "insensitive" as const } },
-            { sku: { contains: search, mode: "insensitive" as const } },
-            { description: { contains: search, mode: "insensitive" as const } },
-          ],
+          name: { contains: search, mode: "insensitive" as const },
         }
       : {}),
 
@@ -171,8 +177,7 @@ export default async function ProductsPage({ searchParams }: Props) {
   let currentPage: number;
   let displayProducts: DisplayProduct[] = [];
 
-  if (sort === "random") {
-    // Contagem com os mesmos filtros
+  if (sort === "random" && categoryIds.length === 0) {
     const totalResult = await prisma.$queryRaw<{ count: number }[]>`
       SELECT COUNT(*)::int as count
       FROM "Product" p
@@ -180,15 +185,7 @@ export default async function ProductsPage({ searchParams }: Props) {
       WHERE p."status" = 'ACTIVE' AND p."stock" > 0
       ${
         search
-          ? Prisma.sql`AND (p."name" ILIKE ${`%${search}%`} OR p."sku" ILIKE ${`%${search}%`} OR p."description" ILIKE ${`%${search}%`})`
-          : Prisma.empty
-      }
-      ${
-        categoryIds.length > 0
-          ? Prisma.sql`AND p.id IN (
-              SELECT pc."productId" FROM "ProductCategory" pc 
-              WHERE pc."categoryId" IN (${Prisma.join(categoryIds)})
-            )`
+          ? Prisma.sql`AND p."name" ILIKE ${`%${search}%`}`
           : Prisma.empty
       }
       ${
@@ -238,15 +235,7 @@ export default async function ProductsPage({ searchParams }: Props) {
       WHERE p."status" = 'ACTIVE' AND p."stock" > 0
       ${
         search
-          ? Prisma.sql`AND (p."name" ILIKE ${`%${search}%`} OR p."sku" ILIKE ${`%${search}%`} OR p."description" ILIKE ${`%${search}%`})`
-          : Prisma.empty
-      }
-      ${
-        categoryIds.length > 0
-          ? Prisma.sql`AND p.id IN (
-              SELECT pc."productId" FROM "ProductCategory" pc 
-              WHERE pc."categoryId" IN (${Prisma.join(categoryIds)})
-            )`
+          ? Prisma.sql`AND p."name" ILIKE ${`%${search}%`}`
           : Prisma.empty
       }
       ${
@@ -451,32 +440,12 @@ export default async function ProductsPage({ searchParams }: Props) {
           </div>
 
           <form method="GET" className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-            {/* CAMPOS HIDDEN - preservam filtros existentes */}
-            {search && <input type="hidden" name="search" value={search} />}
-            {category && <input type="hidden" name="category" value={category} />}
             {subcategory && <input type="hidden" name="subcategory" value={subcategory} />}
-            {brand && <input type="hidden" name="brand" value={brand} />}
             {sale === "true" && <input type="hidden" name="sale" value="true" />}
             {isNew === "true" && <input type="hidden" name="new" value="true" />}
 
-            {/* PESQUISA */}
-            <div className="relative md:col-span-2 xl:col-span-2">
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
-                Pesquisar
-              </label>
-              <div className="relative">
-                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <input
-                  type="text"
-                  name="search"
-                  defaultValue={search}
-                  placeholder="Pesquisar produto..."
-                  className="h-[46px] w-full rounded-xl border border-pink-200 bg-white pl-11 pr-4 text-sm text-zinc-900 outline-none transition-all placeholder:text-zinc-400 focus:border-pink-500 focus:ring-2 focus:ring-pink-200"
-                />
-              </div>
-            </div>
+            <SearchInput key={search} defaultValue={search} />
 
-            {/* CATEGORIA - z-20 */}
             <div className="relative z-20">
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
                 Categoria
@@ -495,7 +464,6 @@ export default async function ProductsPage({ searchParams }: Props) {
               />
             </div>
 
-            {/* MARCA - z-10 */}
             <div className="relative z-10">
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
                 Marca
@@ -514,7 +482,6 @@ export default async function ProductsPage({ searchParams }: Props) {
               />
             </div>
 
-            {/* PREÇO */}
             <div>
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
                 Preço
@@ -541,7 +508,6 @@ export default async function ProductsPage({ searchParams }: Props) {
               </div>
             </div>
 
-            {/* BOTÃO FILTRAR */}
             <div className="flex items-end">
               <Button type="submit" className="w-full">
                 Filtrar

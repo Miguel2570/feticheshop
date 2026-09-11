@@ -69,6 +69,7 @@ export const auth = betterAuth({
   },
 
   trustedOrigins: [
+    "https://www.feticheshopstore.com",
     "https://feticheshop-opal.vercel.app",
     "http://localhost:3000",
   ],

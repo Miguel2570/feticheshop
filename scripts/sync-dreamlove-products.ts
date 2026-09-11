@@ -454,7 +454,7 @@ async function sync() {
         },
         create: {
           dreamloveId: item.id,
-          slug: createSlug(`${item.sku}-${item.id}`),
+          slug: createSlug(finalName),
           sku: item.sku,
           name: finalName,
           description: finalDescription,
