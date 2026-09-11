@@ -163,7 +163,7 @@ export function NavbarClient({
               aria-label="Fetiche Shop"
             >
               <Image
-                src="/images/logo_sexshop3.png"
+                src="/images/logo/logo_sexshop3.png"
                 alt="Fetiche Shop"
                 fill
                 sizes="(max-width: 640px) 112px, 144px"
