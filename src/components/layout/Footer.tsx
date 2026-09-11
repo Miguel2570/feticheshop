@@ -42,8 +42,8 @@ const socialLinks: SocialLink[] = [
 ];
 
 const paymentMethods: PaymentMethod[] = [
-  { src: "/images/MB_WAY.jpg", alt: "MB WAY" },
-  { src: "/images/Multibanco.svg", alt: "Multibanco" },
+  { src: "/images/pagamento/MB_WAY.jpg", alt: "MB WAY" },
+  { src: "/images/pagamento/Multibanco.svg", alt: "Multibanco" },
 ];
 
 const linkClass = "text-sm text-zinc-400 transition hover:text-pink-500";

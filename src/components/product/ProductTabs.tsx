@@ -11,16 +11,28 @@ interface ProductTabsProps {
 const tabs = [
   "Descrição",
   "Características",
-  "Especificações",
 ];
 
 export function ProductTabs({ product }: ProductTabsProps) {
   const [activeTab, setActiveTab] = useState("Descrição");
 
-  const specs = product.specifications;
   const features = product.features || [];
+  const specs = product.specifications;
 
-  const hasSpecs = specs?.material || specs?.color || specs?.size || specs?.dimensions || specs?.weight;
+  // ✅ Construir lista de especificações para juntar à descrição
+  const specsList: string[] = [];
+
+  if (specs?.material) specsList.push(`**Material:** ${specs.material}`);
+  if (specs?.color) specsList.push(`**Cor:** ${specs.color}`);
+  if (specs?.size) specsList.push(`**Tamanho:** ${specs.size}`);
+  if (specs?.dimensions && specs.dimensions !== specs.size) {
+    specsList.push(`**Dimensões:** ${specs.dimensions}`);
+  }
+  if (specs?.weight) specsList.push(`**Peso:** ${specs.weight}`);
+  if (specs?.battery) specsList.push(`**Bateria:** ${specs.battery}`);
+  if (specs?.waterproof !== undefined) {
+    specsList.push(`**À prova de água:** ${specs.waterproof ? "Sim" : "Não"}`);
+  }
 
   return (
     <section className="py-24">
@@ -80,6 +92,33 @@ export function ProductTabs({ product }: ProductTabsProps) {
               ) : (
                 <p className="text-zinc-500">Sem descrição disponível.</p>
               )}
+
+              {/* ✅ ESPECIFICAÇÕES JUNTAS À DESCRIÇÃO */}
+              {specsList.length > 0 && (
+                <div className="mt-8 border-t border-pink-100 pt-6">
+                  <h4 className="mb-4 font-display text-xl text-zinc-900">
+                    Especificações
+                  </h4>
+                  <ul className="space-y-2">
+                    {specsList.map((spec, index) => (
+                      <li
+                        key={index}
+                        className="flex items-start gap-3 text-base leading-8 text-zinc-700"
+                      >
+                        <span className="mt-3 h-1.5 w-1.5 shrink-0 rounded-full bg-pink-500" />
+                        <span
+                          dangerouslySetInnerHTML={{
+                            __html: spec.replace(
+                              /\*\*(.*?)\*\*/g,
+                              "<strong>$1</strong>"
+                            ),
+                          }}
+                        />
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
           )}
 
@@ -100,63 +139,6 @@ export function ProductTabs({ product }: ProductTabsProps) {
                       {feature}
                     </p>
                   ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === "Especificações" && (
-            <div>
-              <h3 className="mb-8 font-display text-3xl text-zinc-900">Especificações</h3>
-
-              {!hasSpecs ? (
-                <p className="text-zinc-500">Sem especificações disponíveis.</p>
-              ) : (
-                <div className="overflow-hidden rounded-2xl border border-pink-100">
-                  <table className="w-full">
-                    <tbody>
-                      {specs.material && (
-                        <tr className="border-b border-pink-100">
-                          <td className="bg-pink-50/50 p-5 font-semibold text-zinc-900 w-1/3">Material</td>
-                          <td className="p-5 text-zinc-600">{specs.material}</td>
-                        </tr>
-                      )}
-                      {specs.color && (
-                        <tr className="border-b border-pink-100">
-                          <td className="bg-pink-50/50 p-5 font-semibold text-zinc-900">Cor</td>
-                          <td className="p-5 text-zinc-600">{specs.color}</td>
-                        </tr>
-                      )}
-                      {specs.size && (
-                        <tr className="border-b border-pink-100">
-                          <td className="bg-pink-50/50 p-5 font-semibold text-zinc-900">Tamanho</td>
-                          <td className="p-5 text-zinc-600">{specs.size}</td>
-                        </tr>
-                      )}
-                      {specs.dimensions && specs.dimensions !== specs.size && (
-                        <tr className="border-b border-pink-100">
-                          <td className="bg-pink-50/50 p-5 font-semibold text-zinc-900">Dimensões</td>
-                          <td className="p-5 text-zinc-600">{specs.dimensions}</td>
-                        </tr>
-                      )}
-                      {specs.weight && (
-                        <tr className="border-b border-pink-100">
-                          <td className="bg-pink-50/50 p-5 font-semibold text-zinc-900">Peso</td>
-                          <td className="p-5 text-zinc-600">{specs.weight}</td>
-                        </tr>
-                      )}
-                      {specs.battery && (
-                        <tr className="border-b border-pink-100">
-                          <td className="bg-pink-50/50 p-5 font-semibold text-zinc-900">Bateria</td>
-                          <td className="p-5 text-zinc-600">{specs.battery}</td>
-                        </tr>
-                      )}
-                      <tr>
-                        <td className="bg-pink-50/50 p-5 font-semibold text-zinc-900">À prova de água</td>
-                        <td className="p-5 text-zinc-600">{specs.waterproof ? "Sim" : "Não"}</td>
-                      </tr>
-                    </tbody>
-                  </table>
                 </div>
               )}
             </div>

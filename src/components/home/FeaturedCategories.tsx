@@ -21,7 +21,7 @@ const fixedCategories: CategoryWithSubcategory[] = [
     slug: "sex-toys",
     name: "Vibradores",
     description: null,
-    image: "/images/vibrador.png",
+    image: "/images/categorias/vibrador.png",
     subcategory: "vibradores",
   },
   {
@@ -29,7 +29,7 @@ const fixedCategories: CategoryWithSubcategory[] = [
     slug: "roupa",
     name: "Lingerie",
     description: null,
-    image: "/images/lingerie.png",
+    image: "/images/categorias/lingerie.png",
     subcategory: "lingerie-sexy",
   },
   {
@@ -37,7 +37,7 @@ const fixedCategories: CategoryWithSubcategory[] = [
     slug: "bdsm",
     name: "BDSM",
     description: null,
-    image: "/images/BDSM2.png",
+    image: "/images/categorias/bdsm.png",
     subcategory: "bondage",
   },
   {
@@ -45,7 +45,7 @@ const fixedCategories: CategoryWithSubcategory[] = [
     slug: "essenciais",
     name: "Lubrificantes",
     description: null,
-    image: "/images/lubrificante.png",
+    image: "/images/categorias/lubrificante.png",
     subcategory: "lubrificantes",
   },
 ];

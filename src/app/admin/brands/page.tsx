@@ -125,7 +125,27 @@ export default async function BrandsPage({ searchParams }: Props) {
 
           <Link
             href="/admin/brands"
-            className="inline-flex h-11 w-full cursor-pointer items-center justify-center rounded-xl border border-zinc-200 bg-white px-5 text-sm font-semibold text-zinc-700 transition-all duration-200 hover:bg-zinc-50 sm:h-10 lg:w-auto"
+            className="
+              inline-flex
+              h-11
+              w-full
+              cursor-pointer
+              items-center
+              justify-center
+              rounded-xl
+              border
+              border-zinc-200
+              bg-white
+              px-5
+              text-sm
+              font-semibold
+              transition-all
+              duration-200
+              hover:bg-zinc-50
+              sm:h-10
+              lg:w-auto
+            "
+            style={{ color: "#18181b" }}
           >
             Limpar
           </Link>

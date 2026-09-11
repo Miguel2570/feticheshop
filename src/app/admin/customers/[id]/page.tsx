@@ -45,7 +45,6 @@ export default async function CustomerDetailsPage({
     0,
   );
 
-  // ✅ Calcular progresso VIP
   const vipProgress = customer.vipLevel === "GOLD"
     ? 100
     : customer.vipLevel === "SILVER"
@@ -63,23 +62,20 @@ export default async function CustomerDetailsPage({
     : 0;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-zinc-900" style={{ color: "#18181b" }}>
       {/* HEADER */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-3xl font-bold text-zinc-900">
             {customer.firstName} {customer.lastName}
           </h1>
 
-          <p className="text-muted-foreground">
+          <p className="text-zinc-500">
             Detalhes do cliente
           </p>
         </div>
 
-        <Button
-          asChild
-          variant="outline"
-        >
+        <Button asChild variant="outline">
           <Link href="/admin/customers">
             Voltar
           </Link>
@@ -97,11 +93,11 @@ export default async function CustomerDetailsPage({
             />
 
             <div className="text-center">
-              <h2 className="text-xl font-semibold">
+              <h2 className="text-xl font-semibold text-zinc-900">
                 {customer.firstName} {customer.lastName}
               </h2>
 
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-zinc-500">
                 {customer.email}
               </p>
             </div>
@@ -118,7 +114,6 @@ export default async function CustomerDetailsPage({
                 : "Inativo"}
             </Badge>
 
-            {/* ✅ VIP BADGE */}
             <Badge
               variant={
                 customer.vipLevel === "GOLD"
@@ -140,64 +135,43 @@ export default async function CustomerDetailsPage({
         {/* INFORMAÇÕES */}
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>
+            <CardTitle className="text-zinc-900">
               Informações
             </CardTitle>
           </CardHeader>
 
           <CardContent className="space-y-4">
             <div className="grid gap-6 md:grid-cols-2">
-              {/* NOME */}
               <div>
-                <p className="text-sm text-muted-foreground">
-                  Nome
-                </p>
-
-                <p className="font-medium">
-                  {customer.firstName}{" "}
-                  {customer.lastName}
+                <p className="text-sm text-zinc-500">Nome</p>
+                <p className="font-medium text-zinc-900">
+                  {customer.firstName} {customer.lastName}
                 </p>
               </div>
 
-              {/* EMAIL */}
               <div>
-                <p className="text-sm text-muted-foreground">
-                  Email
-                </p>
-
-                <p className="font-medium">
+                <p className="text-sm text-zinc-500">Email</p>
+                <p className="font-medium text-zinc-900">
                   {customer.email}
                 </p>
               </div>
 
-              {/* TELEFONE */}
               <div>
-                <p className="text-sm text-muted-foreground">
-                  Telefone
-                </p>
-
-                <p className="font-medium">
+                <p className="text-sm text-zinc-500">Telefone</p>
+                <p className="font-medium text-zinc-900">
                   {customer.phone ?? "-"}
                 </p>
               </div>
 
-              {/* PERFIL */}
               <div>
-                <p className="text-sm text-muted-foreground">
-                  Perfil
-                </p>
-
+                <p className="text-sm text-zinc-500">Perfil</p>
                 <Badge variant="secondary">
                   {customer.role}
                 </Badge>
               </div>
 
-              {/* ✅ VIP LEVEL */}
               <div>
-                <p className="text-sm text-muted-foreground">
-                  Nível VIP
-                </p>
-
+                <p className="text-sm text-zinc-500">Nível VIP</p>
                 <Badge
                   variant={
                     customer.vipLevel === "GOLD"
@@ -215,53 +189,37 @@ export default async function CustomerDetailsPage({
                 </Badge>
               </div>
 
-              {/* ✅ TOTAL SPENT VIP */}
               <div>
-                <p className="text-sm text-muted-foreground">
-                  Total Gasto (VIP)
-                </p>
-
-                <p className="font-medium">
+                <p className="text-sm text-zinc-500">Total Gasto (VIP)</p>
+                <p className="font-medium text-zinc-900">
                   {customer.totalSpent.toFixed(2)} €
                 </p>
               </div>
 
-              {/* DATA DE CRIAÇÃO */}
               <div>
-                <p className="text-sm text-muted-foreground">
-                  Criado em
-                </p>
-
-                <p className="font-medium">
-                  {new Date(
-                    customer.createdAt,
-                  ).toLocaleDateString("pt-PT")}
+                <p className="text-sm text-zinc-500">Criado em</p>
+                <p className="font-medium text-zinc-900">
+                  {new Date(customer.createdAt).toLocaleDateString("pt-PT")}
                 </p>
               </div>
 
-              {/* ÚLTIMO LOGIN */}
               <div>
-                <p className="text-sm text-muted-foreground">
-                  Último login
-                </p>
-
-                <p className="font-medium">
+                <p className="text-sm text-zinc-500">Último login</p>
+                <p className="font-medium text-zinc-900">
                   {customer.lastLoginAt
-                    ? new Date(
-                        customer.lastLoginAt,
-                      ).toLocaleString("pt-PT")
+                    ? new Date(customer.lastLoginAt).toLocaleString("pt-PT")
                     : "-"}
                 </p>
               </div>
             </div>
 
-            {/* ✅ BARRA DE PROGRESSO VIP */}
+            {/* BARRA DE PROGRESSO VIP */}
             <div className="mt-4">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-sm font-medium">
+                <p className="text-sm font-medium text-zinc-900">
                   Progresso VIP
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-zinc-500">
                   {customer.vipLevel === "GOLD"
                     ? "Nível máximo"
                     : `Faltam €${vipRemaining.toFixed(0)} para ${vipNextLevel?.name}`}
@@ -288,51 +246,33 @@ export default async function CustomerDetailsPage({
       {/* ESTATÍSTICAS */}
       <Card>
         <CardHeader>
-          <CardTitle>
+          <CardTitle className="text-zinc-900">
             Estatísticas
           </CardTitle>
         </CardHeader>
 
         <CardContent>
           <div className="grid gap-6 md:grid-cols-3">
-            {/* ENCOMENDAS */}
             <div>
-              <p className="text-sm text-muted-foreground">
-                Encomendas
-              </p>
-
-              <p className="text-3xl font-bold">
+              <p className="text-sm text-zinc-500">Encomendas</p>
+              <p className="text-3xl font-bold text-zinc-900">
                 {customer.orders.length}
               </p>
             </div>
 
-            {/* TOTAL GASTO */}
             <div>
-              <p className="text-sm text-muted-foreground">
-                Total gasto
-              </p>
-
-              <p className="text-3xl font-bold">
+              <p className="text-sm text-zinc-500">Total gasto</p>
+              <p className="text-3xl font-bold text-zinc-900">
                 {totalSpent.toFixed(2)} €
               </p>
             </div>
 
-            {/* NEWSLETTER */}
             <div>
-              <p className="text-sm text-muted-foreground">
-                Newsletter
-              </p>
-
+              <p className="text-sm text-zinc-500">Newsletter</p>
               <Badge
-                variant={
-                  customer.newsletter
-                    ? "success"
-                    : "secondary"
-                }
+                variant={customer.newsletter ? "success" : "secondary"}
               >
-                {customer.newsletter
-                  ? "Sim"
-                  : "Não"}
+                {customer.newsletter ? "Sim" : "Não"}
               </Badge>
             </div>
           </div>
@@ -342,68 +282,61 @@ export default async function CustomerDetailsPage({
       {/* MORADAS */}
       <Card>
         <CardHeader>
-          <CardTitle>
+          <CardTitle className="text-zinc-900">
             Moradas
           </CardTitle>
         </CardHeader>
 
         <CardContent>
           {customer.addresses.length === 0 ? (
-            <p className="text-muted-foreground">
-              O cliente ainda não possui
-              moradas.
+            <p className="text-zinc-500">
+              O cliente ainda não possui moradas.
             </p>
           ) : (
             <div className="space-y-6">
-              {customer.addresses.map(
-                (address, index) => (
-                  <div key={address.id}>
-                    {index > 0 && (
-                      <Separator className="mb-6" />
+              {customer.addresses.map((address, index) => (
+                <div key={address.id}>
+                  {index > 0 && <Separator className="mb-6" />}
+
+                  <div className="grid gap-2">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline">
+                        {address.type}
+                      </Badge>
+
+                      {address.isDefault && (
+                        <Badge variant="success">
+                          Principal
+                        </Badge>
+                      )}
+                    </div>
+
+                    <p className="text-zinc-900">
+                      {address.firstName} {address.lastName}
+                    </p>
+
+                    <p className="text-zinc-900">
+                      {address.addressLine1}
+                    </p>
+
+                    {address.addressLine2 && (
+                      <p className="text-zinc-900">
+                        {address.addressLine2}
+                      </p>
                     )}
 
-                    <div className="grid gap-2">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">
-                          {address.type}
-                        </Badge>
+                    <p className="text-zinc-900">
+                      {address.postalCode} {address.city}
+                    </p>
 
-                        {address.isDefault && (
-                          <Badge variant="success">
-                            Principal
-                          </Badge>
-                        )}
-                      </div>
+                    <p className="text-zinc-900">
+                      {address.country}
+                    </p>
 
-                      <p>
-                        {address.firstName}{" "}
-                        {address.lastName}
-                      </p>
-
-                      <p>
-                        {address.addressLine1}
-                      </p>
-
-                      {address.addressLine2 && (
-                        <p>
-                          {address.addressLine2}
-                        </p>
-                      )}
-
-                      <p>
-                        {address.postalCode}{" "}
-                        {address.city}
-                      </p>
-
-                      <p>
-                        {address.country}
-                      </p>
-
-                      <p>{address.phone}</p>
-                    </div>
+                    <p className="text-zinc-900">{address.phone}</p>
                   </div>
-                ),
-              )}
+                </div>
+              ))}
             </div>
           )}
         </CardContent>
@@ -412,92 +345,62 @@ export default async function CustomerDetailsPage({
       {/* ÚLTIMAS ENCOMENDAS */}
       <Card>
         <CardHeader>
-          <CardTitle>
+          <CardTitle className="text-zinc-900">
             Últimas encomendas
           </CardTitle>
         </CardHeader>
 
         <CardContent>
           {customer.orders.length === 0 ? (
-            <p className="text-muted-foreground">
-              O cliente ainda não fez
-              encomendas.
+            <p className="text-zinc-500">
+              O cliente ainda não fez encomendas.
             </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b">
-                    <th className="p-3 text-left">
-                      Nº
-                    </th>
-
-                    <th className="p-3 text-center">
-                      Estado
-                    </th>
-
-                    <th className="p-3 text-right">
-                      Total
-                    </th>
-
-                    <th className="p-3 text-right">
-                      Data
-                    </th>
-
-                    <th className="p-3 text-right">
-                      Ações
-                    </th>
+                  <tr className="border-b border-zinc-200">
+                    <th className="p-3 text-left text-zinc-900">Nº</th>
+                    <th className="p-3 text-center text-zinc-900">Estado</th>
+                    <th className="p-3 text-right text-zinc-900">Total</th>
+                    <th className="p-3 text-right text-zinc-900">Data</th>
+                    <th className="p-3 text-right text-zinc-900">Ações</th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {customer.orders.map(
-                    (order) => (
-                      <tr
-                        key={order.id}
-                        className="border-b"
-                      >
-                        <td className="p-3">
-                          {order.orderNumber}
-                        </td>
+                  {customer.orders.map((order) => (
+                    <tr
+                      key={order.id}
+                      className="border-b border-zinc-100"
+                    >
+                      <td className="p-3 text-zinc-900">
+                        {order.orderNumber}
+                      </td>
 
-                        <td className="p-3 text-center">
-                          <Badge variant="secondary">
-                            {order.status}
-                          </Badge>
-                        </td>
+                      <td className="p-3 text-center">
+                        <Badge variant="secondary">
+                          {order.status}
+                        </Badge>
+                      </td>
 
-                        <td className="p-3 text-right font-medium">
-                          {Number(
-                            order.total,
-                          ).toFixed(2)}{" "}
-                          €
-                        </td>
+                      <td className="p-3 text-right font-medium text-zinc-900">
+                        {Number(order.total).toFixed(2)} €
+                      </td>
 
-                        <td className="p-3 text-right">
-                          {new Date(
-                            order.createdAt,
-                          ).toLocaleDateString(
-                            "pt-PT",
-                          )}
-                        </td>
+                      <td className="p-3 text-right text-zinc-900">
+                        {new Date(order.createdAt).toLocaleDateString("pt-PT")}
+                      </td>
 
-                        <td className="p-3 text-right">
-                          <Button
-                            asChild
-                            size="sm"
-                            variant="outline"
-                          >
-                            <Link
-                              href={`/admin/orders/${order.id}`}
-                            >
-                              Ver
-                            </Link>
-                          </Button>
-                        </td>
-                      </tr>
-                    ),
-                  )}
+                      <td className="p-3 text-right">
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/admin/orders/${order.id}`}>
+                            Ver
+                          </Link>
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>

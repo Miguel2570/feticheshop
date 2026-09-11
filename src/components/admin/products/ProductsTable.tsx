@@ -1,4 +1,5 @@
 // components/admin/products/ProductsTable.tsx
+
 "use client";
 
 import Image from "next/image";
@@ -15,6 +16,7 @@ import { Prisma } from "@prisma/client";
 
 import { ProductStatusBadge } from "./ProductStatusBadge";
 import { ToggleFeaturedButton } from "./ToggleFeaturedButton";
+import { ToggleProductStatusButton } from "./ToggleProductStatusButton"; // ← ADICIONAR
 
 type ProductTableItem = Omit<
   Prisma.ProductGetPayload<{
@@ -75,6 +77,9 @@ export function ProductsTable({
               </th>
               <th className="p-4 text-sm font-semibold" style={{ color: "#52525b" }}>
                 Estado
+              </th>
+              <th className="p-4 text-center text-sm font-semibold" style={{ color: "#52525b" }}>
+                Visibilidade
               </th>
               <th className="p-4 text-center text-sm font-semibold" style={{ color: "#52525b" }}>
                 Destaque
@@ -166,7 +171,7 @@ export function ProductsTable({
                       </span>
                     ) : product.stock <= 5 ? (
                       <span className="rounded-full bg-yellow-50 border border-yellow-200 px-3 py-1 text-xs font-semibold text-yellow-600">
-                        {product.stock} (baixo)
+                        {product.stock}
                       </span>
                     ) : (
                       <span className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-600">
@@ -177,6 +182,16 @@ export function ProductsTable({
 
                   <td className="p-4">
                     <ProductStatusBadge status={product.status} />
+                  </td>
+
+                  {/* ✅ NOVA COLUNA - VISIBILIDADE */}
+                  <td className="p-4">
+                    <div className="flex justify-center">
+                      <ToggleProductStatusButton
+                        id={product.id}
+                        active={product.status === "ACTIVE"}
+                      />
+                    </div>
                   </td>
 
                   <td className="p-4">
@@ -220,7 +235,7 @@ export function ProductsTable({
 
             {products.length === 0 && (
               <tr>
-                <td colSpan={9} className="p-10 text-center" style={{ color: "#71717a" }}>
+                <td colSpan={10} className="p-10 text-center" style={{ color: "#71717a" }}>
                   Nenhum produto encontrado.
                 </td>
               </tr>

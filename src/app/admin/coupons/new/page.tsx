@@ -15,7 +15,7 @@ import { CouponForm } from "../_components/CouponForm";
 
 export default function NewCouponPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-zinc-900" style={{ color: "#18181b" }}>
 
       <div className="flex items-center gap-4">
 
@@ -30,11 +30,11 @@ export default function NewCouponPage() {
         </Button>
 
         <div>
-          <h1 className="text-3xl font-bold">
+          <h1 className="text-3xl font-bold text-zinc-900">
             Novo Cupão
           </h1>
 
-          <p className="text-muted-foreground">
+          <p className="text-zinc-500">
             Criar um novo cupão de desconto
           </p>
         </div>
@@ -43,7 +43,7 @@ export default function NewCouponPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>
+          <CardTitle className="text-zinc-900">
             Dados do Cupão
           </CardTitle>
         </CardHeader>

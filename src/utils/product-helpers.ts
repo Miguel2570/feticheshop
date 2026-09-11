@@ -1,16 +1,15 @@
+
 export function extractDescription(html: string): string {
   if (!html) return "";
 
-  // 1. Converte tags HTML em quebras de linha
   let text = html
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/p>/gi, "\n\n")
     .replace(/<p[^>]*>/gi, "")
     .replace(/<\/div>/gi, "\n")
     .replace(/<div[^>]*>/gi, "")
-    .replace(/<[^>]+>/g, ""); // Remove outras tags
+    .replace(/<[^>]+>/g, "");
 
-  // 2. Converte entidades HTML
   const entities: Record<string, string> = {
     '&ntilde;': 'ñ', '&Ntilde;': 'Ñ',
     '&aacute;': 'á', '&Aacute;': 'Á',
@@ -28,8 +27,6 @@ export function extractDescription(html: string): string {
   
   text = text.replace(/&[a-z]+;/gi, match => entities[match.toLowerCase()] || match);
 
-  // 3. Encontra secções que devem ser removidas
-  // Usa padrões que só apanham quando estão como TÍTULO (início de linha ou após \n\n)
   const sectionPatterns = [
     /(?:^|\n\n)\s*CARACTER[IÍ]STICAS?\s*:?/i,
     /(?:^|\n\n)\s*ESPECIFICA[ÇC][ÃÕ]ES\s*:?/i,
@@ -52,25 +49,18 @@ export function extractDescription(html: string): string {
     }
   }
 
-  // 4. Corta a descrição
   if (earliestIndex < text.length) {
     text = text.substring(0, earliestIndex);
   }
 
-  // 5. Limpa espaços extras
   return text
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
 
-/**
- * Extrai as características de <li> dentro de <ul>
- * Também suporta marcadores •, -, * e números
- */
 export function extractFeatures(html: string): string[] {
   if (!html) return [];
 
-  // 1. Tenta extrair de <li> dentro de <ul> (HTML)
   const ulMatch = html.match(/<ul[^>]*>([\s\S]*?)<\/ul>/i);
   if (ulMatch) {
     const items = ulMatch[1].match(/<li[^>]*>([\s\S]*?)<\/li>/gi);
@@ -82,7 +72,6 @@ export function extractFeatures(html: string): string[] {
     }
   }
 
-  // 2. Tenta encontrar a secção de características com texto
   const match = html.match(
     /CARACTER[IÍ]STICAS?[:\s]*([\s\S]*?)(?:ESPECIFICA[CÇÕES]|MEDIDAS|MATERIAL|CONTENIDO|$)/i
   );
@@ -90,7 +79,6 @@ export function extractFeatures(html: string): string[] {
   if (match) {
     const featuresText = match[1];
     
-    // Tenta extrair <li> da secção
     const liMatches = featuresText.match(/<li[^>]*>([\s\S]*?)<\/li>/gi);
     if (liMatches) {
       return liMatches
@@ -98,7 +86,6 @@ export function extractFeatures(html: string): string[] {
         .filter((item) => item.length > 0);
     }
 
-    // Fallback: dividir por marcadores
     const features = featuresText
       .split(/[•\-\*]|\d+\.\s*/)
       .map((item) => item.trim())
@@ -112,9 +99,6 @@ export function extractFeatures(html: string): string[] {
   return [];
 }
 
-/**
- * Extrai as especificações (MEDIDAS, MATERIAL, etc.)
- */
 export function extractSpecifications(html: string): {
   material: string;
   color: string;
@@ -138,12 +122,12 @@ export function extractSpecifications(html: string): {
     battery: "",
   };
 
-  // Extrai MEDIDAS
-  const medidasMatch = html.match(/MEDIDAS?[:\s]*([\s\S]*?)(?:MATERIAL|CONTENIDO|$)/i);
+  const medidasMatch = html.match(
+    /\bMEDIDAS?\b\s*:\s*([\s\S]*?)(?:\bMATERIAL\b\s*:|\bCONTENIDO\b\s*:|$)/i
+  );
   if (medidasMatch) {
     const medidasText = medidasMatch[1];
     
-    // Tenta extrair de <li>
     const liMatches = medidasText.match(/<li[^>]*>([\s\S]*?)<\/li>/gi);
     if (liMatches) {
       liMatches.forEach((item) => {
@@ -158,7 +142,6 @@ export function extractSpecifications(html: string): {
         }
       });
     } else {
-      // Fallback: texto simples
       const longMatch = medidasText.match(/Longitud[:\s]*(\d+)\s*mm/i);
       const diamMatch = medidasText.match(/Di[áa]metro[:\s]*(\d+)\s*mm/i);
       if (longMatch) specs.size = `${longMatch[1]} mm`;
@@ -170,39 +153,35 @@ export function extractSpecifications(html: string): {
     }
   }
 
-  // Extrai MATERIAL - procura por <p><strong>MATERIAL:</strong> ...
-  const materialMatch = html.match(/MATERIAL:<\/strong>\s*([^<]+)/i);
+  const materialMatch = html.match(/\bMATERIAL\b\s*:\s*<\/strong>\s*([^<]+)/i);
   if (materialMatch) {
     specs.material = materialMatch[1].trim();
   }
 
-  // Fallback: procura por MATERIAL: seguido de texto
   if (!specs.material) {
-    const materialFallback = html.match(/MATERIAL[:\s]*([^<>\n]*?)(?:\.|$|<)/i);
+    const materialFallback = html.match(
+      /\bMATERIAL\b\s*:\s*([^<>\n]*?)(?:\.|$|<)/i
+    );
     if (materialFallback) {
       specs.material = materialFallback[1].trim();
     }
   }
 
-  // Extrai COR (se existir)
-  const colorMatch = html.match(/COR[:\s]*([^\n<]+)/i);
+  const colorMatch = html.match(/\bCOR\b\s*:\s*([^\n<]+)/i);
   if (colorMatch) {
     specs.color = colorMatch[1].trim();
   }
 
-  // Extrai BATERIA (se existir)
-  const batteryMatch = html.match(/BATERIA[:\s]*([^\n<]+)/i);
+  const batteryMatch = html.match(/\bBATERIA\b\s*:\s*([^\n<]+)/i);
   if (batteryMatch) {
     specs.battery = batteryMatch[1].trim();
   }
 
-  // Extrai PESO (se existir)
-  const weightMatch = html.match(/PESO[:\s]*([^\n<]+)/i);
+  const weightMatch = html.match(/\bPESO\b\s*:\s*([^\n<]+)/i);
   if (weightMatch) {
     specs.weight = weightMatch[1].trim();
   }
 
-  // Verifica se é à prova de água
   specs.waterproof = /resistente al agua|waterproof|à prova d[ae] água/i.test(html);
 
   return specs;

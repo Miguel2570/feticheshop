@@ -1,8 +1,11 @@
+// app/admin/products/[id]/edit/page.tsx
+
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 
 import { ProductEditForm } from "@/components/admin/products/ProductEditForm";
+import { ProductImagesManager } from "@/components/admin/products/ProductImagesManager";
 
 interface EditProductPageProps {
   params: Promise<{
@@ -22,6 +25,9 @@ export default async function EditProductPage({
         include: {
           category: true,
         },
+      },
+      images: {
+        orderBy: { position: "asc" },
       },
     },
   });
@@ -51,7 +57,7 @@ export default async function EditProductPage({
     description: product.description,
     price: Number(product.price),
     comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
-    costPrice: product.costPrice ? Number(product.costPrice) : null, // ← ADICIONADO
+    costPrice: product.costPrice ? Number(product.costPrice) : null,
     stock: product.stock,
     physicalStock: product.physicalStock,
     supplierStock: product.supplierStock,
@@ -63,14 +69,23 @@ export default async function EditProductPage({
     categoryId: currentCategoryId,
   };
 
+  // Imagens para o gestor
+  const plainImages = product.images.map((img) => ({
+    id: img.id,
+    url: img.url,
+    alt: img.alt,
+    position: img.position,
+    isPrimary: img.isPrimary,
+  }));
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-zinc-900" style={{ color: "#18181b" }}>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold" style={{ color: "#18181b" }}>
+          <h1 className="text-3xl font-bold text-zinc-900">
             Editar Produto
           </h1>
-          <p className="text-zinc-500 mt-1">{product.name}</p>
+          <p className="mt-1 text-zinc-500">{product.name}</p>
         </div>
 
         <Link
@@ -86,7 +101,27 @@ export default async function EditProductPage({
         </Link>
       </div>
 
+      {/* FORMULÁRIO */}
       <ProductEditForm product={plainProduct} categories={categories} />
+
+      {/* ✅ GESTÃO DE IMAGENS */}
+      <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <div className="mb-5 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-bold text-zinc-900">
+              Imagens do Produto ({plainImages.length})
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500">
+              Define qual é a imagem principal e remove as que não queres.
+            </p>
+          </div>
+        </div>
+
+        <ProductImagesManager
+          productId={product.id}
+          images={plainImages}
+        />
+      </div>
     </div>
   );
 }

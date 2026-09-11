@@ -20,7 +20,6 @@ export type ProductWithRelations = Prisma.ProductGetPayload<{
   };
 }>;
 
-// Função para limpar entidades HTML
 const cleanText = (text: string): string => {
   if (!text) return "";
   return text
@@ -44,9 +43,11 @@ const cleanText = (text: string): string => {
 };
 
 export function mapProduct(product: ProductWithRelations): Product {
-  const features = extractFeatures(product.description ?? "");
-  const specs = extractSpecifications(product.description ?? "");
-  const description = extractDescription(product.description ?? "");
+  const rawDescription = product.description ?? "";
+
+  const features = extractFeatures(rawDescription);
+  const specs = extractSpecifications(rawDescription);
+  const description = extractDescription(rawDescription);
 
   const cleanedFeatures = features.map(cleanText);
 
