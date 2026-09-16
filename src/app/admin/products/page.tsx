@@ -38,7 +38,6 @@ export default async function ProductsPage({
   const search = params.search ?? "";
   const category = params.category ?? "";
   const status = params.status ?? "";
-  // ✅ Por defeito: mostrar apenas produtos em stock
   const stock = params.stock ?? "in_stock";
   const featured = params.featured ?? "";
   const sort = params.sort ?? "newest";
@@ -51,7 +50,7 @@ export default async function ProductsPage({
   // =========================================================
 
   const where: Prisma.ProductWhereInput = {
-    deletedAt: null, // ✅ Adicionado - não mostrar apagados
+    deletedAt: null,
 
     ...(search
       ? {
@@ -94,7 +93,6 @@ export default async function ProductsPage({
         }
       : {}),
 
-    // ✅ FILTRO DE STOCK
     ...(stock === "in_stock"
       ? {
           stock: { gt: 0 },
@@ -112,8 +110,6 @@ export default async function ProductsPage({
           stock: 0,
         }
       : {}),
-
-    // stock === "all" → sem filtro de stock
 
     ...(featured === "true"
       ? {
@@ -167,10 +163,10 @@ export default async function ProductsPage({
       categories: {
         include: { category: true },
       },
-      variants: true,
     },
   });
 
+  // ✅ Sanitizar Decimals (produto)
   const products = rawProducts.map((product) => ({
     ...product,
     price: Number(product.price),

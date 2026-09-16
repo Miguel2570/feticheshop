@@ -29,10 +29,9 @@ type ProductTableItem = Omit<
       categories: {
         include: { category: true };
       };
-      variants: true;
     };
   }>,
-  'price' | 'comparePrice' | 'costPrice'
+  "price" | "comparePrice" | "costPrice"
 > & {
   price: number;
   comparePrice: number | null;
