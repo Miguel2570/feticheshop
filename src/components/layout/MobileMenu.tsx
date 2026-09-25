@@ -1,9 +1,12 @@
+// src/components/layout/MobileMenu.tsx
 "use client";
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { X, ChevronRight, ChevronDown, Shield, UserCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+import { MAIN_CATEGORIES, SUBCATEGORIES } from "@/lib/categories";
 
 interface MobileMenuCategory {
   id: string;
@@ -21,60 +24,9 @@ interface MobileMenuProps {
   isAuthenticated?: boolean;
 }
 
-const menuCategories = [
-  {
-    name: "Sex Toys",
-    slug: "sex-toys",
-    subCategories: [
-      { name: "Vibradores", slug: "vibradores" },
-      { name: "Dildos", slug: "dildos" },
-      { name: "Sugadores", slug: "sugadores" },
-      { name: "Bolas Anales", slug: "bolas-anales" },
-      { name: "Estimuladores", slug: "estimuladores" },
-      { name: "Baterias e Acessórios", slug: "baterias-acessorios" },
-    ],
-  },
-  {
-    name: "Para o Pénis",
-    slug: "para-ele",
-    subCategories: [
-      { name: "Masturbadores", slug: "masturbadores" },
-      { name: "Anéis Penianos", slug: "aneis-penianos" },
-      { name: "Estimulantes", slug: "estimulantes" },
-    ],
-  },
-  {
-    name: "Saúde e Bem-Estar",
-    slug: "essenciais",
-    subCategories: [
-      { name: "Lubrificantes", slug: "lubrificantes" },
-      { name: "Afrodisíacos", slug: "afrodisiacos" },
-      { name: "Jogos Eróticos", slug: "jogos-eroticos" },
-    ],
-  },
-  {
-    name: "Lingerie",
-    slug: "roupa",
-    subCategories: [
-      { name: "Lingerie Sexy", slug: "lingerie-sexy" },
-      { name: "Bodystocking", slug: "bodystocking" },
-      { name: "Bikinis", slug: "bikinis" },
-    ],
-  },
-  {
-    name: "BDSM",
-    slug: "bdsm",
-    subCategories: [
-      { name: "Bondage", slug: "bondage" },
-      { name: "Acessórios BDSM", slug: "acessorios-bdsm" },
-    ],
-  },
-];
-
 export function MobileMenu({
   open,
   onClose,
-  categories,
   hasNewProducts = false,
   hasSaleProducts = false,
   isAdmin = false,
@@ -85,10 +37,8 @@ export function MobileMenu({
   // Bloquear scroll do body quando o menu está aberto
   useEffect(() => {
     if (open) {
-      // Guardar a posição atual do scroll
       const scrollY = window.scrollY;
-      
-      // Bloquear scroll
+
       document.body.style.position = "fixed";
       document.body.style.top = `-${scrollY}px`;
       document.body.style.left = "0";
@@ -96,7 +46,6 @@ export function MobileMenu({
       document.body.style.width = "100%";
       document.body.style.overflow = "hidden";
     } else {
-      // Restaurar scroll
       const scrollY = document.body.style.top;
       document.body.style.position = "";
       document.body.style.top = "";
@@ -104,14 +53,12 @@ export function MobileMenu({
       document.body.style.right = "";
       document.body.style.width = "";
       document.body.style.overflow = "";
-      
-      // Restaurar posição do scroll
+
       if (scrollY) {
         window.scrollTo(0, parseInt(scrollY || "0", 10) * -1);
       }
     }
 
-    // Cleanup
     return () => {
       document.body.style.position = "";
       document.body.style.top = "";
@@ -122,15 +69,14 @@ export function MobileMenu({
     };
   }, [open]);
 
-  // Bloquear scroll com wheel event (alternativa)
+  // Bloquear scroll com wheel event
   useEffect(() => {
     if (!open) return;
 
     const preventScroll = (e: WheelEvent) => {
       const target = e.target as HTMLElement;
       const scrollable = target.closest(".overflow-y-auto");
-      
-      // Permitir scroll dentro do menu, mas bloquear no body
+
       if (!scrollable) {
         e.preventDefault();
       }
@@ -150,8 +96,7 @@ export function MobileMenu({
     const preventTouchScroll = (e: TouchEvent) => {
       const target = e.target as HTMLElement;
       const scrollable = target.closest(".overflow-y-auto");
-      
-      // Permitir scroll dentro do menu, mas bloquear no body
+
       if (!scrollable) {
         e.preventDefault();
       }
@@ -268,8 +213,9 @@ export function MobileMenu({
           </p>
 
           <div className="mt-3 grid gap-1.5">
-            {menuCategories.map((category) => {
+            {MAIN_CATEGORIES.map((category) => {
               const isExpanded = expandedCategory === category.slug;
+              const subCategories = SUBCATEGORIES[category.slug] ?? [];
 
               return (
                 <div key={category.slug}>
@@ -318,7 +264,7 @@ export function MobileMenu({
                         className="overflow-hidden"
                       >
                         <div className="ml-4 mt-1 grid gap-0.5 border-l border-zinc-800 pl-3">
-                          {category.subCategories.map((subCat) => (
+                          {subCategories.map((subCat) => (
                             <motion.div
                               key={subCat.slug}
                               initial={{ x: -10, opacity: 0 }}

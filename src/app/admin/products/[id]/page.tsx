@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { mapProduct } from "@/lib/mappers/product";
 import { ProductStatus } from "@prisma/client";
+import { ALL_ACTIVE_SLUGS } from "@/lib/categories";
 
 import { ToggleProductStatusButton } from "@/components/admin/products/ToggleProductStatusButton";
 import { ToggleFeaturedButton } from "@/components/admin/products/ToggleFeaturedButton";
@@ -19,36 +20,6 @@ import {
   Package,
   Star,
 } from "lucide-react";
-
-// =========================================================
-// CATEGORIAS DO FRONTEND
-// =========================================================
-
-const FRONTEND_CATEGORY_SLUGS = [
-  "sex-toys",
-  "para-ele",
-  "essenciais",
-  "roupa",
-  "bdsm",
-  "vibradores",
-  "dildos",
-  "sugadores",
-  "bolas-anales",
-  "estimuladores",
-  "masturbadores",
-  "aneis-penianos",
-  "estimulantes",
-  "lubrificantes",
-  "afrodisiacos",
-  "jogos-eroticos",
-  "lingerie-sexy",
-  "bodystocking",
-  "bikinis",
-  "bondage",
-  "acessorios-bdsm",
-  "baterias-acessorios",
-  "vapers-eletronicos",
-];
 
 interface ProductDetailPageProps {
   params: Promise<{
@@ -84,6 +55,7 @@ export default async function ProductDetailPage({
       },
       variants: {
         include: {
+          images: true,
           attributeValues: {
             include: {
               attributeValue: {
@@ -189,19 +161,7 @@ export default async function ProductDetailPage({
           sm:justify-between
         "
       >
-        {/* ---------------------------------------------------
-            TÍTULO + VOLTAR
-        --------------------------------------------------- */}
-
-        <div
-          className="
-            flex
-            min-w-0
-            max-w-full
-            items-center
-            gap-3
-          "
-        >
+        <div className="flex min-w-0 max-w-full items-center gap-3">
           <Link
             href="/admin/products"
             className="
@@ -229,28 +189,14 @@ export default async function ProductDetailPage({
           </Link>
 
           <div className="min-w-0">
-            <h1
-              className="
-                truncate
-                text-lg
-                font-bold
-                text-zinc-900
-
-                sm:text-xl
-              "
-            >
+            <h1 className="truncate text-lg font-bold text-zinc-900 sm:text-xl">
               {product.name}
             </h1>
-
             <p className="truncate text-xs text-zinc-500">
               {product.sku || "Sem SKU"}
             </p>
           </div>
         </div>
-
-        {/* ---------------------------------------------------
-            AÇÕES
-        --------------------------------------------------- */}
 
         <div
           className="
@@ -265,7 +211,6 @@ export default async function ProductDetailPage({
             sm:shrink-0
           "
         >
-          {/* ✅ VER NO SITE */}
           <Link
             href={`/product/${product.slug}`}
             target="_blank"
@@ -294,7 +239,6 @@ export default async function ProductDetailPage({
             <span>Ver no site</span>
           </Link>
 
-          {/* ✅ EDITAR */}
           <Link
             href={`/admin/products/${dbProduct.id}/edit`}
             className="
@@ -347,13 +291,9 @@ export default async function ProductDetailPage({
           lg:gap-5
         "
       >
-        {/* ===================================================
-            ESQUERDA — GALERIA
-        =================================================== */}
+        {/* ESQUERDA — GALERIA */}
 
         <div className="w-full min-w-0 max-w-full space-y-3">
-          {/* IMAGEM PRINCIPAL */}
-
           <div
             className="
               w-full
@@ -367,15 +307,7 @@ export default async function ProductDetailPage({
               shadow-sm
             "
           >
-            <div
-              className="
-                relative
-                w-full
-                max-w-full
-                overflow-hidden
-                rounded-lg
-              "
-            >
+            <div className="relative w-full max-w-full overflow-hidden rounded-lg">
               {primaryImage ? (
                 <Image
                   src={primaryImage}
@@ -393,8 +325,6 @@ export default async function ProductDetailPage({
               )}
             </div>
           </div>
-
-          {/* OUTRAS IMAGENS */}
 
           {otherImages.length > 0 && (
             <div className="flex max-w-full flex-wrap gap-2 overflow-hidden">
@@ -430,36 +360,14 @@ export default async function ProductDetailPage({
           )}
         </div>
 
-        {/* ===================================================
-            DIREITA — INFORMAÇÕES
-        =================================================== */}
+        {/* DIREITA — INFORMAÇÕES */}
 
         <div className="flex min-w-0 max-w-full flex-col gap-3">
-          <span
-            className="
-              max-w-full
-              truncate
-              text-xs
-              font-medium
-              uppercase
-              tracking-wider
-              text-pink-500
-            "
-          >
+          <span className="max-w-full truncate text-xs font-medium uppercase tracking-wider text-pink-500">
             {product.category || "Produto"}
           </span>
 
-          <h2
-            className="
-              break-words
-              text-xl
-              font-bold
-              leading-tight
-              text-zinc-900
-
-              sm:text-2xl
-            "
-          >
+          <h2 className="break-words text-xl font-bold leading-tight text-zinc-900 sm:text-2xl">
             {product.name}
           </h2>
 
@@ -510,7 +418,7 @@ export default async function ProductDetailPage({
             )}
           </div>
 
-          {/* ✅ CUSTO + LUCRO + MARGEM */}
+          {/* CUSTO + LUCRO + MARGEM */}
 
           {costPrice > 0 && (
             <div
@@ -566,39 +474,11 @@ export default async function ProductDetailPage({
 
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             {product.stock ? (
-              <span
-                className="
-                  inline-block
-                  shrink-0
-                  rounded-full
-                  border
-                  border-emerald-200
-                  bg-emerald-50
-                  px-3
-                  py-1
-                  text-xs
-                  font-medium
-                  text-emerald-600
-                "
-              >
+              <span className="inline-block shrink-0 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-600">
                 ✓ Em Stock
               </span>
             ) : (
-              <span
-                className="
-                  inline-block
-                  shrink-0
-                  rounded-full
-                  border
-                  border-red-200
-                  bg-red-50
-                  px-3
-                  py-1
-                  text-xs
-                  font-medium
-                  text-red-500
-                "
-              >
+              <span className="inline-block shrink-0 rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-medium text-red-500">
                 Esgotado
               </span>
             )}
@@ -624,16 +504,7 @@ export default async function ProductDetailPage({
 
           {/* METADADOS */}
 
-          <div
-            className="
-              min-w-0
-              max-w-full
-              space-y-1.5
-              border-t
-              border-zinc-100
-              pt-3
-            "
-          >
+          <div className="min-w-0 max-w-full space-y-1.5 border-t border-zinc-100 pt-3">
             <p className="break-words text-xs text-zinc-500">
               Criado:{" "}
               {new Date(dbProduct.createdAt).toLocaleDateString("pt-PT")}
@@ -662,9 +533,7 @@ export default async function ProductDetailPage({
         </div>
       </div>
 
-      {/* =====================================================
-          TABS
-      ===================================================== */}
+      {/* TABS */}
 
       <div
         className="
@@ -687,9 +556,7 @@ export default async function ProductDetailPage({
         </div>
       </div>
 
-      {/* =====================================================
-          CATEGORIAS
-      ===================================================== */}
+      {/* CATEGORIAS */}
 
       <div
         className="
@@ -711,11 +578,11 @@ export default async function ProductDetailPage({
 
         <div className="mt-3 flex max-w-full flex-wrap gap-1.5 overflow-hidden">
           {dbProduct.categories.filter(({ category }) =>
-            FRONTEND_CATEGORY_SLUGS.includes(category.slug)
+            ALL_ACTIVE_SLUGS.includes(category.slug)
           ).length > 0 ? (
             dbProduct.categories
               .filter(({ category }) =>
-                FRONTEND_CATEGORY_SLUGS.includes(category.slug)
+                ALL_ACTIVE_SLUGS.includes(category.slug)
               )
               .map(({ category }) => (
                 <span
@@ -745,9 +612,7 @@ export default async function ProductDetailPage({
         </div>
       </div>
 
-      {/* =====================================================
-          VARIANTES
-      ===================================================== */}
+      {/* VARIANTES */}
 
       {dbProduct.variants.length > 0 && (
         <div
@@ -793,8 +658,6 @@ export default async function ProductDetailPage({
                   sm:py-2.5
                 "
               >
-                {/* INFORMAÇÃO DA VARIANTE */}
-
                 <div className="min-w-0 max-w-full">
                   <p className="break-words text-sm font-medium text-zinc-900">
                     {variant.name}
@@ -806,8 +669,6 @@ export default async function ProductDetailPage({
                       .join(" / ")}
                   </p>
                 </div>
-
-                {/* PREÇO + STOCK */}
 
                 <div className="min-w-0 shrink-0 sm:text-right">
                   <p className="text-sm font-semibold text-zinc-900">

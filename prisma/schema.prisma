@@ -95,6 +95,11 @@ enum VIPLevel {
   GOLD
 }
 
+enum CategorySource {
+  AUTO     // decidida pelo script
+  MANUAL   // decidida/revisada pelo admin
+}
+
 model PasswordReset {
   id    String @id @default(cuid())
   email String
@@ -379,6 +384,11 @@ model Product {
   stock          Int     @default(0)
   manageStock    Boolean @default(true)
   allowBackorder Boolean @default(false)
+
+  categorySource   CategorySource @default(AUTO)
+  categoryLockedAt DateTime?
+  categoryLockedBy String?
+  categoryReason   String? 
 
   weight Float?
   width  Float?

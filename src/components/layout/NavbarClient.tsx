@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 import {
   ChevronDown,
@@ -17,6 +18,7 @@ import {
 
 import { useCart } from "@/components/cart/CartProvider";
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
+import { MAIN_CATEGORIES } from "@/lib/categories";
 
 import { MegaMenu } from "./MegaMenu";
 import { MobileMenu } from "./MobileMenu";
@@ -32,12 +34,8 @@ interface SearchProduct {
   name: string;
   slug: string;
   price: number;
-  brand: {
-    name: string;
-  } | null;
-  images: {
-    url: string;
-  }[];
+  brand: { name: string } | null;
+  images: { url: string }[];
 }
 
 interface NavbarClientProps {
@@ -64,47 +62,83 @@ export function NavbarClient({
   const [searchResults, setSearchResults] = useState<SearchProduct[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const searchRef = useRef<HTMLDivElement>(null);
+
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const searchPanelRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   const { count: wishlistCount, openWishlist, loading: wishlistLoading } = useWishlist();
   const { itemCount: cartCount, openCart } = useCart();
 
-  const menuCategories = [
-    { name: "Sex Toys", slug: "sex-toys" },
-    { name: "Para o Pénis", slug: "para-ele" },
-    { name: "Saúde e Bem-Estar", slug: "essenciais" },
-    { name: "Lingerie", slug: "roupa" },
-    { name: "BDSM", slug: "bdsm" },
-  ];
+  const menuCategories = MAIN_CATEGORIES.map((cat) => ({
+    name: cat.name,
+    slug: cat.slug,
+  }));
 
-  // ✅ Usar setTimeout para evitar setState direto no useEffect
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsClient(true);
-    }, 0);
-
+    const timer = setTimeout(() => setIsClient(true), 0);
     return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
-    };
-
+    const handleScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
-
-    return () => {
-      window.removeEventListener("scroll", handleScroll);
-    };
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleSearchChange = (value: string) => {
+  useEffect(() => {
+    if (searchOpen) {
+      const t = setTimeout(() => {
+        searchInputRef.current?.focus();
+      }, 150);
+      return () => clearTimeout(t);
+    }
+  }, [searchOpen]);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeSearch();
+    };
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        searchPanelRef.current &&
+        !searchPanelRef.current.contains(e.target as Node)
+      ) {
+        closeSearch();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+    const t = setTimeout(() => {
+      document.addEventListener("mousedown", handleClickOutside);
+    }, 100);
+
+    return () => {
+      document.removeEventListener("keydown", handleEscape);
+      document.removeEventListener("mousedown", handleClickOutside);
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchOpen]);
+
+  useEffect(() => {
+    if (searchOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [searchOpen]);
+
+  function handleSearchChange(value: string) {
     setSearchValue(value);
 
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
 
     if (value.trim().length < 2) {
       setSearchResults([]);
@@ -117,7 +151,9 @@ export function NavbarClient({
       setShowResults(true);
 
       try {
-        const response = await fetch(`/api/search?q=${encodeURIComponent(value.trim())}`);
+        const response = await fetch(
+          `/api/search?q=${encodeURIComponent(value.trim())}`
+        );
         if (response.ok) {
           const data = await response.json();
           setSearchResults(data.products ?? []);
@@ -129,20 +165,22 @@ export function NavbarClient({
         setIsLoading(false);
       }
     }, 300);
-  };
+  }
 
-  const handleSearchSubmit = () => {
+  function handleSearchSubmit() {
     if (searchValue.trim()) {
-      window.location.href = `/product?search=${encodeURIComponent(searchValue.trim())}`;
+      window.location.href = `/product?search=${encodeURIComponent(
+        searchValue.trim()
+      )}`;
     }
-  };
+  }
 
-  const closeSearch = () => {
+  function closeSearch() {
     setSearchOpen(false);
     setShowResults(false);
     setSearchValue("");
     setSearchResults([]);
-  };
+  }
 
   return (
     <header
@@ -177,12 +215,12 @@ export function NavbarClient({
                 <button
                   key={cat.slug}
                   type="button"
-                  onMouseEnter={() => {
-                    setActiveCategory(cat.slug);
-                  }}
-                  onClick={() => {
-                    setActiveCategory(activeCategory === cat.slug ? null : cat.slug);
-                  }}
+                  onMouseEnter={() => setActiveCategory(cat.slug)}
+                  onClick={() =>
+                    setActiveCategory(
+                      activeCategory === cat.slug ? null : cat.slug
+                    )
+                  }
                   className={`
                     flex items-center gap-1
                     text-sm font-semibold
@@ -210,130 +248,15 @@ export function NavbarClient({
 
           {/* DIREITA - DESKTOP (lg+) */}
           <div className="hidden items-center gap-2 lg:flex">
-            {/* PESQUISA COM AUTOCOMPLETE */}
-            <div ref={searchRef} className="relative flex items-center">
-              <button
-                type="button"
-                aria-label="Pesquisar"
-                onClick={() => {
-                  if (searchOpen) {
-                    closeSearch();
-                  } else {
-                    setSearchOpen(true);
-                  }
-                }}
-                className="rounded-full p-2.5 text-zinc-200 transition hover:bg-zinc-900 hover:text-pink-500 cursor-pointer"
-              >
-                {searchOpen ? <X size={22} /> : <SearchIcon size={22} />}
-              </button>
-
-              <div
-                className={`
-                  overflow-hidden
-                  transition-all
-                  duration-300
-                  ease-in-out
-                  ${searchOpen ? "w-96 opacity-100" : "w-0 opacity-0"}
-                `}
-              >
-                <input
-                  type="text"
-                  value={searchValue}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && searchValue.trim()) {
-                      handleSearchSubmit();
-                      closeSearch();
-                    }
-                    if (e.key === "Escape") {
-                      setShowResults(false);
-                    }
-                  }}
-                  onFocus={() => {
-                    if (searchValue.trim().length >= 2) {
-                      setShowResults(true);
-                    }
-                  }}
-                  placeholder="Pesquisar produtos..."
-                  className="
-                    h-10
-                    w-full
-                    rounded-full
-                    border
-                    border-zinc-700
-                    bg-zinc-900
-                    pl-5
-                    pr-5
-                    text-sm
-                    text-white
-                    outline-none
-                    placeholder:text-zinc-500
-                    focus:border-pink-500
-                  "
-                />
-              </div>
-
-              {showResults && searchValue.trim().length >= 2 && (
-                <div className="absolute right-0 top-full mt-2 w-96 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-2xl">
-                  {isLoading ? (
-                    <div className="flex justify-center py-8">
-                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-pink-200 border-t-pink-500" />
-                    </div>
-                  ) : searchResults.length > 0 ? (
-                    <>
-                      <div className="max-h-96 overflow-y-auto">
-                        {searchResults.map((product) => (
-                          <Link
-                            key={product.id}
-                            href={`/product/${product.slug}`}
-                            onClick={closeSearch}
-                            className="flex items-center gap-3 border-b border-zinc-100 px-4 py-3 transition hover:bg-pink-50"
-                          >
-                            <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-lg bg-pink-50/50">
-                              <Image
-                                src={product.images?.[0]?.url ?? "/placeholder-product.png"}
-                                alt={product.name}
-                                fill
-                                sizes="40px"
-                                className="object-contain p-1"
-                              />
-                            </div>
-
-                            <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-semibold text-zinc-900">
-                                {product.name}
-                              </p>
-                              <p className="text-xs text-zinc-500">
-                                {product.brand?.name ?? "Sem marca"}
-                              </p>
-                            </div>
-
-                            <span className="shrink-0 text-sm font-bold text-pink-500">
-                              €{Number(product.price || 0).toFixed(2)}
-                            </span>
-                          </Link>
-                        ))}
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          handleSearchSubmit();
-                          closeSearch();
-                        }}
-                        className="w-full bg-zinc-50 px-4 py-3 text-center text-sm font-semibold text-pink-500 transition hover:bg-pink-50 cursor-pointer"
-                      >
-                        Ver todos os resultados para &quot;{searchValue}&quot;
-                      </button>
-                    </>
-                  ) : (
-                    <div className="px-4 py-8 text-center text-sm text-zinc-500">
-                      Nenhum produto encontrado para &quot;{searchValue}&quot;
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            {/* 🔍 LUPA — PRIMEIRO */}
+            <button
+              type="button"
+              aria-label={searchOpen ? "Fechar pesquisa" : "Pesquisar"}
+              onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
+              className="rounded-full p-2.5 text-zinc-200 transition hover:bg-zinc-900 hover:text-pink-500 cursor-pointer"
+            >
+              {searchOpen ? <X size={22} /> : <SearchIcon size={22} />}
+            </button>
 
             {/* ADMIN */}
             {isAdmin && (
@@ -370,7 +293,7 @@ export function NavbarClient({
               </Link>
             )}
 
-            {/* FAVORITOS - DESKTOP */}
+            {/* FAVORITOS */}
             <button
               type="button"
               onClick={openWishlist}
@@ -378,7 +301,7 @@ export function NavbarClient({
               title="Favoritos"
               className="relative rounded-full p-2.5 text-zinc-200 transition hover:bg-zinc-900 hover:text-pink-500 cursor-pointer"
             >
-              <Heart size={22} className="text-zinc-200" />
+              <Heart size={22} />
               {isClient && wishlistCount > 0 && !wishlistLoading && (
                 <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-pink-500 px-1 text-[10px] font-bold text-white">
                   {wishlistCount > 99 ? "99+" : wishlistCount}
@@ -386,7 +309,7 @@ export function NavbarClient({
               )}
             </button>
 
-            {/* CARRINHO - DESKTOP */}
+            {/* CARRINHO */}
             <button
               type="button"
               onClick={openCart}
@@ -405,7 +328,15 @@ export function NavbarClient({
 
           {/* MOBILE - ÍCONES DE AÇÕES + MENU */}
           <div className="flex items-center gap-1 sm:gap-2 lg:hidden">
-            {/* FAVORITOS MOBILE */}
+            <button
+              type="button"
+              aria-label={searchOpen ? "Fechar pesquisa" : "Pesquisar"}
+              onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
+              className="rounded-full p-2.5 text-zinc-200 transition hover:bg-zinc-900 hover:text-pink-500 cursor-pointer"
+            >
+              {searchOpen ? <X size={22} /> : <SearchIcon size={22} />}
+            </button>
+
             <button
               type="button"
               onClick={openWishlist}
@@ -413,7 +344,7 @@ export function NavbarClient({
               title="Favoritos"
               className="relative rounded-full p-2.5 text-zinc-200 transition hover:bg-zinc-900 hover:text-pink-500 cursor-pointer"
             >
-              <Heart size={22} className="text-zinc-200" />
+              <Heart size={22} />
               {isClient && wishlistCount > 0 && !wishlistLoading && (
                 <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-pink-500 px-1 text-[10px] font-bold text-white">
                   {wishlistCount > 99 ? "99+" : wishlistCount}
@@ -421,7 +352,6 @@ export function NavbarClient({
               )}
             </button>
 
-            {/* CARRINHO MOBILE */}
             <button
               type="button"
               onClick={openCart}
@@ -437,7 +367,6 @@ export function NavbarClient({
               )}
             </button>
 
-            {/* BOTÃO MENU MOBILE */}
             <button
               type="button"
               aria-label={open ? "Fechar menu" : "Abrir menu"}
@@ -451,13 +380,133 @@ export function NavbarClient({
         </div>
       </div>
 
-      {/* MEGA MENU */}
+      {/* 🔍 PAINEL DE PESQUISA */}
+      <AnimatePresence>
+        {searchOpen && (
+          <motion.div
+            ref={searchPanelRef}
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            className="overflow-hidden border-t border-zinc-800 bg-black/95 backdrop-blur-xl"
+          >
+            <div className="mx-auto max-w-[1545px] px-4 py-4 sm:px-6 sm:py-5 lg:px-10">
+              <div className="relative">
+                <SearchIcon
+                  size={20}
+                  className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500"
+                />
+
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchValue}
+                  onChange={(e) => handleSearchChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && searchValue.trim()) {
+                      handleSearchSubmit();
+                      closeSearch();
+                    }
+                    if (e.key === "Escape") closeSearch();
+                  }}
+                  onFocus={() => {
+                    if (searchValue.trim().length >= 2) setShowResults(true);
+                  }}
+                  placeholder="Pesquisar produtos..."
+                  className="h-12 w-full rounded-full border border-zinc-700 bg-zinc-900 pl-12 pr-12 text-sm text-white outline-none placeholder:text-zinc-500 focus:border-pink-500 transition"
+                />
+
+                {searchValue && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchValue("");
+                      setSearchResults([]);
+                      setShowResults(false);
+                      searchInputRef.current?.focus();
+                    }}
+                    aria-label="Limpar pesquisa"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 rounded-full p-1 text-zinc-500 transition hover:text-pink-500 cursor-pointer"
+                  >
+                    <X size={18} />
+                  </button>
+                )}
+              </div>
+
+              {showResults && searchValue.trim().length >= 2 && (
+                <div className="mt-4 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950">
+                  {isLoading ? (
+                    <div className="flex justify-center py-8">
+                      <div className="h-6 w-6 animate-spin rounded-full border-2 border-pink-200 border-t-pink-500" />
+                    </div>
+                  ) : searchResults.length > 0 ? (
+                    <>
+                      <div className="max-h-[60vh] overflow-y-auto">
+                        {searchResults.map((product) => (
+                          <Link
+                            key={product.id}
+                            href={`/product/${product.slug}`}
+                            onClick={closeSearch}
+                            className="flex items-center gap-3 border-b border-zinc-800/60 px-4 py-3 transition hover:bg-zinc-900"
+                          >
+                            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-zinc-900">
+                              <Image
+                                src={
+                                  product.images?.[0]?.url ??
+                                  "/placeholder-product.png"
+                                }
+                                alt={product.name}
+                                fill
+                                sizes="48px"
+                                className="object-contain p-1"
+                              />
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-semibold text-white">
+                                {product.name}
+                              </p>
+                              <p className="text-xs text-zinc-500">
+                                {product.brand?.name ?? "Sem marca"}
+                              </p>
+                            </div>
+
+                            <span className="shrink-0 text-sm font-bold text-pink-500">
+                              €{Number(product.price || 0).toFixed(2)}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleSearchSubmit();
+                          closeSearch();
+                        }}
+                        className="w-full bg-zinc-900 px-4 py-3 text-center text-sm font-semibold text-pink-500 transition hover:bg-zinc-800 cursor-pointer"
+                      >
+                        Ver todos os resultados para &quot;{searchValue}&quot;
+                      </button>
+                    </>
+                  ) : (
+                    <div className="px-4 py-8 text-center text-sm text-zinc-500">
+                      Nenhum produto encontrado para &quot;{searchValue}&quot;
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <MegaMenu
         activeCategory={activeCategory}
         onClose={() => setActiveCategory(null)}
       />
 
-      {/* MOBILE MENU */}
       <MobileMenu
         open={open}
         onClose={() => setOpen(false)}

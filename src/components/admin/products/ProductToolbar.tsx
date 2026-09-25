@@ -1,7 +1,9 @@
+// components/admin/products/ProductToolbar.tsx
+
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, X, Eye, EyeOff, Star } from "lucide-react";
+import { Search, X, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
 type Category = {
@@ -98,7 +100,11 @@ export function ProductToolbar() {
   const handleHideAll = async () => {
     if (loadingAll) return;
 
-    if (!window.confirm("⚠️ Tens a certeza que queres ocultar TODOS os produtos do frontend?\n\nIsto vai fazer com que nenhum produto apareça na loja!")) {
+    if (
+      !window.confirm(
+        "⚠️ Tens a certeza que queres ocultar TODOS os produtos do frontend?\n\nIsto vai fazer com que nenhum produto apareça na loja!"
+      )
+    ) {
       return;
     }
 
@@ -137,13 +143,27 @@ export function ProductToolbar() {
     return acc;
   }, {} as Record<string, Category[]>);
 
+  // ✅ Verifica se há filtros ativos (incluindo os novos)
+  const hasActiveFilters =
+    searchParams.get("search") ||
+    searchParams.get("category") ||
+    searchParams.get("status") ||
+    searchParams.get("stock") ||
+    searchParams.get("featured") ||
+    searchParams.get("sort") ||
+    searchParams.get("type") ||
+    searchParams.get("orphan");
+
   return (
     <div className="w-full min-w-0 space-y-3">
       <div className="w-full min-w-0 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm sm:rounded-2xl sm:p-4 lg:p-5">
         <div className="grid w-full min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 lg:flex lg:flex-wrap lg:items-center">
           {/* PESQUISA */}
           <div className="relative w-full min-w-0 lg:min-w-[200px] lg:flex-1">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 sm:left-4" />
+            <Search
+              size={16}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400 sm:left-4"
+            />
             <input
               type="text"
               value={search}
@@ -176,6 +196,31 @@ export function ProductToolbar() {
             ))}
           </select>
 
+          {/* ✅ NOVO — TIPO DE PRODUTO */}
+          <select
+            value={searchParams.get("type") ?? "all"}
+            onChange={(e) => updateParam("type", e.target.value)}
+            className="h-11 w-full min-w-0 cursor-pointer rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-pink-500 focus:ring-2 focus:ring-pink-200 sm:px-4 lg:w-auto lg:min-w-[180px]"
+            title="Filtrar por tipo de produto"
+          >
+            <option value="all">Todos os tipos</option>
+            <option value="grouped">🎨 Com 2+ variantes</option>
+            <option value="single">🔸 Com 1 variante</option>
+            <option value="solo">⚪ Sem variantes</option>
+          </select>
+
+          {/* ✅ NOVO — GRUPO / ÓRFÃO */}
+          <select
+            value={searchParams.get("orphan") ?? ""}
+            onChange={(e) => updateParam("orphan", e.target.value)}
+            className="h-11 w-full min-w-0 cursor-pointer rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-pink-500 focus:ring-2 focus:ring-pink-200 sm:px-4 lg:w-auto lg:min-w-[180px]"
+            title="Filtrar por estado de grupo"
+          >
+            <option value="">Todos (canónicos + órfãos)</option>
+            <option value="false">👑 Só canónicos</option>
+            <option value="true">👻 Só órfãos (escondidos)</option>
+          </select>
+
           {/* STOCK */}
           <select
             value={searchParams.get("stock") ?? "in_stock"}
@@ -187,7 +232,7 @@ export function ProductToolbar() {
             <option value="all">Todos</option>
           </select>
 
-          {/* ✅ DESTAQUE */}
+          {/* DESTAQUE */}
           <select
             value={searchParams.get("featured") ?? ""}
             onChange={(e) => updateParam("featured", e.target.value)}
@@ -227,7 +272,7 @@ export function ProductToolbar() {
             <option value="name">Nome</option>
           </select>
 
-          {(searchParams.get("search") || searchParams.get("category") || searchParams.get("status") || searchParams.get("stock") || searchParams.get("featured") || searchParams.get("sort")) && (
+          {hasActiveFilters && (
             <button
               type="button"
               onClick={clearFilters}
@@ -263,9 +308,7 @@ export function ProductToolbar() {
         </button>
 
         {message && (
-          <span className="text-sm font-medium text-pink-500">
-            {message}
-          </span>
+          <span className="text-sm font-medium text-pink-500">{message}</span>
         )}
       </div>
     </div>

@@ -8,45 +8,30 @@ import { ProductEditForm } from "@/components/admin/products/ProductEditForm";
 import { ProductImagesManager } from "@/components/admin/products/ProductImagesManager";
 
 interface EditProductPageProps {
-  params: Promise<{
-    id: string;
-  }>;
+  params: Promise<{ id: string }>;
 }
 
-export default async function EditProductPage({
-  params,
-}: EditProductPageProps) {
+export default async function EditProductPage({ params }: EditProductPageProps) {
   const { id } = await params;
 
   const product = await prisma.product.findUnique({
     where: { id },
     include: {
-      categories: {
-        include: {
-          category: true,
-        },
-      },
-      images: {
-        orderBy: { position: "asc" },
-      },
+      categories: { include: { category: true } },
+      images: { orderBy: { position: "asc" } },
     },
   });
 
-  if (!product) {
-    notFound();
-  }
+  if (!product) notFound();
 
-  // Buscar categorias com pais
+  // Todas as categorias ativas (raiz + filhas)
   const categories = await prisma.category.findMany({
-    where: { parentId: { not: null } },
-    include: { parent: true },
-    orderBy: { name: "asc" },
+    where: { deletedAt: null, isActive: true },
+    orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
   });
 
-  // Categoria atual do produto
-  const currentCategoryId = product.categories[0]?.categoryId ?? "";
+  const currentCategoryIds = product.categories.map((c) => c.categoryId);
 
-  // Converter Decimal para number
   const plainProduct = {
     id: product.id,
     name: product.name,
@@ -66,10 +51,12 @@ export default async function EditProductPage({
     isFeatured: product.isFeatured,
     isNew: product.isNew,
     isOnSale: product.isOnSale,
-    categoryId: currentCategoryId,
+    // NOVOS
+    categoryIds: currentCategoryIds,
+    categorySource: product.categorySource,
+    categoryReason: product.categoryReason,
   };
 
-  // Imagens para o gestor
   const plainImages = product.images.map((img) => ({
     id: img.id,
     url: img.url,
@@ -82,29 +69,28 @@ export default async function EditProductPage({
     <div className="space-y-6 text-zinc-900" style={{ color: "#18181b" }}>
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-zinc-900">
-            Editar Produto
-          </h1>
+          <h1 className="text-3xl font-bold text-zinc-900">Editar Produto</h1>
           <p className="mt-1 text-zinc-500">{product.name}</p>
         </div>
 
         <Link
           href={`/admin/products/${product.id}`}
-          className="
-            inline-flex items-center justify-center
-            h-10 px-5 text-sm font-semibold rounded-xl
-            transition-all duration-200 cursor-pointer
-            bg-zinc-100 text-zinc-700 hover:bg-zinc-200
-          "
+          className="inline-flex items-center justify-center h-10 px-5 text-sm font-semibold rounded-xl transition-all duration-200 cursor-pointer bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
         >
           ← Voltar
         </Link>
       </div>
 
-      {/* FORMULÁRIO */}
-      <ProductEditForm product={plainProduct} categories={categories} />
+      <ProductEditForm
+        product={plainProduct}
+        categories={categories.map((c) => ({
+          id: c.id,
+          name: c.name,
+          slug: c.slug,
+          parentId: c.parentId,
+        }))}
+      />
 
-      {/* ✅ GESTÃO DE IMAGENS */}
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
         <div className="mb-5 flex items-center justify-between">
           <div>
@@ -117,10 +103,7 @@ export default async function EditProductPage({
           </div>
         </div>
 
-        <ProductImagesManager
-          productId={product.id}
-          images={plainImages}
-        />
+        <ProductImagesManager productId={product.id} images={plainImages} />
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import Link from "next/link";
 
 import { prisma } from "@/lib/prisma";
+import { ALL_ACTIVE_SLUGS } from "@/lib/categories";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Button } from "@/components/ui/Button";
 import { ProductSort } from "@/components/product/ProductSort";
@@ -10,31 +11,6 @@ import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SearchInput } from "@/components/product/SearchInput";
 
 const PAGE_SIZE = 24;
-
-const FRONTEND_CATEGORY_SLUGS = [
-  "sex-toys",
-  "para-ele",
-  "essenciais",
-  "roupa",
-  "bdsm",
-  "vibradores",
-  "dildos",
-  "sugadores",
-  "bolas-anales",
-  "estimuladores",
-  "masturbadores",
-  "aneis-penianos",
-  "estimulantes",
-  "lubrificantes",
-  "afrodisiacos",
-  "jogos-eroticos",
-  "lingerie-sexy",
-  "bodystocking",
-  "bikinis",
-  "bondage",
-  "acessorios-bdsm",
-  "baterias-acessorios",
-];
 
 type Props = {
   searchParams: Promise<{
@@ -81,7 +57,6 @@ type RawProductRow = {
   images: Array<{ id: string; url: string; isPrimary: boolean }> | null;
 };
 
-// ✅ Normaliza parâmetros - retorna o primeiro valor NÃO-VAZIO
 function getParam(value: string | string[] | undefined): string {
   if (Array.isArray(value)) {
     const filtered = value.filter((v) => v && v.trim().length > 0);
@@ -117,48 +92,22 @@ export default async function ProductsPage({ searchParams }: Props) {
   } else if (category) {
     const mainCat = await prisma.category.findUnique({
       where: { slug: category },
-      include: {
-        children: {
-          select: { id: true },
-        },
-      },
+      include: { children: { select: { id: true } } },
     });
-
     if (mainCat) {
-      categoryIds = mainCat.children.map((c) => c.id);
+      // Se for raiz, apanha todas as filhas + ela própria
+      categoryIds = [mainCat.id, ...mainCat.children.map((c) => c.id)];
     }
   }
 
-  // ✅ Pesquisa APENAS por nome
   const where: Prisma.ProductWhereInput = {
     status: "ACTIVE",
     stock: { gt: 0 },
-
-    ...(search
-      ? {
-          name: { contains: search, mode: "insensitive" as const },
-        }
-      : {}),
-
+    ...(search ? { name: { contains: search, mode: "insensitive" as const } } : {}),
     ...(categoryIds.length > 0
-      ? {
-          categories: {
-            some: {
-              categoryId: { in: categoryIds },
-            },
-          },
-        }
+      ? { categories: { some: { categoryId: { in: categoryIds } } } }
       : {}),
-
-    ...(brand
-      ? {
-          brand: {
-            slug: brand,
-            isActive: true,
-          },
-        }
-      : {}),
-
+    ...(brand ? { brand: { slug: brand, isActive: true } } : {}),
     ...(minPrice || maxPrice
       ? {
           price: {
@@ -167,7 +116,6 @@ export default async function ProductsPage({ searchParams }: Props) {
           },
         }
       : {}),
-
     ...(sale === "true" ? { isOnSale: true } : {}),
     ...(isNew === "true" ? { isNew: true } : {}),
   };
@@ -183,26 +131,10 @@ export default async function ProductsPage({ searchParams }: Props) {
       FROM "Product" p
       LEFT JOIN "Brand" b ON p."brandId" = b.id
       WHERE p."status" = 'ACTIVE' AND p."stock" > 0
-      ${
-        search
-          ? Prisma.sql`AND p."name" ILIKE ${`%${search}%`}`
-          : Prisma.empty
-      }
-      ${
-        brand
-          ? Prisma.sql`AND b.slug = ${brand}`
-          : Prisma.empty
-      }
-      ${
-        minPrice
-          ? Prisma.sql`AND p.price::numeric >= ${Number(minPrice)}::numeric`
-          : Prisma.empty
-      }
-      ${
-        maxPrice
-          ? Prisma.sql`AND p.price::numeric <= ${Number(maxPrice)}::numeric`
-          : Prisma.empty
-      }
+      ${search ? Prisma.sql`AND p."name" ILIKE ${`%${search}%`}` : Prisma.empty}
+      ${brand ? Prisma.sql`AND b.slug = ${brand}` : Prisma.empty}
+      ${minPrice ? Prisma.sql`AND p.price::numeric >= ${Number(minPrice)}::numeric` : Prisma.empty}
+      ${maxPrice ? Prisma.sql`AND p.price::numeric <= ${Number(maxPrice)}::numeric` : Prisma.empty}
       ${sale === "true" ? Prisma.sql`AND p."isOnSale" = true` : Prisma.empty}
       ${isNew === "true" ? Prisma.sql`AND p."isNew" = true` : Prisma.empty}
     `;
@@ -213,46 +145,18 @@ export default async function ProductsPage({ searchParams }: Props) {
 
     const rawProducts = await prisma.$queryRaw<RawProductRow[]>`
       SELECT 
-        p.id,
-        p.slug,
-        p.name,
-        p."shortDescription",
-        p.price,
-        p."comparePrice",
-        p."isNew",
-        p."isOnSale",
-        p."ratingAverage",
-        p."ratingCount",
+        p.id, p.slug, p.name, p."shortDescription", p.price, p."comparePrice",
+        p."isNew", p."isOnSale", p."ratingAverage", p."ratingCount",
         b.name as "brandName",
-        (
-          SELECT json_agg(json_build_object('id', pi.id, 'url', pi.url, 'isPrimary', pi."isPrimary"))
-          FROM "ProductImage" pi 
-          WHERE pi."productId" = p.id AND pi."isPrimary" = true 
-          LIMIT 1
-        ) as images
+        (SELECT json_agg(json_build_object('id', pi.id, 'url', pi.url, 'isPrimary', pi."isPrimary"))
+         FROM "ProductImage" pi WHERE pi."productId" = p.id AND pi."isPrimary" = true LIMIT 1) as images
       FROM "Product" p
       LEFT JOIN "Brand" b ON p."brandId" = b.id
       WHERE p."status" = 'ACTIVE' AND p."stock" > 0
-      ${
-        search
-          ? Prisma.sql`AND p."name" ILIKE ${`%${search}%`}`
-          : Prisma.empty
-      }
-      ${
-        brand
-          ? Prisma.sql`AND b.slug = ${brand}`
-          : Prisma.empty
-      }
-      ${
-        minPrice
-          ? Prisma.sql`AND p.price::numeric >= ${Number(minPrice)}::numeric`
-          : Prisma.empty
-      }
-      ${
-        maxPrice
-          ? Prisma.sql`AND p.price::numeric <= ${Number(maxPrice)}::numeric`
-          : Prisma.empty
-      }
+      ${search ? Prisma.sql`AND p."name" ILIKE ${`%${search}%`}` : Prisma.empty}
+      ${brand ? Prisma.sql`AND b.slug = ${brand}` : Prisma.empty}
+      ${minPrice ? Prisma.sql`AND p.price::numeric >= ${Number(minPrice)}::numeric` : Prisma.empty}
+      ${maxPrice ? Prisma.sql`AND p.price::numeric <= ${Number(maxPrice)}::numeric` : Prisma.empty}
       ${sale === "true" ? Prisma.sql`AND p."isOnSale" = true` : Prisma.empty}
       ${isNew === "true" ? Prisma.sql`AND p."isNew" = true` : Prisma.empty}
       ORDER BY RANDOM()
@@ -293,10 +197,7 @@ export default async function ProductsPage({ searchParams }: Props) {
           : { createdAt: "desc" },
       include: {
         brand: true,
-        images: {
-          where: { isPrimary: true },
-          take: 1,
-        },
+        images: { where: { isPrimary: true }, take: 1 },
       },
     });
 
@@ -316,23 +217,20 @@ export default async function ProductsPage({ searchParams }: Props) {
     }));
   }
 
+  // ✅ Carrega categorias ativas (raízes + filhas)
   const [categories, brands] = await Promise.all([
     prisma.category.findMany({
       where: {
         isActive: true,
-        slug: { in: FRONTEND_CATEGORY_SLUGS },
+        deletedAt: null,
+        slug: { in: ALL_ACTIVE_SLUGS },
       },
-      orderBy: { sortOrder: "asc" },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     }),
     prisma.brand.findMany({
       where: {
         isActive: true,
-        products: {
-          some: {
-            status: "ACTIVE",
-            deletedAt: null,
-          },
-        },
+        products: { some: { status: "ACTIVE", deletedAt: null } },
       },
       orderBy: { name: "asc" },
     }),
@@ -341,14 +239,12 @@ export default async function ProductsPage({ searchParams }: Props) {
   const activeCategory = category
     ? categories.find((cat) => cat.slug === category)
     : null;
-
   const activeSubcategory = subcategory
     ? categories.find((cat) => cat.slug === subcategory)
     : null;
 
   const createQuery = (extra: Record<string, string> = {}) => {
     const query = new URLSearchParams();
-
     if (search) query.set("search", search);
     if (category) query.set("category", category);
     if (subcategory) query.set("subcategory", subcategory);
@@ -358,15 +254,14 @@ export default async function ProductsPage({ searchParams }: Props) {
     if (sale) query.set("sale", sale);
     if (isNew) query.set("new", isNew);
     if (sort) query.set("sort", sort);
-
-    Object.entries(extra).forEach(([key, value]) => {
-      query.set(key, value);
-    });
-
+    Object.entries(extra).forEach(([key, value]) => query.set(key, value));
     return query.toString();
   };
 
-  const hasFilters = !!(search || category || subcategory || brand || minPrice || maxPrice || sale === "true" || isNew === "true");
+  const hasFilters = !!(
+    search || category || subcategory || brand ||
+    minPrice || maxPrice || sale === "true" || isNew === "true"
+  );
 
   const pageTitle = search
     ? `Resultados para "${search}"`
@@ -381,12 +276,8 @@ export default async function ProductsPage({ searchParams }: Props) {
     ...(activeCategory
       ? [{ label: activeCategory.name, href: `/product?category=${activeCategory.slug}` }]
       : []),
-    ...(activeSubcategory
-      ? [{ label: activeSubcategory.name }]
-      : []),
-    ...(!activeSubcategory && search
-      ? [{ label: `Pesquisa: ${search}` }]
-      : []),
+    ...(activeSubcategory ? [{ label: activeSubcategory.name }] : []),
+    ...(!activeSubcategory && search ? [{ label: `Pesquisa: ${search}` }] : []),
   ];
 
   return (
@@ -414,7 +305,6 @@ export default async function ProductsPage({ searchParams }: Props) {
                 {total} {total === 1 ? "produto encontrado" : "produtos encontrados"}
               </p>
             </div>
-
             <ProductSort defaultSort={sort} />
           </div>
         </div>
@@ -428,7 +318,6 @@ export default async function ProductsPage({ searchParams }: Props) {
                 Encontra rapidamente o produto que procuras.
               </p>
             </div>
-
             {hasFilters && (
               <Link
                 href="/product"
@@ -453,10 +342,7 @@ export default async function ProductsPage({ searchParams }: Props) {
               <FilterDropdown
                 options={[
                   { value: "", label: "Todas" },
-                  ...categories.map((cat) => ({
-                    value: cat.slug,
-                    label: cat.name,
-                  })),
+                  ...categories.map((cat) => ({ value: cat.slug, label: cat.name })),
                 ]}
                 defaultValue={category}
                 name="category"
@@ -471,10 +357,7 @@ export default async function ProductsPage({ searchParams }: Props) {
               <FilterDropdown
                 options={[
                   { value: "", label: "Todas" },
-                  ...brands.map((item) => ({
-                    value: item.slug,
-                    label: item.name,
-                  })),
+                  ...brands.map((item) => ({ value: item.slug, label: item.name })),
                 ]}
                 defaultValue={brand}
                 name="brand"
@@ -509,9 +392,7 @@ export default async function ProductsPage({ searchParams }: Props) {
             </div>
 
             <div className="flex items-end">
-              <Button type="submit" className="w-full">
-                Filtrar
-              </Button>
+              <Button type="submit" className="w-full">Filtrar</Button>
             </div>
           </form>
         </div>
@@ -520,31 +401,26 @@ export default async function ProductsPage({ searchParams }: Props) {
         {hasFilters && (
           <div className="mb-8 flex flex-wrap items-center gap-2">
             <span className="mr-2 text-sm text-zinc-500">Filtros:</span>
-
             {search && (
               <span className="rounded-full bg-pink-500/10 px-3 py-1.5 text-xs font-medium text-pink-600">
                 Pesquisa: {search}
               </span>
             )}
-
             {category && activeCategory && (
               <span className="rounded-full bg-pink-500/10 px-3 py-1.5 text-xs font-medium text-pink-600">
                 Categoria: {activeCategory.name}
               </span>
             )}
-
             {subcategory && activeSubcategory && (
               <span className="rounded-full bg-pink-500/10 px-3 py-1.5 text-xs font-medium text-pink-600">
                 Subcategoria: {activeSubcategory.name}
               </span>
             )}
-
             {brand && (
               <span className="rounded-full bg-pink-500/10 px-3 py-1.5 text-xs font-medium text-pink-600">
                 Marca: {brands.find((item) => item.slug === brand)?.name ?? brand}
               </span>
             )}
-
             {(minPrice || maxPrice) && (
               <span className="rounded-full bg-pink-500/10 px-3 py-1.5 text-xs font-medium text-pink-600">
                 Preço: {minPrice || "0"}€ — {maxPrice || "∞"}€
@@ -557,10 +433,7 @@ export default async function ProductsPage({ searchParams }: Props) {
         {displayProducts.length === 0 ? (
           <div className="rounded-3xl border border-pink-100 bg-white p-20 text-center shadow-sm">
             <h2 className="text-lg font-semibold text-zinc-900">Nenhum produto encontrado</h2>
-            <p className="mt-2 text-sm text-zinc-500">
-              Tenta alterar ou remover alguns filtros.
-            </p>
-
+            <p className="mt-2 text-sm text-zinc-500">Tenta alterar ou remover alguns filtros.</p>
             <Link
               href="/product"
               className="inline-flex items-center justify-center h-10 px-5 text-sm font-semibold rounded-xl transition-all duration-200 cursor-pointer bg-pink-500 text-white hover:bg-pink-600 mt-6"
@@ -595,10 +468,10 @@ export default async function ProductsPage({ searchParams }: Props) {
                 {currentPage > 1 ? (
                   <Link
                     href={`/product?${createQuery({ page: String(currentPage - 1) })}`}
-                    className="group relative inline-flex items-center justify-center h-12 w-12 rounded-2xl transition-all duration-300 cursor-pointer bg-zinc-200 text-zinc-900 border-2 border-zinc-400 hover:bg-zinc-300 hover:border-pink-500 hover:text-pink-600 hover:shadow-[0_4px_20px_rgba(236,72,153,0.2)]"
+                    className="group relative inline-flex items-center justify-center h-12 w-12 rounded-2xl transition-all duration-300 cursor-pointer bg-zinc-200 text-zinc-900 border-2 border-zinc-400 hover:bg-zinc-300 hover:border-pink-500 hover:text-pink-600"
                     aria-label="Página anterior"
                   >
-                    <svg className="h-5 w-5 transition-transform duration-300 group-hover:-translate-x-1" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                     </svg>
                   </Link>
@@ -611,7 +484,9 @@ export default async function ProductsPage({ searchParams }: Props) {
                 )}
 
                 <div className="flex items-center gap-2 rounded-2xl bg-white border-2 border-zinc-300 px-6 py-2.5 shadow-sm">
-                  <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-fuchsia-500">{currentPage}</span>
+                  <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-pink-500 to-fuchsia-500">
+                    {currentPage}
+                  </span>
                   <span className="text-sm text-zinc-400">/</span>
                   <span className="text-sm font-semibold text-zinc-700">{totalPages}</span>
                 </div>
@@ -619,10 +494,10 @@ export default async function ProductsPage({ searchParams }: Props) {
                 {currentPage < totalPages ? (
                   <Link
                     href={`/product?${createQuery({ page: String(currentPage + 1) })}`}
-                    className="group relative inline-flex items-center justify-center h-12 w-12 rounded-2xl transition-all duration-300 cursor-pointer bg-gradient-to-br from-pink-500 to-fuchsia-500 text-white shadow-lg shadow-pink-500/25 hover:shadow-[0_4px_25px_rgba(236,72,153,0.4)] hover:scale-105"
+                    className="group relative inline-flex items-center justify-center h-12 w-12 rounded-2xl transition-all duration-300 cursor-pointer bg-gradient-to-br from-pink-500 to-fuchsia-500 text-white shadow-lg shadow-pink-500/25 hover:scale-105"
                     aria-label="Página seguinte"
                   >
-                    <svg className="h-5 w-5 transition-transform duration-300 group-hover:translate-x-1" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                     </svg>
                   </Link>

@@ -2,20 +2,15 @@ import Image from "next/image";
 import Link from "next/link";
 
 type CategoryCardProps = {
-  id: string;
+  id?: string;
   slug: string;
   name: string;
   description?: string | null;
   image?: string | null;
-  subcategory?: string; // ← ADICIONAR
-};
-
-// Mapeamento: slug visual → slug real da BD
-const slugMapping: Record<string, { category: string; subcategory?: string }> = {
-  "vibradores": { category: "sex-toys", subcategory: "vibradores" },
-  "lingeries": { category: "roupa", subcategory: "lingerie-sexy" },
-  "BDSM": { category: "bdsm", subcategory: "bondage" },
-  "lubrificantes": { category: "essenciais", subcategory: "lubrificantes" },
+  /** Slug da categoria principal (opcional) */
+  category?: string;
+  /** Slug da subcategoria (opcional) */
+  subcategory?: string;
 };
 
 export function CategoryCard({
@@ -23,17 +18,25 @@ export function CategoryCard({
   name,
   description,
   image,
+  category,
   subcategory,
 }: CategoryCardProps) {
-  // Usa o slug mapeado ou o original
-  const mapping = slugMapping[slug] ?? { category: slug.toLowerCase() };
-  
-  // Gerar link com subcategory se existir
-  const href = subcategory
-    ? `/product?category=${mapping.category}&subcategory=${subcategory}`
-    : mapping.subcategory
-    ? `/product?category=${mapping.category}&subcategory=${mapping.subcategory}`
-    : `/product?category=${mapping.category}`;
+  // Determinar o destino do link:
+  // 1. Se houver category + subcategory → link com ambos
+  // 2. Se houver apenas subcategory → link só com subcategory
+  // 3. Senão → slug é a categoria principal
+  const params = new URLSearchParams();
+
+  if (category && subcategory) {
+    params.set("category", category);
+    params.set("subcategory", subcategory);
+  } else if (subcategory) {
+    params.set("subcategory", subcategory);
+  } else {
+    params.set("category", slug);
+  }
+
+  const href = `/product?${params.toString()}`;
 
   return (
     <Link

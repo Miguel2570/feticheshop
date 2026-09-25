@@ -3,22 +3,18 @@
 /**
  * Extrai informação estruturada do nome de um produto Dreamlove.
  *
- * Suporta:
- *   - Cores compostas: PRETO/VERMELHO, PRETO E VERMELHO, AZUL-PRETO
- *   - Tamanhos: S, M, L, XL, XXL, S/M, L/XL, Único, etc.
- *   - Volumes: 1 ML, 50 ML, 100 ML, 250 ML, etc.
- *
- * ⚠️  Apenas ML é extraído como variante. CM/MM/KG/G/L ficam no nome
- *     (são dimensões físicas descritivas, não variantes).
- *
- * ✅ Integra normalização PT-BR → PT-PT via product-normalizer.ts
+ * ✅ Suporta tamanhos compostos: S/M, L/XL, XXL/XXXL, M/L, S/L, G/GG
+ * ✅ Suporta cores compostas: PRETO/VERMELHO, PRETO E VERMELHO, AZUL-PRETO
+ * ✅ Trata "&" como separador (ex: "TEDDY & PRETO" → "TEDDY / PRETO")
  */
 
 import { normalizeToPT } from "./product-normalizer";
 
-// ✅ Ordem CRÍTICA: mais longos / compostos primeiro
+// ─── Tamanhos ──────────────────────────────────────────────────
+// Ordem crítica: mais longos / compostos primeiro
 const SIZES = [
   "XXXL",
+  "XXL/XXXL",
   "XXL",
   "L/XL",
   "M/L",
@@ -36,26 +32,15 @@ const SIZES = [
   "S",
 ];
 
-// ✅ Volumes suportados como variantes (em ML)
-// Têm de bater certo com os AttributeValue criados em seed-volume-attribute.ts
+// Regex para apanhar tamanhos compostos genéricos X/Y (ex: XXL/XXXL)
+// Aplicado DEPOIS da lista SIZES, como fallback
+const COMPOSITE_SIZE_REGEX =
+  /\b(XXS|XS|S|M|L|XL|XXL|XXXL|G|GG)\s*\/\s*(XXS|XS|S|M|L|XL|XXL|XXXL|G|GG)\b/i;
+
 const VOLUMES = [
-  "1 ML",
-  "2 ML",
-  "5 ML",
-  "10 ML",
-  "15 ML",
-  "20 ML",
-  "30 ML",
-  "50 ML",
-  "60 ML",
-  "75 ML",
-  "100 ML",
-  "125 ML",
-  "150 ML",
-  "200 ML",
-  "250 ML",
-  "500 ML",
-  "1000 ML",
+  "1 ML", "2 ML", "5 ML", "10 ML", "15 ML", "20 ML",
+  "30 ML", "50 ML", "60 ML", "75 ML", "100 ML", "125 ML",
+  "150 ML", "200 ML", "250 ML", "500 ML", "1000 ML",
 ];
 
 const COLORS = [
@@ -79,16 +64,15 @@ const COLORS = [
 ];
 
 const COMPOSITE_COLOR_REGEX = new RegExp(
-  `\\b(${COLORS.join("|")})\\s*(\\/|\\s*E\\s+|\\s*-\\s*)\\s*(${COLORS.join("|")})\\b`,
+  `\\b(${COLORS.join("|")})\\s*(\\/|\\s+E\\s+|\\s*-\\s*)\\s*(${COLORS.join("|")})\\b`,
   "i"
 );
 
-// Volume no FIM do nome: "50 ML", "100 ML", "1000ML", etc.
 const VOLUME_REGEX = /\s+(\d+(?:[.,]\d+)?)\s*ML\s*$/i;
 
 export interface ParsedProductName {
   base: string;
-  color: string | null;
+  color: string | null;         // pode ser composta: "Vermelho/Preto"
   size: string | null;
   volume: string | null;
 }
@@ -111,8 +95,7 @@ function normalizeColor(color: string): string {
 }
 
 /**
- * Normaliza o volume extraído para bater com o AttributeValue.
- * Só aceita valores inteiros que estejam na lista VOLUMES.
+ * Normaliza o volume — devolve "N ML" (o AttributeValue exato).
  */
 function normalizeVolume(value: string): string | null {
   const num = parseFloat(value.replace(",", "."));
@@ -125,43 +108,45 @@ function normalizeVolume(value: string): string | null {
 }
 
 export function parseProductName(rawName: string): ParsedProductName {
-  // 1. Fix mojibake + normalização PT-BR → PT-PT (ANTES do toUpperCase)
+  // 1. Normalização PT-BR → PT-PT
   let name = normalizeToPT(rawName);
 
   // 2. Uppercase
   name = name.toUpperCase();
 
-  // 3. Corrigir erros comuns da Dreamlove
+  // 3. Corrigir erros comuns
   name = name
     .replace(/\bSRETA\b/g, "PRETA")
     .replace(/\bSRETO\b/g, "PRETO")
     .replace(/\bSUSPERLOR\b/g, "SUSPENSOR")
     .replace(/\bSUSPERLORIDA\b/g, "SUSPENSORIA");
 
-  // 4. Extrair VOLUME (antes do tamanho, porque "ML" pode ser confundido
-  //    com o tamanho "L")
-  let volume: string | null = null;
+  // 4. ✅ NOVO — Tratar "&" como "/" para cor composta
+  //    Ex: "ZULMIRA TEDDY & PRETO" → "ZULMIRA TEDDY / PRETO"
+  //    Só substitui quando precedido de espaço e seguido de palavra
+  name = name.replace(/\s*&\s*/g, " / ");
 
+  // 5. Extrair VOLUME (antes do tamanho)
+  let volume: string | null = null;
   const volMatch = name.match(VOLUME_REGEX);
   if (volMatch) {
-    const rawVolume = volMatch[1];
-    const normalized = normalizeVolume(rawVolume);
+    const normalized = normalizeVolume(volMatch[1]);
     if (normalized) {
       volume = normalized;
       name = name.replace(VOLUME_REGEX, "").trim();
     }
   }
 
-  // 5. Extrair tamanho (no fim do nome)
+  // 6. Extrair tamanho (no fim do nome)
   let size: string | null = null;
 
+  // 6a. Tentar a lista SIZES (mais específica)
   for (const s of SIZES) {
     const escaped = escapeRegex(s);
     const pattern = new RegExp(
       `(?:\\s+-\\s+(?:TAMANHO\\s+)?|\\s+(?:TAMANHO\\s+)?)${escaped}\\s*$`,
       "i"
     );
-
     if (pattern.test(name)) {
       size = s;
       name = name.replace(pattern, "").trim();
@@ -169,18 +154,36 @@ export function parseProductName(rawName: string): ParsedProductName {
     }
   }
 
-  // 6. Extrair cor composta PRIMEIRO
+  // 6b. ✅ NOVO — Fallback: tamanho composto genérico (ex: XXL/XXXL)
+  if (!size) {
+    const compMatch = name.match(COMPOSITE_SIZE_REGEX);
+    if (compMatch) {
+      // Garantir que está no fim do nome
+      const afterIdx = compMatch.index! + compMatch[0].length;
+      const afterStr = name.slice(afterIdx).trim();
+      if (afterStr === "") {
+        size = `${compMatch[1].toUpperCase()}/${compMatch[2].toUpperCase()}`;
+        name = name.replace(COMPOSITE_SIZE_REGEX, "").trim();
+      }
+    }
+  }
+
+  // 7. Extrair cor composta PRIMEIRO
   let color: string | null = null;
 
   const compositeMatch = name.match(COMPOSITE_COLOR_REGEX);
   if (compositeMatch) {
     const c1 = normalizeColor(compositeMatch[1]);
     const c2 = normalizeColor(compositeMatch[3]);
+    // ✅ Decisão B — valor composto único "Vermelho/Preto"
     color = `${c1}/${c2}`;
-    name = name.replace(COMPOSITE_COLOR_REGEX, "").replace(/\s+/g, " ").trim();
+    name = name
+      .replace(COMPOSITE_COLOR_REGEX, "")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
-  // 7. Se não houver cor composta, extrair cor simples
+  // 8. Cor simples (se não encontrou composta)
   if (!color) {
     for (const c of COLORS) {
       const pattern = new RegExp(`\\b${escapeRegex(c)}\\b`, "i");
@@ -192,7 +195,7 @@ export function parseProductName(rawName: string): ParsedProductName {
     }
   }
 
-  // 8. Limpar separadores e espaços duplicados
+  // 9. Limpar
   name = name
     .replace(/^[\s\-–,\/]+|[\s\-–,\/]+$/g, "")
     .replace(/\s+/g, " ")
@@ -206,9 +209,6 @@ export function parseProductName(rawName: string): ParsedProductName {
   };
 }
 
-/**
- * Gera uma chave única para agrupar produtos do mesmo "modelo".
- */
 export function getProductGroupKey(rawName: string): string {
   const { base, color } = parseProductName(rawName);
   return `${base}|${color ?? "SEM_COR"}`;

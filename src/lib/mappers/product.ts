@@ -1,20 +1,31 @@
 // lib/mappers/product.ts
 
 import { Prisma } from "@prisma/client";
-import { Product } from "@/types/product";
-import { 
-  extractFeatures, 
+import { Product, ProductVariant } from "@/types/product";
+import {
+  extractFeatures,
   extractSpecifications,
-  extractDescription
+  extractDescription,
 } from "@/utils/product-helpers";
 
 export type ProductWithRelations = Prisma.ProductGetPayload<{
   include: {
     brand: true;
     images: true;
-    categories: {
+    categories: { include: { category: true } };
+    attributes: {
       include: {
-        category: true;
+        attributeValue: { include: { attribute: true } };
+      };
+    };
+    variants: {
+      include: {
+        images: true;
+        attributeValues: {
+          include: {
+            attributeValue: { include: { attribute: true } };
+          };
+        };
       };
     };
   };
@@ -51,6 +62,43 @@ export function mapProduct(product: ProductWithRelations): Product {
 
   const cleanedFeatures = features.map(cleanText);
 
+  // Mapear variantes
+  const variants: ProductVariant[] = product.variants
+    .filter((v) => v.isActive)
+    .map((v) => ({
+      id: v.id,
+      name: v.name,
+      sku: v.sku,
+      price: v.price != null ? Number(v.price) : null,
+      comparePrice: v.comparePrice != null ? Number(v.comparePrice) : null,
+      stock: v.stock,
+      isActive: v.isActive,
+      attributes: v.attributeValues.map((av) => ({
+        slug: av.attributeValue.attribute.slug,
+        name: av.attributeValue.attribute.name,
+        value: av.attributeValue.value,
+        valueSlug: av.attributeValue.slug,
+        colorHex: av.attributeValue.colorHex,
+      })),
+      images: v.images
+        .sort((a, b) => a.position - b.position)
+        .map((img) => img.url),
+    }));
+
+  // Imagens gerais (sem variantId)
+  const generalImages = product.images
+    .filter((img) => !img.variantId)
+    .sort((a, b) => a.position - b.position)
+    .map((img) => img.url);
+
+  // Se não há imagens gerais, usa todas
+  const images =
+    generalImages.length > 0
+      ? generalImages
+      : product.images
+          .sort((a, b) => a.position - b.position)
+          .map((img) => img.url);
+
   return {
     id: product.id,
     slug: product.slug,
@@ -64,8 +112,9 @@ export function mapProduct(product: ProductWithRelations): Product {
     stock: product.stock > 0,
     sku: product.sku ?? "",
     category: product.categories[0]?.category.name ?? "",
-    images: product.images.map((image) => image.url),
+    images,
     features: cleanedFeatures,
+    variants,
     specifications: {
       material: cleanText(specs.material ?? ""),
       color: cleanText(specs.color ?? ""),

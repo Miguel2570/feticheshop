@@ -5,61 +5,12 @@ import Link from "next/link";
 import { useRef, useEffect } from "react";
 import { ChevronRight } from "lucide-react";
 
+import { MAIN_CATEGORIES, SUBCATEGORIES } from "@/lib/categories";
+
 interface MegaMenuProps {
   activeCategory: string | null;
   onClose: () => void;
 }
-
-// Estrutura atualizada com Jogos Eróticos
-const menuStructure = [
-  {
-    name: "Sex Toys",
-    slug: "sex-toys",
-    subCategories: [
-      { name: "Vibradores", slug: "vibradores" },
-      { name: "Dildos", slug: "dildos" },
-      { name: "Sugadores", slug: "sugadores" },
-      { name: "Bolas Anales", slug: "bolas-anales" },
-      { name: "Estimuladores", slug: "estimuladores" },
-      { name: "Baterias e Acessórios", slug: "baterias-acessorios" },
-    ],
-  },
-  {
-    name: "Para o Pénis",
-    slug: "para-ele",
-    subCategories: [
-      { name: "Masturbadores", slug: "masturbadores" },
-      { name: "Anéis Penianos", slug: "aneis-penianos" },
-      { name: "Estimulantes", slug: "estimulantes" },
-    ],
-  },
-  {
-    name: "Saúde e Bem-Estar",
-    slug: "essenciais",
-    subCategories: [
-      { name: "Lubrificantes", slug: "lubrificantes" },
-      { name: "Afrodisíacos", slug: "afrodisiacos" },
-      { name: "Jogos Eróticos", slug: "jogos-eroticos" },
-    ],
-  },
-  {
-    name: "Lingerie",
-    slug: "roupa",
-    subCategories: [
-      { name: "Lingerie Sexy", slug: "lingerie-sexy" },
-      { name: "Bodystocking", slug: "bodystocking" },
-      { name: "Bikinis", slug: "bikinis" },
-    ],
-  },
-  {
-    name: "BDSM",
-    slug: "bdsm",
-    subCategories: [
-      { name: "Bondage", slug: "bondage" },
-      { name: "Acessórios BDSM", slug: "acessorios-bdsm" },
-    ],
-  },
-];
 
 export function MegaMenu({
   activeCategory,
@@ -68,9 +19,14 @@ export function MegaMenu({
   const menuRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const activeMenu = menuStructure.find(
+  // ✅ Constrói a estrutura dinamicamente a partir de lib/categories
+  const activeMenu = MAIN_CATEGORIES.find(
     (cat) => cat.slug === activeCategory
   );
+
+  const subCategories = activeCategory
+    ? SUBCATEGORIES[activeCategory] ?? []
+    : [];
 
   useEffect(() => {
     return () => {
@@ -147,7 +103,7 @@ export function MegaMenu({
     >
       <div className="mx-auto max-w-[1545px] px-10 py-8">
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8">
-          {activeMenu.subCategories.map((subCat) => (
+          {subCategories.map((subCat) => (
             <Link
               key={subCat.slug}
               href={`/product?category=${activeMenu.slug}&subcategory=${subCat.slug}`}
