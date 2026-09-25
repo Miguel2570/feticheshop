@@ -16,7 +16,7 @@ const banners = [
     id: 2,
     image: "/images/banners/desktop/banner-10.jpg",
     alt: "Banner 2",
-    link: "/product/intt-suck-my-clit-gel-com-efeito-de-succao-morango-silvestre-15-ml",
+    link: "/product/intt-suck-my-clit-gel-com-efeito-de-succao-morango-silvestre",
   },
   {
     id: 3,
@@ -28,7 +28,7 @@ const banners = [
     id: 4,
     image: "/images/banners/desktop/banner-4.jpg",
     alt: "Banner 4",
-    link: "/intt-suck-my-clit-gel-com-efeito-de-succao-manga-tropical-15-ml",
+    link: "/product/intt-suck-my-clit-gel-com-efeito-de-succao-manga-tropical",
   },
 ];
 

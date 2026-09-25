@@ -239,7 +239,7 @@ export function ProductsTable({ products }: ProductsTableProps) {
                     )}
                   </td>
 
-                  <td className="p-4">
+                  <td className="p-4 whitespace-nowrap text-center">
                     {product.stock === 0 ? (
                       <span className="rounded-full bg-red-50 border border-red-200 px-3 py-1 text-xs font-semibold text-red-500">
                         Sem stock
