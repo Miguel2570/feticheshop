@@ -9,6 +9,8 @@ import {
 
 import "./globals.css";
 
+import { Toaster } from "sonner";
+
 import { CartProvider } from "@/components/cart/CartProvider";
 import { CartSidePanel } from "@/components/cart/CartSidePanel";
 import { WishlistProvider } from "@/components/wishlist/WishlistProvider";
@@ -58,6 +60,19 @@ export default function RootLayout({
           </CartProvider>
         </WishlistProvider>
         <CookieConsent />
+
+        <Toaster
+          position="top-right"
+          richColors
+          closeButton
+          duration={4000}
+          offset={{ top: "155px", right: "20px" }}
+          toastOptions={{
+            style: {
+              fontFamily: "inherit",
+            },
+          }}
+        />
       </body>
     </html>
   );

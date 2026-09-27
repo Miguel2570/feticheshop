@@ -381,6 +381,8 @@ model Product {
   // Stock do fornecedor (sincronizado)
   supplierStock Int @default(0)
 
+  stockNotifications StockNotification[]
+
   stock          Int     @default(0)
   manageStock    Boolean @default(true)
   allowBackorder Boolean @default(false)
@@ -1068,4 +1070,17 @@ model Review {
 
   @@index([productId])
   @@index([userId])
+}
+
+model StockNotification {
+  id        String   @id @default(cuid())
+  email     String
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  notified  Boolean  @default(false)
+  notifiedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@unique([email, productId])
+  @@index([productId, notified])
 }

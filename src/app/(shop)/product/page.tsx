@@ -1,3 +1,5 @@
+// app/product/page.tsx
+
 import { Prisma } from "@prisma/client";
 import Link from "next/link";
 
@@ -36,6 +38,7 @@ type DisplayProduct = {
   comparePrice: number | null;
   isNew: boolean;
   isOnSale: boolean;
+  stock: number; // ← NOVO
   ratingAverage: number;
   ratingCount: number;
   brand: { name: string } | null;
@@ -51,6 +54,7 @@ type RawProductRow = {
   comparePrice: string | number | null;
   isNew: boolean;
   isOnSale: boolean;
+  stock: number; // ← NOVO
   ratingAverage: number;
   ratingCount: number;
   brandName: string | null;
@@ -95,15 +99,16 @@ export default async function ProductsPage({ searchParams }: Props) {
       include: { children: { select: { id: true } } },
     });
     if (mainCat) {
-      // Se for raiz, apanha todas as filhas + ela própria
       categoryIds = [mainCat.id, ...mainCat.children.map((c) => c.id)];
     }
   }
 
+  // ✅ Mostra TODOS os produtos ativos (com e sem stock)
   const where: Prisma.ProductWhereInput = {
     status: "ACTIVE",
-    stock: { gt: 0 },
-    ...(search ? { name: { contains: search, mode: "insensitive" as const } } : {}),
+    ...(search
+      ? { name: { contains: search, mode: "insensitive" as const } }
+      : {}),
     ...(categoryIds.length > 0
       ? { categories: { some: { categoryId: { in: categoryIds } } } }
       : {}),
@@ -130,7 +135,7 @@ export default async function ProductsPage({ searchParams }: Props) {
       SELECT COUNT(*)::int as count
       FROM "Product" p
       LEFT JOIN "Brand" b ON p."brandId" = b.id
-      WHERE p."status" = 'ACTIVE' AND p."stock" > 0
+      WHERE p."status" = 'ACTIVE'
       ${search ? Prisma.sql`AND p."name" ILIKE ${`%${search}%`}` : Prisma.empty}
       ${brand ? Prisma.sql`AND b.slug = ${brand}` : Prisma.empty}
       ${minPrice ? Prisma.sql`AND p.price::numeric >= ${Number(minPrice)}::numeric` : Prisma.empty}
@@ -146,13 +151,13 @@ export default async function ProductsPage({ searchParams }: Props) {
     const rawProducts = await prisma.$queryRaw<RawProductRow[]>`
       SELECT 
         p.id, p.slug, p.name, p."shortDescription", p.price, p."comparePrice",
-        p."isNew", p."isOnSale", p."ratingAverage", p."ratingCount",
+        p."isNew", p."isOnSale", p.stock, p."ratingAverage", p."ratingCount",
         b.name as "brandName",
         (SELECT json_agg(json_build_object('id', pi.id, 'url', pi.url, 'isPrimary', pi."isPrimary"))
          FROM "ProductImage" pi WHERE pi."productId" = p.id AND pi."isPrimary" = true LIMIT 1) as images
       FROM "Product" p
       LEFT JOIN "Brand" b ON p."brandId" = b.id
-      WHERE p."status" = 'ACTIVE' AND p."stock" > 0
+      WHERE p."status" = 'ACTIVE'
       ${search ? Prisma.sql`AND p."name" ILIKE ${`%${search}%`}` : Prisma.empty}
       ${brand ? Prisma.sql`AND b.slug = ${brand}` : Prisma.empty}
       ${minPrice ? Prisma.sql`AND p.price::numeric >= ${Number(minPrice)}::numeric` : Prisma.empty}
@@ -173,6 +178,7 @@ export default async function ProductsPage({ searchParams }: Props) {
       comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
       isNew: product.isNew,
       isOnSale: product.isOnSale,
+      stock: product.stock,
       ratingAverage: product.ratingAverage,
       ratingCount: product.ratingCount,
       brand: product.brandName ? { name: product.brandName } : null,
@@ -210,6 +216,7 @@ export default async function ProductsPage({ searchParams }: Props) {
       comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
       isNew: product.isNew,
       isOnSale: product.isOnSale,
+      stock: product.stock,
       ratingAverage: product.ratingAverage,
       ratingCount: product.ratingCount,
       brand: product.brand ? { name: product.brand.name } : null,
@@ -217,7 +224,6 @@ export default async function ProductsPage({ searchParams }: Props) {
     }));
   }
 
-  // ✅ Carrega categorias ativas (raízes + filhas)
   const [categories, brands] = await Promise.all([
     prisma.category.findMany({
       where: {
@@ -259,8 +265,14 @@ export default async function ProductsPage({ searchParams }: Props) {
   };
 
   const hasFilters = !!(
-    search || category || subcategory || brand ||
-    minPrice || maxPrice || sale === "true" || isNew === "true"
+    search ||
+    category ||
+    subcategory ||
+    brand ||
+    minPrice ||
+    maxPrice ||
+    sale === "true" ||
+    isNew === "true"
   );
 
   const pageTitle = search
@@ -274,7 +286,12 @@ export default async function ProductsPage({ searchParams }: Props) {
   const breadcrumbItems = [
     { label: "Home", href: "/" },
     ...(activeCategory
-      ? [{ label: activeCategory.name, href: `/product?category=${activeCategory.slug}` }]
+      ? [
+          {
+            label: activeCategory.name,
+            href: `/product?category=${activeCategory.slug}`,
+          },
+        ]
       : []),
     ...(activeSubcategory ? [{ label: activeSubcategory.name }] : []),
     ...(!activeSubcategory && search ? [{ label: `Pesquisa: ${search}` }] : []),
@@ -295,14 +312,16 @@ export default async function ProductsPage({ searchParams }: Props) {
                 <span
                   className="text-transparent bg-clip-text"
                   style={{
-                    backgroundImage: "linear-gradient(135deg, #d1105a 0%, #ff2e88 50%, #d1105a 100%)",
+                    backgroundImage:
+                      "linear-gradient(135deg, #d1105a 0%, #ff2e88 50%, #d1105a 100%)",
                   }}
                 >
                   {pageTitle}
                 </span>
               </h1>
               <p className="mt-3 text-zinc-600">
-                {total} {total === 1 ? "produto encontrado" : "produtos encontrados"}
+                {total}{" "}
+                {total === 1 ? "produto encontrado" : "produtos encontrados"}
               </p>
             </div>
             <ProductSort defaultSort={sort} />
@@ -328,10 +347,19 @@ export default async function ProductsPage({ searchParams }: Props) {
             )}
           </div>
 
-          <form method="GET" className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-            {subcategory && <input type="hidden" name="subcategory" value={subcategory} />}
-            {sale === "true" && <input type="hidden" name="sale" value="true" />}
-            {isNew === "true" && <input type="hidden" name="new" value="true" />}
+          <form
+            method="GET"
+            className="grid gap-4 md:grid-cols-2 xl:grid-cols-6"
+          >
+            {subcategory && (
+              <input type="hidden" name="subcategory" value={subcategory} />
+            )}
+            {sale === "true" && (
+              <input type="hidden" name="sale" value="true" />
+            )}
+            {isNew === "true" && (
+              <input type="hidden" name="new" value="true" />
+            )}
 
             <SearchInput key={search} defaultValue={search} />
 
@@ -342,7 +370,10 @@ export default async function ProductsPage({ searchParams }: Props) {
               <FilterDropdown
                 options={[
                   { value: "", label: "Todas" },
-                  ...categories.map((cat) => ({ value: cat.slug, label: cat.name })),
+                  ...categories.map((cat) => ({
+                    value: cat.slug,
+                    label: cat.name,
+                  })),
                 ]}
                 defaultValue={category}
                 name="category"
@@ -357,7 +388,10 @@ export default async function ProductsPage({ searchParams }: Props) {
               <FilterDropdown
                 options={[
                   { value: "", label: "Todas" },
-                  ...brands.map((item) => ({ value: item.slug, label: item.name })),
+                  ...brands.map((item) => ({
+                    value: item.slug,
+                    label: item.name,
+                  })),
                 ]}
                 defaultValue={brand}
                 name="brand"
@@ -392,7 +426,9 @@ export default async function ProductsPage({ searchParams }: Props) {
             </div>
 
             <div className="flex items-end">
-              <Button type="submit" className="w-full">Filtrar</Button>
+              <Button type="submit" className="w-full">
+                Filtrar
+              </Button>
             </div>
           </form>
         </div>
@@ -418,7 +454,8 @@ export default async function ProductsPage({ searchParams }: Props) {
             )}
             {brand && (
               <span className="rounded-full bg-pink-500/10 px-3 py-1.5 text-xs font-medium text-pink-600">
-                Marca: {brands.find((item) => item.slug === brand)?.name ?? brand}
+                Marca:{" "}
+                {brands.find((item) => item.slug === brand)?.name ?? brand}
               </span>
             )}
             {(minPrice || maxPrice) && (
@@ -432,8 +469,12 @@ export default async function ProductsPage({ searchParams }: Props) {
         {/* PRODUTOS */}
         {displayProducts.length === 0 ? (
           <div className="rounded-3xl border border-pink-100 bg-white p-20 text-center shadow-sm">
-            <h2 className="text-lg font-semibold text-zinc-900">Nenhum produto encontrado</h2>
-            <p className="mt-2 text-sm text-zinc-500">Tenta alterar ou remover alguns filtros.</p>
+            <h2 className="text-lg font-semibold text-zinc-900">
+              Nenhum produto encontrado
+            </h2>
+            <p className="mt-2 text-sm text-zinc-500">
+              Tenta alterar ou remover alguns filtros.
+            </p>
             <Link
               href="/product"
               className="inline-flex items-center justify-center h-10 px-5 text-sm font-semibold rounded-xl transition-all duration-200 cursor-pointer bg-pink-500 text-white hover:bg-pink-600 mt-6"
@@ -455,9 +496,16 @@ export default async function ProductsPage({ searchParams }: Props) {
                   image={product.images[0]?.url ?? "/placeholder-product.png"}
                   price={product.price}
                   oldPrice={product.comparePrice ?? undefined}
-                  badge={product.isNew ? "Novo" : product.isOnSale ? "Promoção" : undefined}
+                  badge={
+                    product.isNew
+                      ? "Novo"
+                      : product.isOnSale
+                      ? "Promoção"
+                      : undefined
+                  }
                   rating={product.ratingAverage}
                   reviews={product.ratingCount}
+                  stock={product.stock}
                 />
               ))}
             </div>
@@ -467,18 +515,40 @@ export default async function ProductsPage({ searchParams }: Props) {
               <div className="mt-14 flex items-center justify-center gap-4 border-t border-zinc-200 pt-8">
                 {currentPage > 1 ? (
                   <Link
-                    href={`/product?${createQuery({ page: String(currentPage - 1) })}`}
+                    href={`/product?${createQuery({
+                      page: String(currentPage - 1),
+                    })}`}
                     className="group relative inline-flex items-center justify-center h-12 w-12 rounded-2xl transition-all duration-300 cursor-pointer bg-zinc-200 text-zinc-900 border-2 border-zinc-400 hover:bg-zinc-300 hover:border-pink-500 hover:text-pink-600"
                     aria-label="Página anterior"
                   >
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15 19l-7-7 7-7"
+                      />
                     </svg>
                   </Link>
                 ) : (
                   <span className="inline-flex items-center justify-center h-12 w-12 rounded-2xl bg-zinc-200 text-zinc-400 cursor-not-allowed border-2 border-zinc-300">
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M15 19l-7-7 7-7"
+                      />
                     </svg>
                   </span>
                 )}
@@ -488,23 +558,47 @@ export default async function ProductsPage({ searchParams }: Props) {
                     {currentPage}
                   </span>
                   <span className="text-sm text-zinc-400">/</span>
-                  <span className="text-sm font-semibold text-zinc-700">{totalPages}</span>
+                  <span className="text-sm font-semibold text-zinc-700">
+                    {totalPages}
+                  </span>
                 </div>
 
                 {currentPage < totalPages ? (
                   <Link
-                    href={`/product?${createQuery({ page: String(currentPage + 1) })}`}
+                    href={`/product?${createQuery({
+                      page: String(currentPage + 1),
+                    })}`}
                     className="group relative inline-flex items-center justify-center h-12 w-12 rounded-2xl transition-all duration-300 cursor-pointer bg-gradient-to-br from-pink-500 to-fuchsia-500 text-white shadow-lg shadow-pink-500/25 hover:scale-105"
                     aria-label="Página seguinte"
                   >
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9 5l7 7-7 7"
+                      />
                     </svg>
                   </Link>
                 ) : (
                   <span className="inline-flex items-center justify-center h-12 w-12 rounded-2xl bg-zinc-200 text-zinc-400 cursor-not-allowed border-2 border-zinc-300">
-                    <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    <svg
+                      className="h-5 w-5"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9 5l7 7-7 7"
+                      />
                     </svg>
                   </span>
                 )}

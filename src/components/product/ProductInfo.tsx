@@ -1,3 +1,4 @@
+// components/product/ProductInfo.tsx
 "use client";
 
 import {
@@ -6,6 +7,7 @@ import {
   ShoppingCart,
   Star,
   Truck,
+  Bell,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -13,6 +15,7 @@ import { Product, ProductVariant } from "@/types/product";
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
 import { useCart } from "@/components/cart/CartProvider";
 import { ProductVariants } from "./ProductVariants";
+import { NotifyWhenAvailable } from "./NotifyWhenAvailable";
 
 interface ProductInfoProps {
   product: Product;
@@ -20,7 +23,6 @@ interface ProductInfoProps {
   overridePrice?: number;
   overrideComparePrice?: number;
   overrideStock?: boolean;
-  // Props para o seletor de variantes
   selectedVariantId?: string | null;
   onVariantSelect?: (variant: ProductVariant) => void;
 }
@@ -35,6 +37,7 @@ export function ProductInfo({
   onVariantSelect,
 }: ProductInfoProps) {
   const [quantity, setQuantity] = useState(1);
+  const [showNotify, setShowNotify] = useState(false);
   const { isFavorite, toggleFavorite } = useWishlist();
   const { addToCart, openCart } = useCart();
 
@@ -45,7 +48,6 @@ export function ProductInfo({
   const reviews = product.reviews || 0;
   const favorite = isFavorite(product.id);
 
-  // Imagem para wishlist / cart
   const variantImage =
     activeVariant && activeVariant.images.length > 0
       ? activeVariant.images[0]
@@ -61,13 +63,20 @@ export function ProductInfo({
       : "/placeholder-product.png");
 
   function handleToggleFavorite() {
+    // ✅ Stock real: usa a variante ativa se existir, senão o produto
+    const realStock = activeVariant
+      ? activeVariant.stock
+      : product.stock
+      ? 1
+      : 0;
+
     toggleFavorite(product.id, {
       id: product.id,
       slug: product.slug,
       name: product.name,
       price: price,
       compareAtPrice: oldPrice ?? null,
-      stock: 10,
+      stock: realStock,
       brand: { name: product.brand ?? "Sem marca" },
       images: [{ url: productImage }],
     });
@@ -152,7 +161,7 @@ export function ProductInfo({
         )}
       </div>
 
-      {/* 🔥 SELETOR DE VARIANTES — agora em cima do botão de carrinho */}
+      {/* SELETOR DE VARIANTES */}
       {hasVariants && onVariantSelect && (
         <div className="border-y border-pink-100 py-4">
           <ProductVariants
@@ -163,7 +172,7 @@ export function ProductInfo({
         </div>
       )}
 
-      {/* BOTÃO ADICIONAR AO CARRINHO */}
+      {/* BOTÃO ADICIONAR AO CARRINHO — só quando há stock */}
       {inStock && (
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-3">
@@ -236,6 +245,48 @@ export function ProductInfo({
         </div>
       )}
 
+      {/* NOTIFICAR QUANDO DISPONÍVEL — só quando NÃO há stock */}
+      {!inStock && (
+        <div className="flex flex-col gap-3">
+          {!showNotify ? (
+            <button
+              onClick={() => setShowNotify(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-full border-2 border-pink-200 bg-white px-4 py-3 font-semibold text-zinc-700 transition-all duration-300 hover:border-pink-500 hover:text-pink-600 cursor-pointer md:px-8 md:py-3.5"
+            >
+              <Bell size={18} className="shrink-0" />
+              <span className="text-sm sm:text-base whitespace-nowrap">
+                Notificar-me quando estiver disponível
+              </span>
+            </button>
+          ) : (
+            <NotifyWhenAvailable
+              productId={product.id}
+              onClose={() => setShowNotify(false)}
+            />
+          )}
+
+          {/* Favorito também fica disponível quando esgotado */}
+          <button
+            onClick={handleToggleFavorite}
+            className={`flex h-11 w-full items-center justify-center gap-2 rounded-full transition-all duration-300 cursor-pointer ${
+              favorite
+                ? "bg-pink-500 text-white shadow-lg shadow-pink-500/30"
+                : "border border-pink-200 bg-white text-zinc-700 hover:border-pink-500 hover:text-pink-500"
+            }`}
+            aria-label={
+              favorite
+                ? "Remover dos favoritos"
+                : "Adicionar aos favoritos"
+            }
+          >
+            <Heart size={18} className={favorite ? "fill-white" : ""} />
+            <span className="text-sm font-medium">
+              {favorite ? "Nos favoritos" : "Adicionar aos favoritos"}
+            </span>
+          </button>
+        </div>
+      )}
+
       {/* INFO EXTRA */}
       <div className="space-y-3 rounded-xl border border-pink-100 bg-pink-50/50 p-4">
         <div className="flex items-start gap-3">
@@ -244,7 +295,9 @@ export function ProductInfo({
             <p className="text-sm font-medium text-zinc-900">
               Entrega Discreta
             </p>
-            <p className="text-xs text-zinc-600">Embalagem totalmente anónima.</p>
+            <p className="text-xs text-zinc-600">
+              Embalagem totalmente anónima.
+            </p>
           </div>
         </div>
 

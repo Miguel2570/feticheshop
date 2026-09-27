@@ -1,3 +1,4 @@
+// components/product/ProductCard.tsx
 "use client";
 
 import Image from "next/image";
@@ -25,6 +26,7 @@ interface ProductCardProps {
   rating?: number;
   reviews?: number;
   badge?: string;
+  stock?: number;
 }
 
 export function ProductCard({
@@ -39,12 +41,14 @@ export function ProductCard({
   rating = 5,
   reviews = 0,
   badge,
+  stock = 1,
 }: ProductCardProps) {
   const { isFavorite, toggleFavorite } = useWishlist();
   const { addToCart } = useCart();
   const [added, setAdded] = useState(false);
 
   const favorite = isFavorite(id);
+  const isOutOfStock = stock === 0;
 
   const discount =
     oldPrice && oldPrice > price
@@ -58,13 +62,15 @@ export function ProductCard({
       name,
       price,
       compareAtPrice: oldPrice ?? null,
-      stock: 10,
+      stock,
       brand: { name: brand },
       images: [{ url: image ?? "/placeholder-product.png" }],
     });
   }
 
   async function handleAddToCart() {
+    if (isOutOfStock) return;
+
     const success = await addToCart(id, 1, {
       name,
       slug,
@@ -101,8 +107,8 @@ export function ProductCard({
     >
       {/* SECÇÃO DA IMAGEM */}
       <div className="relative">
-        {/* Badge de desconto / promoção */}
-        {(badge || discount) && (
+        {/* Badge de desconto / promoção / esgotado */}
+        {isOutOfStock ? (
           <div
             className="
               absolute
@@ -112,7 +118,7 @@ export function ProductCard({
               sm:top-4
               z-20
               rounded-full
-              bg-pink-500
+              bg-zinc-900
               px-3
               py-1.5
               text-[10px]
@@ -122,11 +128,38 @@ export function ProductCard({
               font-bold
               text-white
               shadow-lg
-              shadow-pink-500/30
+              shadow-zinc-900/30
             "
           >
-            {badge ?? `-${discount}%`}
+            Esgotado
           </div>
+        ) : (
+          (badge || discount) && (
+            <div
+              className="
+                absolute
+                left-2
+                top-2
+                sm:left-4
+                sm:top-4
+                z-20
+                rounded-full
+                bg-pink-500
+                px-3
+                py-1.5
+                text-[10px]
+                sm:px-4
+                sm:py-2
+                sm:text-xs
+                font-bold
+                text-white
+                shadow-lg
+                shadow-pink-500/30
+              "
+            >
+              {badge ?? `-${discount}%`}
+            </div>
+          )
         )}
 
         {/* Botão favorito */}
@@ -134,9 +167,7 @@ export function ProductCard({
           type="button"
           onClick={handleFavorite}
           aria-label={
-            favorite
-              ? "Remover dos favoritos"
-              : "Adicionar aos favoritos"
+            favorite ? "Remover dos favoritos" : "Adicionar aos favoritos"
           }
           className={`
             group/fav
@@ -173,7 +204,7 @@ export function ProductCard({
               transition-all
               duration-300
               ${
-                favorite 
+                favorite
                   ? "fill-pink-500 text-pink-500 scale-110 group-hover/fav:fill-white group-hover/fav:text-white"
                   : "text-zinc-600 group-hover/fav:fill-white group-hover/fav:text-white"
               }
@@ -190,14 +221,15 @@ export function ProductCard({
               fill
               unoptimized
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
-              className="
+              className={`
                 object-contain
                 p-4
                 sm:p-8
                 transition-transform
                 duration-500
                 group-hover:scale-105
-              "
+                ${isOutOfStock ? "opacity-60" : ""}
+              `}
             />
           </div>
         </Link>
@@ -240,9 +272,7 @@ export function ProductCard({
               <Star
                 key={index}
                 size={14}
-                fill={
-                  index < Math.round(rating) ? "#ec4899" : "transparent"
-                }
+                fill={index < Math.round(rating) ? "#ec4899" : "transparent"}
                 className="text-pink-500"
               />
             ))}
@@ -252,9 +282,7 @@ export function ProductCard({
             {rating.toFixed(1)}
           </span>
 
-          <span className="text-xs sm:text-sm text-zinc-500">
-            ({reviews})
-          </span>
+          <span className="text-xs sm:text-sm text-zinc-500">({reviews})</span>
         </div>
 
         {/* Preço */}
@@ -270,50 +298,89 @@ export function ProductCard({
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={() => void handleAddToCart()}
-          className={`
-            flex
-            w-full
-            items-center
-            justify-center
-            gap-1
-            sm:gap-2
-            rounded-full
-            py-2
-            sm:py-3
-            text-sm
-            sm:text-base
-            font-semibold
-            text-white
-            transition-all
-            duration-300
-            active:scale-95
-            cursor-pointer
-            px-2
-            sm:px-4
-            ${
-              added
-                ? "bg-emerald-500 scale-[1.02]"
-                : "bg-pink-500 hover:bg-pink-600 hover:shadow-lg hover:shadow-pink-500/30 hover:scale-[1.02]"
-            }
-          `}
-        >
-          {added ? (
-            <>
-              <Check size={16} className="sm:w-[18px] sm:h-[18px] animate-bounce" />
-              <span className="hidden sm:inline">Adicionado!</span>
-              <span className="sm:hidden">OK!</span>
-            </>
-          ) : (
-            <>
-              <ShoppingBag size={16} className="sm:w-[18px] sm:h-[18px] shrink-0" />
-              <span className="hidden sm:inline">Adicionar ao carrinho</span>
-              <span className="sm:hidden">Adicionar</span>
-            </>
-          )}
-        </button>
+        {/* Botão — muda consoante o stock */}
+        {isOutOfStock ? (
+          <Link
+            href={`/product/${slug}`}
+            className="
+              flex
+              w-full
+              items-center
+              justify-center
+              gap-1
+              sm:gap-2
+              rounded-full
+              py-2
+              sm:py-3
+              text-sm
+              sm:text-base
+              font-semibold
+              text-zinc-700
+              bg-black
+              transition-all
+              duration-300
+              active:scale-95
+              cursor-pointer
+              px-2
+              sm:px-4
+              hover:bg-black
+            "
+          >
+            <span className="hidden sm:inline">Ver produto</span>
+            <span className="sm:hidden">Ver</span>
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={() => void handleAddToCart()}
+            className={`
+              flex
+              w-full
+              items-center
+              justify-center
+              gap-1
+              sm:gap-2
+              rounded-full
+              py-2
+              sm:py-3
+              text-sm
+              sm:text-base
+              font-semibold
+              text-white
+              transition-all
+              duration-300
+              active:scale-95
+              cursor-pointer
+              px-2
+              sm:px-4
+              ${
+                added
+                  ? "bg-emerald-500 scale-[1.02]"
+                  : "bg-pink-500 hover:bg-pink-600 hover:shadow-lg hover:shadow-pink-500/30 hover:scale-[1.02]"
+              }
+            `}
+          >
+            {added ? (
+              <>
+                <Check
+                  size={16}
+                  className="sm:w-[18px] sm:h-[18px] animate-bounce"
+                />
+                <span className="hidden sm:inline">Adicionado!</span>
+                <span className="sm:hidden">OK!</span>
+              </>
+            ) : (
+              <>
+                <ShoppingBag
+                  size={16}
+                  className="sm:w-[18px] sm:h-[18px] shrink-0"
+                />
+                <span className="hidden sm:inline">Adicionar ao carrinho</span>
+                <span className="sm:hidden">Adicionar</span>
+              </>
+            )}
+          </button>
+        )}
       </div>
     </article>
   );
