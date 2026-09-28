@@ -10,7 +10,7 @@ type Props = {
   searchParams: Promise<{
     search?: string;
     category?: string;
-    brand?: string;          // ← NOVO
+    brand?: string;
     status?: string;
     stock?: string;
     featured?: string;
@@ -19,8 +19,8 @@ type Props = {
     page?: string;
     type?: string;
     orphan?: string;
-    minPrice?: string;       // ← NOVO
-    maxPrice?: string;       // ← NOVO
+    minPrice?: string;
+    maxPrice?: string;
   }>;
 };
 
@@ -37,7 +37,8 @@ const PAGE_SIZE = 20;
 
 const productInclude = {
   brand: true,
-  images: { where: { isPrimary: true }, take: 1 },
+  images: { where: { isPrimary: true, isHidden: false }, take: 1 },
+  //                                    ↑ NOVO
   categories: { include: { category: true } },
   _count: { select: { variants: true } },
 } satisfies Prisma.ProductInclude;
@@ -51,7 +52,7 @@ export default async function ProductsPage({ searchParams }: Props) {
 
   const search = params.search ?? "";
   const category = params.category ?? "";
-  const brand = params.brand ?? "";                 // ← NOVO
+  const brand = params.brand ?? "";
   const status = params.status ?? "";
   const stock = params.stock ?? "in_stock";
   const featured = params.featured ?? "";
@@ -60,7 +61,6 @@ export default async function ProductsPage({ searchParams }: Props) {
   const type = params.type ?? "all";
   const orphan = params.orphan ?? "";
 
-  // ← NOVO — parse de preço
   const minPriceRaw = params.minPrice ?? "";
   const maxPriceRaw = params.maxPrice ?? "";
   const minPrice =
@@ -89,10 +89,7 @@ export default async function ProductsPage({ searchParams }: Props) {
       : {}),
 
     ...(category ? { categories: { some: { categoryId: category } } } : {}),
-
-    // ← NOVO — filtro por marca
     ...(brand ? { brandId: brand } : {}),
-
     ...(status ? { status: status as ProductStatus } : {}),
     ...(stock === "in_stock" ? { stock: { gt: 0 } } : {}),
     ...(stock === "out_of_stock" ? { stock: 0 } : {}),
@@ -102,7 +99,6 @@ export default async function ProductsPage({ searchParams }: Props) {
       ? { categorySource: categorySource as "AUTO" | "MANUAL" }
       : {}),
 
-    // ← NOVO — filtro por preço mín/máx
     ...(minPrice !== undefined || maxPrice !== undefined
       ? {
           price: {
@@ -189,7 +185,7 @@ export default async function ProductsPage({ searchParams }: Props) {
   const queryParams = new URLSearchParams();
   if (search) queryParams.set("search", search);
   if (category) queryParams.set("category", category);
-  if (brand) queryParams.set("brand", brand);                       // ← NOVO
+  if (brand) queryParams.set("brand", brand);
   if (status) queryParams.set("status", status);
   if (stock) queryParams.set("stock", stock);
   if (featured) queryParams.set("featured", featured);
@@ -197,8 +193,8 @@ export default async function ProductsPage({ searchParams }: Props) {
   if (sort) queryParams.set("sort", sort);
   if (type && type !== "all") queryParams.set("type", type);
   if (orphan) queryParams.set("orphan", orphan);
-  if (minPrice !== undefined) queryParams.set("minPrice", String(minPrice)); // ← NOVO
-  if (maxPrice !== undefined) queryParams.set("maxPrice", String(maxPrice)); // ← NOVO
+  if (minPrice !== undefined) queryParams.set("minPrice", String(minPrice));
+  if (maxPrice !== undefined) queryParams.set("maxPrice", String(maxPrice));
 
   const getPageUrl = (pageNumber: number) => {
     const p = new URLSearchParams(queryParams);

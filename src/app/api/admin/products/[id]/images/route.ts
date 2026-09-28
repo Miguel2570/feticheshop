@@ -28,7 +28,7 @@ export async function GET(
   }
 }
 
-// PATCH - atualizar imagem (isPrimary, position, alt)
+// PATCH - atualizar imagem (isPrimary, position, alt, isHidden)
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -37,7 +37,7 @@ export async function PATCH(
     await requireAdmin();
     const { id } = await params;
     const body = await request.json();
-    const { imageId, isPrimary, position, alt } = body;
+    const { imageId, isPrimary, position, alt, isHidden } = body;
 
     if (!imageId) {
       return NextResponse.json(
@@ -60,6 +60,7 @@ export async function PATCH(
         ...(isPrimary !== undefined && { isPrimary }),
         ...(position !== undefined && { position }),
         ...(alt !== undefined && { alt }),
+        ...(isHidden !== undefined && { isHidden }),   // ← NOVO
       },
     });
 
@@ -91,7 +92,6 @@ export async function DELETE(
       );
     }
 
-    // Verificar se a imagem pertence ao produto
     const image = await prisma.productImage.findFirst({
       where: { id: imageId, productId: id },
     });
@@ -103,15 +103,14 @@ export async function DELETE(
       );
     }
 
-    // Apagar do banco
     await prisma.productImage.delete({
       where: { id: imageId },
     });
 
-    // Se era a principal, definir outra como principal
+    // Se era a principal, definir outra como principal (que não esteja escondida)
     if (image.isPrimary) {
       const nextImage = await prisma.productImage.findFirst({
-        where: { productId: id },
+        where: { productId: id, isHidden: false },   // ← ignora escondidas
         orderBy: { position: "asc" },
       });
 

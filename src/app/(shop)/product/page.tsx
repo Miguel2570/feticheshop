@@ -38,7 +38,7 @@ type DisplayProduct = {
   comparePrice: number | null;
   isNew: boolean;
   isOnSale: boolean;
-  stock: number; // ← NOVO
+  stock: number;
   ratingAverage: number;
   ratingCount: number;
   brand: { name: string } | null;
@@ -54,7 +54,7 @@ type RawProductRow = {
   comparePrice: string | number | null;
   isNew: boolean;
   isOnSale: boolean;
-  stock: number; // ← NOVO
+  stock: number;
   ratingAverage: number;
   ratingCount: number;
   brandName: string | null;
@@ -103,7 +103,6 @@ export default async function ProductsPage({ searchParams }: Props) {
     }
   }
 
-  // ✅ Mostra TODOS os produtos ativos (com e sem stock)
   const where: Prisma.ProductWhereInput = {
     status: "ACTIVE",
     ...(search
@@ -154,7 +153,11 @@ export default async function ProductsPage({ searchParams }: Props) {
         p."isNew", p."isOnSale", p.stock, p."ratingAverage", p."ratingCount",
         b.name as "brandName",
         (SELECT json_agg(json_build_object('id', pi.id, 'url', pi.url, 'isPrimary', pi."isPrimary"))
-         FROM "ProductImage" pi WHERE pi."productId" = p.id AND pi."isPrimary" = true LIMIT 1) as images
+         FROM "ProductImage" pi 
+         WHERE pi."productId" = p.id 
+           AND pi."isPrimary" = true 
+           AND pi."isHidden" = false
+         LIMIT 1) as images
       FROM "Product" p
       LEFT JOIN "Brand" b ON p."brandId" = b.id
       WHERE p."status" = 'ACTIVE'
@@ -203,7 +206,7 @@ export default async function ProductsPage({ searchParams }: Props) {
           : { createdAt: "desc" },
       include: {
         brand: true,
-        images: { where: { isPrimary: true }, take: 1 },
+        images: { where: { isPrimary: true, isHidden: false }, take: 1 },
       },
     });
 

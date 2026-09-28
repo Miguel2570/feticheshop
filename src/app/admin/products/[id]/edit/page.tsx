@@ -51,7 +51,6 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
     isFeatured: product.isFeatured,
     isNew: product.isNew,
     isOnSale: product.isOnSale,
-    // NOVOS
     categoryIds: currentCategoryIds,
     categorySource: product.categorySource,
     categoryReason: product.categoryReason,
@@ -63,6 +62,7 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
     alt: img.alt,
     position: img.position,
     isPrimary: img.isPrimary,
+    isHidden: img.isHidden,
   }));
 
   return (

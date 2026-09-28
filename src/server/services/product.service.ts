@@ -25,11 +25,7 @@ interface GetProductsParams {
 export class ProductService {
   private repository = new ProductRepository();
 
-  async listProducts(
-    page = 1,
-    limit = 20,
-    search = ""
-  ) {
+  async listProducts(page = 1, limit = 20, search = "") {
     return this.repository.findAll({
       page,
       limit,
@@ -50,7 +46,6 @@ export class ProductService {
       sort = "newest",
     } = params;
 
-    // Construir where
     const where: Prisma.ProductWhereInput = {
       status: status as ProductStatus,
     };
@@ -83,7 +78,6 @@ export class ProductService {
       where.isOnSale = true;
     }
 
-    // Construir orderBy
     const orderByMap: Record<string, Prisma.ProductOrderByWithRelationInput> = {
       newest: { createdAt: "desc" },
       oldest: { createdAt: "asc" },
@@ -96,10 +90,8 @@ export class ProductService {
 
     const orderBy = orderByMap[sort] || { createdAt: "desc" };
 
-    // Calcular paginação
     const skip = (page - 1) * perPage;
 
-    // Buscar total e produtos
     const [total, products] = await Promise.all([
       prisma.product.count({ where }),
       prisma.product.findMany({
@@ -154,15 +146,45 @@ export class ProductService {
 
   async updateProduct(
     id: string,
-    data: Prisma.ProductUpdateInput & { categoryId?: string | null }
+    data: Prisma.ProductUpdateInput & {
+      categoryId?: string | null;
+      categoryIds?: string[];
+    }
   ) {
     await this.getProductById(id);
 
-    const { categoryId, ...productData } = data;
+    const { categoryId, categoryIds, ...productData } = data;
 
     const product = await this.repository.update(id, productData);
 
-    if (categoryId !== undefined) {
+    if (categoryIds !== undefined) {
+      await prisma.productCategory.deleteMany({
+        where: { productId: id },
+      });
+
+      if (categoryIds.length > 0) {
+        const allCategoryIds = new Set<string>(categoryIds);
+
+        const categories = await prisma.category.findMany({
+          where: { id: { in: categoryIds } },
+          select: { id: true, parentId: true },
+        });
+
+        for (const cat of categories) {
+          if (cat.parentId) {
+            allCategoryIds.add(cat.parentId);
+          }
+        }
+
+        await prisma.productCategory.createMany({
+          data: Array.from(allCategoryIds).map((categoryId) => ({
+            productId: id,
+            categoryId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    } else if (categoryId !== undefined) {
       await prisma.productCategory.deleteMany({
         where: { productId: id },
       });

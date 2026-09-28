@@ -19,9 +19,7 @@ type DreamloveProduct = {
 async function loginDreamlove(): Promise<string> {
   const response = await fetch(`${API_URL}/login_check`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       username: USERNAME,
       password: PASSWORD,
@@ -78,18 +76,16 @@ async function getProducts(token: string): Promise<DreamloveProduct[]> {
 async function syncStock() {
   console.log("🔐 Login Dreamlove...");
   const token = await loginDreamlove();
-  console.log("✅ Login efetuado");
+  console.log("✅ Login efetuado\n");
 
   console.log("📦 A obter produtos...");
   const products = await getProducts(token);
-  console.log(`Total Dreamlove: ${products.length}`);
+  console.log(`Total Dreamlove: ${products.length}\n`);
 
   console.log("📚 A carregar produtos da BD...");
   const dbProducts = await prisma.product.findMany({
     where: {
-      dreamloveId: {
-        not: null,
-      },
+      dreamloveId: { not: null },
     },
     select: {
       id: true,
@@ -97,12 +93,10 @@ async function syncStock() {
       name: true,
       stock: true,
       price: true,
-      costPrice: true,
     },
   });
 
-  const map = new Map<number, typeof dbProducts[number]>();
-
+  const map = new Map<number, (typeof dbProducts)[number]>();
   for (const p of dbProducts) {
     if (p.dreamloveId != null) {
       map.set(p.dreamloveId, p);
@@ -122,14 +116,13 @@ async function syncStock() {
     }
 
     const newStock = Number(item.stock);
+    // ✅ Preço: usa customerPrice se existir, senão cai no price
     const newPrice = Number(item.customerPrice ?? item.price);
-    const newCostPrice = Number(item.price); // ← Preço do fornecedor
 
     const stockChanged = product.stock !== newStock;
     const priceChanged = Number(product.price) !== newPrice;
-    const costPriceChanged = Number(product.costPrice ?? 0) !== newCostPrice;
 
-    if (!stockChanged && !priceChanged && !costPriceChanged) {
+    if (!stockChanged && !priceChanged) {
       skipped++;
       continue;
     }
@@ -139,27 +132,18 @@ async function syncStock() {
       data: {
         stock: newStock,
         price: newPrice,
-        costPrice: newCostPrice, // ← ADICIONADO
       },
     });
 
     updated++;
-
-    console.log(
-      `✔ ${product.name}
-Stock: ${product.stock} → ${newStock}
-Preço Venda: ${product.price} → ${newPrice}
-Preço Custo: ${product.costPrice ?? 0} → ${newCostPrice}
-`
-    );
   }
 
   console.log("");
   console.log("==================================");
-  console.log(`Produtos Dreamlove : ${products.length}`);
-  console.log(`Atualizados        : ${updated}`);
-  console.log(`Sem alterações     : ${skipped}`);
-  console.log(`Não encontrados    : ${notFound}`);
+  console.log(`Produtos Dreamlove   : ${products.length}`);
+  console.log(`Atualizados (stock/€): ${updated}`);
+  console.log(`Sem alterações       : ${skipped}`);
+  console.log(`Não encontrados na BD: ${notFound}`);
   console.log("==================================");
 }
 

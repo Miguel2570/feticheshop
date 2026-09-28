@@ -16,7 +16,9 @@ interface ProductPageProps {
 
 const productInclude = {
   brand: true,
-  images: { orderBy: { position: "asc" as const } },
+  images: {
+    where: { isHidden: false }, 
+    orderBy: { position: "asc" as const } },
   categories: { include: { category: true } },
   attributes: {
     include: {
@@ -26,7 +28,8 @@ const productInclude = {
   variants: {
     where: { isActive: true },
     include: {
-      images: { orderBy: { position: "asc" as const } },
+      images: { where: { isHidden: false },
+      orderBy: { position: "asc" as const } },
       attributeValues: {
         include: {
           attributeValue: { include: { attribute: true } },

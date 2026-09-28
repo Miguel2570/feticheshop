@@ -18,7 +18,9 @@ export const createProductSchema = z.object({
   supplierStock: z.coerce.number().int().default(0),
   stockMode: z.enum(["PHYSICAL", "SUPPLIER", "BOTH"]).default("PHYSICAL"),
   manageStock: z.boolean().default(true),
-  status: z.enum(["DRAFT", "ACTIVE", "HIDDEN", "OUT_OF_STOCK", "ARCHIVED"]).default("DRAFT"),
+  status: z
+    .enum(["DRAFT", "ACTIVE", "HIDDEN", "OUT_OF_STOCK", "ARCHIVED"])
+    .default("DRAFT"),
   isFeatured: z.boolean().default(false),
   isNew: z.boolean().default(false),
   isOnSale: z.boolean().default(false),
@@ -28,6 +30,7 @@ export const createProductSchema = z.object({
   length: z.coerce.number().nullable().optional(),
   brandId: z.string().nullable().optional(),
   categoryId: z.string().nullable().optional(),
+  categoryIds: z.array(z.string()).optional(),
 });
 
 export const updateProductSchema = createProductSchema.partial();

@@ -19,6 +19,7 @@ interface ProductImage {
   alt: string | null;
   position: number;
   isPrimary: boolean;
+  isHidden: boolean;   // ← NOVO
 }
 
 interface ProductImagesManagerProps {
@@ -32,7 +33,9 @@ export function ProductImagesManager({
 }: ProductImagesManagerProps) {
   const [images, setImages] = useState(initialImages);
   const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [hiddenImages, setHiddenImages] = useState<Set<string>>(new Set());
+  const [hiddenImages, setHiddenImages] = useState<Set<string>>(
+    () => new Set(initialImages.filter((img) => img.isHidden).map((img) => img.id))
+  );
 
   // ✅ Definir como principal
   async function handleSetPrimary(imageId: string) {
@@ -83,6 +86,11 @@ export function ProductImagesManager({
       if (!response.ok) throw new Error("Erro");
 
       setImages((prev) => prev.filter((img) => img.id !== imageId));
+      setHiddenImages((prev) => {
+        const next = new Set(prev);
+        next.delete(imageId);
+        return next;
+      });
     } catch (error) {
       console.error(error);
       alert("Erro ao remover imagem");
@@ -91,17 +99,44 @@ export function ProductImagesManager({
     }
   }
 
-  // ✅ Esconder/mostrar (apenas visual no admin, não afeta o frontend por agora)
-  function handleToggleHidden(imageId: string) {
-    setHiddenImages((prev) => {
-      const next = new Set(prev);
-      if (next.has(imageId)) {
-        next.delete(imageId);
-      } else {
-        next.add(imageId);
-      }
-      return next;
-    });
+  // ✅ Esconder/mostrar — persiste na BD
+  async function handleToggleHidden(imageId: string) {
+    const currentlyHidden = hiddenImages.has(imageId);
+    const newHidden = !currentlyHidden;
+
+    setLoadingId(imageId);
+
+    try {
+      const response = await fetch(
+        `/api/admin/products/${productId}/images`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ imageId, isHidden: newHidden }),
+        }
+      );
+
+      if (!response.ok) throw new Error("Erro");
+
+      setHiddenImages((prev) => {
+        const next = new Set(prev);
+        if (newHidden) next.add(imageId);
+        else next.delete(imageId);
+        return next;
+      });
+
+      // Atualiza também o array principal
+      setImages((prev) =>
+        prev.map((img) =>
+          img.id === imageId ? { ...img, isHidden: newHidden } : img
+        )
+      );
+    } catch (error) {
+      console.error(error);
+      alert("Erro ao esconder imagem");
+    } finally {
+      setLoadingId(null);
+    }
   }
 
   if (images.length === 0) {
@@ -152,6 +187,13 @@ export function ProductImagesManager({
                 </div>
               )}
 
+              {/* BADGE ESCONDIDA */}
+              {isHidden && (
+                <div className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-zinc-800 text-white shadow-lg">
+                  <EyeOff size={12} />
+                </div>
+              )}
+
               {/* LOADING OVERLAY */}
               {isLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm">
@@ -166,9 +208,11 @@ export function ProductImagesManager({
               <button
                 type="button"
                 onClick={() => handleSetPrimary(image.id)}
-                disabled={image.isPrimary || isLoading}
+                disabled={image.isPrimary || isLoading || isHidden}
                 title={
-                  image.isPrimary
+                  isHidden
+                    ? "Imagem escondida não pode ser principal"
+                    : image.isPrimary
                     ? "Já é a principal"
                     : "Definir como principal"
                 }
@@ -194,7 +238,7 @@ export function ProductImagesManager({
                 type="button"
                 onClick={() => handleToggleHidden(image.id)}
                 disabled={isLoading}
-                title={isHidden ? "Mostrar" : "Esconder"}
+                title={isHidden ? "Mostrar na loja" : "Esconder da loja"}
                 className="
                   flex h-8 w-8 items-center justify-center rounded-lg
                   text-zinc-500 transition-all
