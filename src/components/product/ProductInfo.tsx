@@ -9,7 +9,7 @@ import {
   Truck,
   Bell,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 
 import { Product, ProductVariant } from "@/types/product";
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
@@ -26,6 +26,37 @@ interface ProductInfoProps {
   selectedVariantId?: string | null;
   onVariantSelect?: (variant: ProductVariant) => void;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// CÁLCULO DA DATA DE ENTREGA
+// ═══════════════════════════════════════════════════════════════
+
+const DELIVERY_BUSINESS_DAYS = 2;
+
+function addBusinessDays(startDate: Date, days: number): Date {
+  const result = new Date(startDate);
+  let added = 0;
+  while (added < days) {
+    result.setDate(result.getDate() + 1);
+    const dayOfWeek = result.getDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      added++;
+    }
+  }
+  return result;
+}
+
+/**
+ * Formato intermédio: "30 de setembro"
+ */
+function formatDeliveryDate(date: Date): string {
+  return date.toLocaleDateString("pt-PT", {
+    day: "numeric",
+    month: "long",
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
 
 export function ProductInfo({
   product,
@@ -48,6 +79,13 @@ export function ProductInfo({
   const reviews = product.reviews || 0;
   const favorite = isFavorite(product.id);
 
+  // ✅ Entrega prevista
+  const deliveryDate = useMemo(() => {
+    const today = new Date();
+    const delivery = addBusinessDays(today, DELIVERY_BUSINESS_DAYS);
+    return formatDeliveryDate(delivery);
+  }, []);
+
   const variantImage =
     activeVariant && activeVariant.images.length > 0
       ? activeVariant.images[0]
@@ -63,7 +101,6 @@ export function ProductInfo({
       : "/placeholder-product.png");
 
   function handleToggleFavorite() {
-    // ✅ Stock real: usa a variante ativa se existir, senão o produto
     const realStock = activeVariant
       ? activeVariant.stock
       : product.stock
@@ -102,6 +139,11 @@ export function ProductInfo({
 
   const hasVariants = product.variants && product.variants.length > 0;
 
+  // ✅ Só mostra o seletor se houver variantes COM atributos (cor, tamanho, etc.)
+  const hasVariantAttributes =
+    hasVariants &&
+    product.variants.some((v) => v.attributes.length > 0);
+
   return (
     <div className="flex w-full min-w-0 max-w-full flex-col gap-4 sm:gap-5">
       <span className="hidden lg:block text-xs font-medium uppercase tracking-wider text-pink-500">
@@ -111,12 +153,13 @@ export function ProductInfo({
       <h1 className="hidden lg:block break-words text-xl font-bold leading-tight text-zinc-900 md:text-2xl lg:text-3xl">
         {product.name}
       </h1>
-
+      {/*
       {product.brand && (
         <p className="text-sm text-zinc-500">{product.brand}</p>
       )}
-
+      
       <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+        
         <div className="flex gap-0.5 shrink-0">
           {Array.from({ length: 5 }).map((_, index) => (
             <Star
@@ -134,6 +177,7 @@ export function ProductInfo({
           {rating.toFixed(1)} ({reviews})
         </span>
       </div>
+      */}
 
       {/* PREÇO */}
       <div className="flex flex-wrap items-end gap-2 sm:gap-3">
@@ -161,8 +205,19 @@ export function ProductInfo({
         )}
       </div>
 
-      {/* SELETOR DE VARIANTES */}
-      {hasVariants && onVariantSelect && (
+      {/* ✅ ENTREGA PREVISTA — só quando há stock */}
+      {inStock && (
+        <div className="flex items-center gap-2 text-sm text-zinc-600">
+          <Truck size={16} className="shrink-0 text-pink-500" />
+          <span>
+            Entrega prevista a{" "}
+            <span className="font-semibold text-zinc-900">{deliveryDate}</span>
+          </span>
+        </div>
+      )}
+
+      {/* SELETOR DE VARIANTES — só se houver variantes COM atributos */}
+      {hasVariantAttributes && onVariantSelect && (
         <div className="border-y border-pink-100 py-4">
           <ProductVariants
             variants={product.variants}
@@ -265,7 +320,6 @@ export function ProductInfo({
             />
           )}
 
-          {/* Favorito também fica disponível quando esgotado */}
           <button
             onClick={handleToggleFavorite}
             className={`flex h-11 w-full items-center justify-center gap-2 rounded-full transition-all duration-300 cursor-pointer ${

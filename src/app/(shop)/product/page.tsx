@@ -1,18 +1,21 @@
-// app/product/page.tsx
+// app/(shop)/product/page.tsx
 
 import { Prisma } from "@prisma/client";
 import Link from "next/link";
 
 import { prisma } from "@/lib/prisma";
-import { ALL_ACTIVE_SLUGS } from "@/lib/categories";
+import { getAllActiveSlugs } from "@/lib/categories";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Button } from "@/components/ui/Button";
 import { ProductSort } from "@/components/product/ProductSort";
+import { GridSelector } from "@/components/product/GridSelector";
 import { FilterDropdown } from "@/components/ui/FilterDropdown";
 import { Breadcrumb } from "@/components/ui/Breadcrumb";
 import { SearchInput } from "@/components/product/SearchInput";
 
 const PAGE_SIZE = 24;
+const DEFAULT_COLS = 4;
+const ALLOWED_COLS = [2, 4];
 
 type Props = {
   searchParams: Promise<{
@@ -26,6 +29,7 @@ type Props = {
     new?: string | string[];
     sort?: string | string[];
     page?: string | string[];
+    cols?: string | string[]; // ← NOVO
   }>;
 };
 
@@ -43,22 +47,6 @@ type DisplayProduct = {
   ratingCount: number;
   brand: { name: string } | null;
   images: Array<{ url: string }>;
-};
-
-type RawProductRow = {
-  id: string;
-  slug: string;
-  name: string;
-  shortDescription: string | null;
-  price: string | number;
-  comparePrice: string | number | null;
-  isNew: boolean;
-  isOnSale: boolean;
-  stock: number;
-  ratingAverage: number;
-  ratingCount: number;
-  brandName: string | null;
-  images: Array<{ id: string; url: string; isPrimary: boolean }> | null;
 };
 
 function getParam(value: string | string[] | undefined): string {
@@ -83,6 +71,13 @@ export default async function ProductsPage({ searchParams }: Props) {
   const sort = getParam(params.sort);
   const page = Math.max(1, Number(getParam(params.page) || "1"));
 
+  // ✅ Colunas da grelha (2, 4, 6, 8) — default 4
+  const colsParam = Number(getParam(params.cols));
+  const cols = ALLOWED_COLS.includes(colsParam) ? colsParam : DEFAULT_COLS;
+
+  // ✅ Slugs ativos (raízes + subcategorias) — vêm da BD
+  const allActiveSlugs = await getAllActiveSlugs();
+
   let categoryIds: string[] = [];
 
   if (subcategory) {
@@ -103,7 +98,8 @@ export default async function ProductsPage({ searchParams }: Props) {
     }
   }
 
-  const where: Prisma.ProductWhereInput = {
+  // ✅ WHERE base
+  const baseWhere: Prisma.ProductWhereInput = {
     status: "ACTIVE",
     ...(search
       ? { name: { contains: search, mode: "insensitive" as const } }
@@ -124,115 +120,111 @@ export default async function ProductsPage({ searchParams }: Props) {
     ...(isNew === "true" ? { isNew: true } : {}),
   };
 
-  let total: number;
-  let totalPages: number;
-  let currentPage: number;
+  // ✅ ORDER BY base
+  const orderBy =
+    sort === "price_asc"
+      ? ({ price: "asc" } as const)
+      : sort === "price_desc"
+      ? ({ price: "desc" } as const)
+      : sort === "best_sellers"
+      ? ({ soldCount: "desc" } as const)
+      : ({ createdAt: "desc" } as const);
+
+  // ─── CONTAGEM ────────────────────────────────────────────
+  const [inStockCount, outOfStockCount] = await Promise.all([
+    prisma.product.count({ where: { ...baseWhere, stock: { gt: 0 } } }),
+    prisma.product.count({ where: { ...baseWhere, stock: 0 } }),
+  ]);
+
+  const total = inStockCount + outOfStockCount;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+
+  // ─── QUERY PAGINADA ──────────────────────────────────────
+  const skip = (currentPage - 1) * PAGE_SIZE;
+  const stockRemaining = Math.max(0, inStockCount - skip);
+
   let displayProducts: DisplayProduct[] = [];
 
-  if (sort === "random" && categoryIds.length === 0) {
-    const totalResult = await prisma.$queryRaw<{ count: number }[]>`
-      SELECT COUNT(*)::int as count
-      FROM "Product" p
-      LEFT JOIN "Brand" b ON p."brandId" = b.id
-      WHERE p."status" = 'ACTIVE'
-      ${search ? Prisma.sql`AND p."name" ILIKE ${`%${search}%`}` : Prisma.empty}
-      ${brand ? Prisma.sql`AND b.slug = ${brand}` : Prisma.empty}
-      ${minPrice ? Prisma.sql`AND p.price::numeric >= ${Number(minPrice)}::numeric` : Prisma.empty}
-      ${maxPrice ? Prisma.sql`AND p.price::numeric <= ${Number(maxPrice)}::numeric` : Prisma.empty}
-      ${sale === "true" ? Prisma.sql`AND p."isOnSale" = true` : Prisma.empty}
-      ${isNew === "true" ? Prisma.sql`AND p."isNew" = true` : Prisma.empty}
-    `;
+  const include = {
+    brand: true,
+    images: {
+      where: { isPrimary: true, isHidden: false },
+      take: 1,
+    },
+  } as const;
 
-    total = totalResult[0]?.count ?? 0;
-    totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-    currentPage = Math.min(page, totalPages);
+  if (stockRemaining > 0) {
+    const takeFromStock = Math.min(PAGE_SIZE, stockRemaining);
+    const takeFromOutOfStock = PAGE_SIZE - takeFromStock;
 
-    const rawProducts = await prisma.$queryRaw<RawProductRow[]>`
-      SELECT 
-        p.id, p.slug, p.name, p."shortDescription", p.price, p."comparePrice",
-        p."isNew", p."isOnSale", p.stock, p."ratingAverage", p."ratingCount",
-        b.name as "brandName",
-        (SELECT json_agg(json_build_object('id', pi.id, 'url', pi.url, 'isPrimary', pi."isPrimary"))
-         FROM "ProductImage" pi 
-         WHERE pi."productId" = p.id 
-           AND pi."isPrimary" = true 
-           AND pi."isHidden" = false
-         LIMIT 1) as images
-      FROM "Product" p
-      LEFT JOIN "Brand" b ON p."brandId" = b.id
-      WHERE p."status" = 'ACTIVE'
-      ${search ? Prisma.sql`AND p."name" ILIKE ${`%${search}%`}` : Prisma.empty}
-      ${brand ? Prisma.sql`AND b.slug = ${brand}` : Prisma.empty}
-      ${minPrice ? Prisma.sql`AND p.price::numeric >= ${Number(minPrice)}::numeric` : Prisma.empty}
-      ${maxPrice ? Prisma.sql`AND p.price::numeric <= ${Number(maxPrice)}::numeric` : Prisma.empty}
-      ${sale === "true" ? Prisma.sql`AND p."isOnSale" = true` : Prisma.empty}
-      ${isNew === "true" ? Prisma.sql`AND p."isNew" = true` : Prisma.empty}
-      ORDER BY RANDOM()
-      LIMIT ${PAGE_SIZE}
-      OFFSET ${(currentPage - 1) * PAGE_SIZE}
-    `;
+    const [stockProducts, outOfStockProducts] = await Promise.all([
+      prisma.product.findMany({
+        where: { ...baseWhere, stock: { gt: 0 } },
+        skip,
+        take: takeFromStock,
+        orderBy,
+        include,
+      }),
+      takeFromOutOfStock > 0
+        ? prisma.product.findMany({
+            where: { ...baseWhere, stock: 0 },
+            skip: 0,
+            take: takeFromOutOfStock,
+            orderBy,
+            include,
+          })
+        : Promise.resolve([]),
+    ]);
 
-    displayProducts = rawProducts.map((product) => ({
-      id: product.id,
-      slug: product.slug,
-      name: product.name,
-      shortDescription: product.shortDescription,
-      price: Number(product.price),
-      comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
-      isNew: product.isNew,
-      isOnSale: product.isOnSale,
-      stock: product.stock,
-      ratingAverage: product.ratingAverage,
-      ratingCount: product.ratingCount,
-      brand: product.brandName ? { name: product.brandName } : null,
-      images: (product.images || []).map((img) => ({ url: img.url })),
+    displayProducts = [...stockProducts, ...outOfStockProducts].map((p) => ({
+      id: p.id,
+      slug: p.slug,
+      name: p.name,
+      shortDescription: p.shortDescription,
+      price: Number(p.price),
+      comparePrice: p.comparePrice ? Number(p.comparePrice) : null,
+      isNew: p.isNew,
+      isOnSale: p.isOnSale,
+      stock: p.stock,
+      ratingAverage: p.ratingAverage,
+      ratingCount: p.ratingCount,
+      brand: p.brand ? { name: p.brand.name } : null,
+      images: p.images.map((img) => ({ url: img.url })),
     }));
   } else {
-    total = await prisma.product.count({ where });
-    totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-    currentPage = Math.min(page, totalPages);
-
-    const dbProducts = await prisma.product.findMany({
-      where,
-      skip: (currentPage - 1) * PAGE_SIZE,
+    const outOfStockProducts = await prisma.product.findMany({
+      where: { ...baseWhere, stock: 0 },
+      skip: skip - inStockCount,
       take: PAGE_SIZE,
-      orderBy:
-        sort === "price_asc"
-          ? { price: "asc" }
-          : sort === "price_desc"
-          ? { price: "desc" }
-          : sort === "best_sellers"
-          ? { soldCount: "desc" }
-          : { createdAt: "desc" },
-      include: {
-        brand: true,
-        images: { where: { isPrimary: true, isHidden: false }, take: 1 },
-      },
+      orderBy,
+      include,
     });
 
-    displayProducts = dbProducts.map((product) => ({
-      id: product.id,
-      slug: product.slug,
-      name: product.name,
-      shortDescription: product.shortDescription,
-      price: Number(product.price),
-      comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
-      isNew: product.isNew,
-      isOnSale: product.isOnSale,
-      stock: product.stock,
-      ratingAverage: product.ratingAverage,
-      ratingCount: product.ratingCount,
-      brand: product.brand ? { name: product.brand.name } : null,
-      images: product.images.map((img) => ({ url: img.url })),
+    displayProducts = outOfStockProducts.map((p) => ({
+      id: p.id,
+      slug: p.slug,
+      name: p.name,
+      shortDescription: p.shortDescription,
+      price: Number(p.price),
+      comparePrice: p.comparePrice ? Number(p.comparePrice) : null,
+      isNew: p.isNew,
+      isOnSale: p.isOnSale,
+      stock: p.stock,
+      ratingAverage: p.ratingAverage,
+      ratingCount: p.ratingCount,
+      brand: p.brand ? { name: p.brand.name } : null,
+      images: p.images.map((img) => ({ url: img.url })),
     }));
   }
 
+  // ─── CATEGORIAS + MARCAS ─────────────────────────────────
   const [categories, brands] = await Promise.all([
     prisma.category.findMany({
       where: {
         isActive: true,
         deletedAt: null,
-        slug: { in: ALL_ACTIVE_SLUGS },
+        slug: { in: allActiveSlugs },
       },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     }),
@@ -263,6 +255,7 @@ export default async function ProductsPage({ searchParams }: Props) {
     if (sale) query.set("sale", sale);
     if (isNew) query.set("new", isNew);
     if (sort) query.set("sort", sort);
+    if (cols !== DEFAULT_COLS) query.set("cols", String(cols)); // ← NOVO
     Object.entries(extra).forEach(([key, value]) => query.set(key, value));
     return query.toString();
   };
@@ -300,6 +293,12 @@ export default async function ProductsPage({ searchParams }: Props) {
     ...(!activeSubcategory && search ? [{ label: `Pesquisa: ${search}` }] : []),
   ];
 
+  // ✅ Classe da grelha — depende das colunas escolhidas
+  const gridColsClass =
+  cols === 2
+    ? "grid-cols-1 sm:grid-cols-2"
+    : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
+
   return (
     <main className="arabesque-bg relative overflow-hidden min-h-screen">
       <div className="container-custom py-12">
@@ -327,7 +326,12 @@ export default async function ProductsPage({ searchParams }: Props) {
                 {total === 1 ? "produto encontrado" : "produtos encontrados"}
               </p>
             </div>
-            <ProductSort defaultSort={sort} />
+
+            {/* ✅ Sort + GridSelector lado a lado */}
+            <div className="flex flex-wrap items-center gap-3">
+              <GridSelector defaultCols={DEFAULT_COLS} />
+              <ProductSort defaultSort={sort} />
+            </div>
           </div>
         </div>
 
@@ -362,6 +366,9 @@ export default async function ProductsPage({ searchParams }: Props) {
             )}
             {isNew === "true" && (
               <input type="hidden" name="new" value="true" />
+            )}
+            {cols !== DEFAULT_COLS && (
+              <input type="hidden" name="cols" value={String(cols)} />
             )}
 
             <SearchInput key={search} defaultValue={search} />
@@ -487,7 +494,8 @@ export default async function ProductsPage({ searchParams }: Props) {
           </div>
         ) : (
           <section>
-            <div className="grid gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {/* ✅ Grelha com classe dinâmica conforme as colunas */}
+            <div className={`grid gap-x-5 gap-y-10 ${gridColsClass}`}>
               {displayProducts.map((product) => (
                 <ProductCard
                   key={product.id}

@@ -18,7 +18,6 @@ import {
 
 import { useCart } from "@/components/cart/CartProvider";
 import { useWishlist } from "@/components/wishlist/WishlistProvider";
-import { MAIN_CATEGORIES } from "@/lib/categories";
 
 import { MegaMenu } from "./MegaMenu";
 import { MobileMenu } from "./MobileMenu";
@@ -27,6 +26,8 @@ interface NavbarCategory {
   id: string;
   name: string;
   slug: string;
+  parentId: string | null;
+  sortOrder: number;
 }
 
 interface SearchProduct {
@@ -70,10 +71,10 @@ export function NavbarClient({
   const { count: wishlistCount, openWishlist, loading: wishlistLoading } = useWishlist();
   const { itemCount: cartCount, openCart } = useCart();
 
-  const menuCategories = MAIN_CATEGORIES.map((cat) => ({
-    name: cat.name,
-    slug: cat.slug,
-  }));
+  // ✅ Categorias raiz (parentId = null), ordenadas
+  const menuCategories = categories
+    .filter((c) => c.parentId === null)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsClient(true), 0);
@@ -505,6 +506,7 @@ export function NavbarClient({
       <MegaMenu
         activeCategory={activeCategory}
         onClose={() => setActiveCategory(null)}
+        allCategories={categories}
       />
 
       <MobileMenu

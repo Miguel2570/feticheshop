@@ -7,7 +7,7 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { mapProduct } from "@/lib/mappers/product";
 import { ProductStatus } from "@prisma/client";
-import { ALL_ACTIVE_SLUGS } from "@/lib/categories";
+import { getAllActiveSlugs } from "@/lib/categories";
 
 import { ToggleProductStatusButton } from "@/components/admin/products/ToggleProductStatusButton";
 import { ToggleFeaturedButton } from "@/components/admin/products/ToggleFeaturedButton";
@@ -31,6 +31,9 @@ export default async function ProductDetailPage({
   params,
 }: ProductDetailPageProps) {
   const { id } = await params;
+
+  // ✅ Slugs ativos (raízes + subcategorias) — vêm da BD
+  const allActiveSlugs = await getAllActiveSlugs();
 
   // =========================================================
   // PRODUTO
@@ -131,15 +134,8 @@ export default async function ProductDetailPage({
   return (
     <div
       className="
-        w-full
-        min-w-0
-        max-w-full
-        overflow-x-hidden
-        space-y-4
-
-        sm:space-y-5
-
-        lg:space-y-6
+        w-full min-w-0 max-w-full overflow-x-hidden
+        space-y-4 sm:space-y-5 lg:space-y-6
       "
       style={{ color: "#18181b" }}
     >
@@ -149,39 +145,19 @@ export default async function ProductDetailPage({
 
       <div
         className="
-          flex
-          w-full
-          min-w-0
-          max-w-full
-          flex-col
-          gap-3
-
-          sm:flex-row
-          sm:items-center
-          sm:justify-between
+          flex w-full min-w-0 max-w-full flex-col gap-3
+          sm:flex-row sm:items-center sm:justify-between
         "
       >
         <div className="flex min-w-0 max-w-full items-center gap-3">
           <Link
             href="/admin/products"
             className="
-              inline-flex
-              h-9
-              shrink-0
-              items-center
-              gap-1.5
-              rounded-lg
-              bg-pink-500
-              px-3
-              text-xs
-              font-semibold
-              text-white
-              transition-all
-              duration-200
-
-              hover:bg-pink-600
-              hover:shadow-lg
-              hover:shadow-pink-500/25
+              inline-flex h-9 shrink-0 items-center gap-1.5
+              rounded-lg bg-pink-500 px-3
+              text-xs font-semibold text-white
+              transition-all duration-200
+              hover:bg-pink-600 hover:shadow-lg hover:shadow-pink-500/25
             "
           >
             <ArrowLeft size={14} />
@@ -200,15 +176,8 @@ export default async function ProductDetailPage({
 
         <div
           className="
-            flex
-            w-full
-            min-w-0
-            flex-wrap
-            items-center
-            gap-2
-
-            sm:w-auto
-            sm:shrink-0
+            flex w-full min-w-0 flex-wrap items-center gap-2
+            sm:w-auto sm:shrink-0
           "
         >
           <Link
@@ -216,23 +185,12 @@ export default async function ProductDetailPage({
             target="_blank"
             rel="noopener noreferrer"
             className="
-              inline-flex
-              h-9
-              items-center
-              gap-1.5
-              rounded-lg
-              bg-white
-              px-3
-              text-xs
-              font-semibold
-              text-zinc-700
-              border
-              border-zinc-200
-              transition-all
-              duration-200
-
-              hover:bg-zinc-50
-              cursor-pointer
+              inline-flex h-9 items-center gap-1.5
+              rounded-lg bg-white px-3
+              text-xs font-semibold text-zinc-700
+              border border-zinc-200
+              transition-all duration-200
+              hover:bg-zinc-50 cursor-pointer
             "
           >
             <ExternalLink size={14} />
@@ -242,21 +200,11 @@ export default async function ProductDetailPage({
           <Link
             href={`/admin/products/${dbProduct.id}/edit`}
             className="
-              inline-flex
-              h-9
-              items-center
-              gap-1.5
-              rounded-lg
-              bg-white
-              px-3
-              text-xs
-              font-semibold
-              text-zinc-700
-              transition-all
-              duration-200
-
-              hover:bg-zinc-100
-              cursor-pointer
+              inline-flex h-9 items-center gap-1.5
+              rounded-lg bg-white px-3
+              text-xs font-semibold text-zinc-700
+              transition-all duration-200
+              hover:bg-zinc-100 cursor-pointer
             "
           >
             <Edit size={14} />
@@ -281,14 +229,8 @@ export default async function ProductDetailPage({
 
       <div
         className="
-          grid
-          w-full
-          min-w-0
-          max-w-full
-          gap-4
-
-          lg:grid-cols-[280px_minmax(0,1fr)]
-          lg:gap-5
+          grid w-full min-w-0 max-w-full gap-4
+          lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-5
         "
       >
         {/* ESQUERDA — GALERIA */}
@@ -296,15 +238,9 @@ export default async function ProductDetailPage({
         <div className="w-full min-w-0 max-w-full space-y-3">
           <div
             className="
-              w-full
-              min-w-0
-              overflow-hidden
-              rounded-xl
-              border
-              border-zinc-200
-              bg-white
-              p-3
-              shadow-sm
+              w-full min-w-0 overflow-hidden
+              rounded-xl border border-zinc-200
+              bg-white p-3 shadow-sm
             "
           >
             <div className="relative w-full max-w-full overflow-hidden rounded-lg">
@@ -332,18 +268,9 @@ export default async function ProductDetailPage({
                 <div
                   key={image.id}
                   className="
-                    relative
-                    h-14
-                    w-14
-                    shrink-0
-                    overflow-hidden
-                    rounded-lg
-                    border
-                    border-zinc-200
-                    bg-white
-
-                    sm:h-16
-                    sm:w-16
+                    relative h-14 w-14 shrink-0 overflow-hidden
+                    rounded-lg border border-zinc-200 bg-white
+                    sm:h-16 sm:w-16
                   "
                 >
                   <Image
@@ -423,14 +350,9 @@ export default async function ProductDetailPage({
           {costPrice > 0 && (
             <div
               className="
-                grid
-                grid-cols-3
-                gap-2
-                rounded-xl
-                border
-                border-emerald-200
-                bg-emerald-50
-                p-3
+                grid grid-cols-3 gap-2
+                rounded-xl border border-emerald-200
+                bg-emerald-50 p-3
               "
             >
               <div>
@@ -485,16 +407,8 @@ export default async function ProductDetailPage({
 
             <span
               className={`
-                inline-flex
-                max-w-full
-                shrink-0
-                rounded-full
-                border
-                px-3
-                py-1
-                text-xs
-                font-semibold
-
+                inline-flex max-w-full shrink-0 rounded-full border
+                px-3 py-1 text-xs font-semibold
                 ${statusBadgeColors[dbProduct.status]}
               `}
             >
@@ -537,17 +451,9 @@ export default async function ProductDetailPage({
 
       <div
         className="
-          w-full
-          min-w-0
-          max-w-full
-          overflow-hidden
-          rounded-xl
-          border
-          border-pink-100
-          bg-white
-          p-3
-          shadow-sm
-
+          w-full min-w-0 max-w-full overflow-hidden
+          rounded-xl border border-pink-100
+          bg-white p-3 shadow-sm
           sm:p-5
         "
       >
@@ -560,17 +466,9 @@ export default async function ProductDetailPage({
 
       <div
         className="
-          w-full
-          min-w-0
-          max-w-full
-          overflow-hidden
-          rounded-xl
-          border
-          border-zinc-200
-          bg-white
-          p-4
-          shadow-sm
-
+          w-full min-w-0 max-w-full overflow-hidden
+          rounded-xl border border-zinc-200
+          bg-white p-4 shadow-sm
           sm:p-5
         "
       >
@@ -578,27 +476,19 @@ export default async function ProductDetailPage({
 
         <div className="mt-3 flex max-w-full flex-wrap gap-1.5 overflow-hidden">
           {dbProduct.categories.filter(({ category }) =>
-            ALL_ACTIVE_SLUGS.includes(category.slug)
+            allActiveSlugs.includes(category.slug)
           ).length > 0 ? (
             dbProduct.categories
               .filter(({ category }) =>
-                ALL_ACTIVE_SLUGS.includes(category.slug)
+                allActiveSlugs.includes(category.slug)
               )
               .map(({ category }) => (
                 <span
                   key={category.id}
                   className="
-                    max-w-full
-                    break-words
-                    rounded-full
-                    border
-                    border-pink-200
-                    bg-pink-50
-                    px-3
-                    py-1
-                    text-xs
-                    font-medium
-                    text-pink-600
+                    max-w-full break-words rounded-full border
+                    border-pink-200 bg-pink-50
+                    px-3 py-1 text-xs font-medium text-pink-600
                   "
                 >
                   {category.name}
@@ -617,17 +507,9 @@ export default async function ProductDetailPage({
       {dbProduct.variants.length > 0 && (
         <div
           className="
-            w-full
-            min-w-0
-            max-w-full
-            overflow-hidden
-            rounded-xl
-            border
-            border-zinc-200
-            bg-white
-            p-4
-            shadow-sm
-
+            w-full min-w-0 max-w-full overflow-hidden
+            rounded-xl border border-zinc-200
+            bg-white p-4 shadow-sm
             sm:p-5
           "
         >
@@ -640,22 +522,11 @@ export default async function ProductDetailPage({
               <div
                 key={variant.id}
                 className="
-                  flex
-                  min-w-0
-                  max-w-full
-                  flex-col
-                  gap-2
-                  rounded-lg
-                  border
-                  border-zinc-200
-                  px-3
-                  py-3
-
-                  sm:flex-row
-                  sm:items-center
-                  sm:justify-between
-                  sm:px-3.5
-                  sm:py-2.5
+                  flex min-w-0 max-w-full flex-col gap-2
+                  rounded-lg border border-zinc-200
+                  px-3 py-3
+                  sm:flex-row sm:items-center sm:justify-between
+                  sm:px-3.5 sm:py-2.5
                 "
               >
                 <div className="min-w-0 max-w-full">
@@ -680,8 +551,7 @@ export default async function ProductDetailPage({
 
                   <p
                     className={`
-                      text-xs
-                      font-medium
+                      text-xs font-medium
                       ${
                         variant.stock === 0
                           ? "text-red-500"

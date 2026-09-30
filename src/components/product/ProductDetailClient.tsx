@@ -44,8 +44,7 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
       ? activeVariant.comparePrice
       : product.oldPrice;
 
-  const effectiveStock =
-    activeVariant != null ? activeVariant.stock > 0 : product.stock;
+  const effectiveStock = product.stock;
 
   return (
     <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-2 lg:gap-16 w-full">

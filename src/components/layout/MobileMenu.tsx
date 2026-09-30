@@ -6,12 +6,12 @@ import { useState, useEffect } from "react";
 import { X, ChevronRight, ChevronDown, Shield, UserCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-import { MAIN_CATEGORIES, SUBCATEGORIES } from "@/lib/categories";
-
 interface MobileMenuCategory {
   id: string;
   name: string;
   slug: string;
+  parentId: string | null;
+  sortOrder: number;
 }
 
 interface MobileMenuProps {
@@ -27,12 +27,18 @@ interface MobileMenuProps {
 export function MobileMenu({
   open,
   onClose,
+  categories,
   hasNewProducts = false,
   hasSaleProducts = false,
   isAdmin = false,
   isAuthenticated = false,
 }: MobileMenuProps) {
   const [expandedCategory, setExpandedCategory] = useState<string | null>(null);
+
+  // ✅ Categorias raiz (parentId === null), ordenadas
+  const rootCategories = categories
+    .filter((c) => c.parentId === null)
+    .sort((a, b) => a.sortOrder - b.sortOrder);
 
   // Bloquear scroll do body quando o menu está aberto
   useEffect(() => {
@@ -143,12 +149,8 @@ export function MobileMenu({
   return (
     <div
       className="
-        fixed
-        inset-0
-        z-[60]
-        bg-black
-        overflow-y-auto
-        overscroll-contain
+        fixed inset-0 z-[60] bg-black
+        overflow-y-auto overscroll-contain
         lg:hidden
       "
     >
@@ -161,12 +163,8 @@ export function MobileMenu({
             onClick={onClose}
             aria-label="Fechar menu"
             className="
-              rounded-full
-              p-2
-              text-zinc-200
-              transition
-              hover:bg-zinc-900
-              hover:text-pink-500
+              rounded-full p-2 text-zinc-200
+              transition hover:bg-zinc-900 hover:text-pink-500
               cursor-pointer
             "
           >
@@ -181,20 +179,11 @@ export function MobileMenu({
               href={link.href}
               onClick={onClose}
               className="
-                group
-                flex
-                items-center
-                justify-between
-                rounded-xl
-                px-4
-                py-3.5
-                text-sm
-                font-semibold
-                text-white
-                transition-all
-                duration-200
-                hover:bg-zinc-900
-                hover:text-pink-500
+                group flex items-center justify-between
+                rounded-xl px-4 py-3.5
+                text-sm font-semibold text-white
+                transition-all duration-200
+                hover:bg-zinc-900 hover:text-pink-500
               "
             >
               {link.label}
@@ -213,9 +202,13 @@ export function MobileMenu({
           </p>
 
           <div className="mt-3 grid gap-1.5">
-            {MAIN_CATEGORIES.map((category) => {
+            {rootCategories.map((category) => {
               const isExpanded = expandedCategory === category.slug;
-              const subCategories = SUBCATEGORIES[category.slug] ?? [];
+
+              // ✅ Subcategorias desta raiz (filhos diretos), ordenadas
+              const subCategories = categories
+                .filter((c) => c.parentId === category.id)
+                .sort((a, b) => a.sortOrder - b.sortOrder);
 
               return (
                 <div key={category.slug}>
@@ -223,20 +216,11 @@ export function MobileMenu({
                     type="button"
                     onClick={() => toggleCategory(category.slug)}
                     className="
-                      flex
-                      w-full
-                      items-center
-                      justify-between
-                      rounded-xl
-                      px-4
-                      py-3
-                      text-sm
-                      font-medium
-                      text-zinc-300
-                      transition-all
-                      duration-200
-                      hover:bg-zinc-900
-                      hover:text-pink-500
+                      flex w-full items-center justify-between
+                      rounded-xl px-4 py-3
+                      text-sm font-medium text-zinc-300
+                      transition-all duration-200
+                      hover:bg-zinc-900 hover:text-pink-500
                       cursor-pointer
                     "
                   >
@@ -264,41 +248,39 @@ export function MobileMenu({
                         className="overflow-hidden"
                       >
                         <div className="ml-4 mt-1 grid gap-0.5 border-l border-zinc-800 pl-3">
-                          {subCategories.map((subCat) => (
-                            <motion.div
-                              key={subCat.slug}
-                              initial={{ x: -10, opacity: 0 }}
-                              animate={{ x: 0, opacity: 1 }}
-                              transition={{ duration: 0.2 }}
-                            >
-                              <Link
-                                href={`/product?category=${category.slug}&subcategory=${subCat.slug}`}
-                                onClick={onClose}
-                                className="
-                                  flex
-                                  items-center
-                                  justify-between
-                                  rounded-lg
-                                  px-3
-                                  py-2.5
-                                  text-xs
-                                  font-medium
-                                  text-zinc-400
-                                  transition-all
-                                  duration-200
-                                  hover:bg-zinc-900
-                                  hover:text-pink-500
-                                "
+                          {subCategories.length > 0 ? (
+                            subCategories.map((subCat) => (
+                              <motion.div
+                                key={subCat.slug}
+                                initial={{ x: -10, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                transition={{ duration: 0.2 }}
                               >
-                                {subCat.name}
+                                <Link
+                                  href={`/product?category=${category.slug}&subcategory=${subCat.slug}`}
+                                  onClick={onClose}
+                                  className="
+                                    flex items-center justify-between
+                                    rounded-lg px-3 py-2.5
+                                    text-xs font-medium text-zinc-400
+                                    transition-all duration-200
+                                    hover:bg-zinc-900 hover:text-pink-500
+                                  "
+                                >
+                                  {subCat.name}
 
-                                <ChevronRight
-                                  size={14}
-                                  className="text-zinc-600"
-                                />
-                              </Link>
-                            </motion.div>
-                          ))}
+                                  <ChevronRight
+                                    size={14}
+                                    className="text-zinc-600"
+                                  />
+                                </Link>
+                              </motion.div>
+                            ))
+                          ) : (
+                            <p className="px-3 py-2 text-xs text-zinc-600">
+                              Sem subcategorias.
+                            </p>
+                          )}
                         </div>
                       </motion.div>
                     )}
@@ -315,23 +297,12 @@ export function MobileMenu({
               href="/admin"
               onClick={onClose}
               className="
-                flex
-                items-center
-                justify-center
-                gap-2
-                rounded-full
-                border
-                border-pink-500/30
-                bg-pink-500/10
-                px-6
-                py-3.5
-                text-sm
-                font-semibold
-                text-pink-500
-                transition-all
-                duration-300
-                hover:bg-pink-500
-                hover:text-white
+                flex items-center justify-center gap-2
+                rounded-full border border-pink-500/30 bg-pink-500/10
+                px-6 py-3.5
+                text-sm font-semibold text-pink-500
+                transition-all duration-300
+                hover:bg-pink-500 hover:text-white
               "
             >
               <Shield size={18} />
@@ -346,19 +317,10 @@ export function MobileMenu({
               href="/account"
               onClick={onClose}
               className="
-                flex
-                items-center
-                justify-center
-                gap-2
-                rounded-full
-                bg-pink-500
-                px-6
-                py-3.5
-                text-sm
-                font-semibold
-                text-white
-                transition-all
-                duration-300
+                flex items-center justify-center gap-2
+                rounded-full bg-pink-500 px-6 py-3.5
+                text-sm font-semibold text-white
+                transition-all duration-300
                 hover:bg-pink-600
               "
             >
@@ -370,19 +332,10 @@ export function MobileMenu({
               href="/login"
               onClick={onClose}
               className="
-                flex
-                items-center
-                justify-center
-                gap-2
-                rounded-full
-                bg-pink-500
-                px-6
-                py-3.5
-                text-sm
-                font-semibold
-                text-white
-                transition-all
-                duration-300
+                flex items-center justify-center gap-2
+                rounded-full bg-pink-500 px-6 py-3.5
+                text-sm font-semibold text-white
+                transition-all duration-300
                 hover:bg-pink-600
               "
             >

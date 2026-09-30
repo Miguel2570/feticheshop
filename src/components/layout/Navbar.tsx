@@ -1,4 +1,4 @@
-// Navbar.tsx (Server Component)
+// components/layout/Navbar.tsx
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { NavbarClient } from "./NavbarClient";
@@ -10,8 +10,15 @@ export async function Navbar() {
 
   const [categories, newCount, saleCount] = await Promise.all([
     prisma.category.findMany({
-      where: { isActive: true },
-      orderBy: { name: "asc" },
+      where: { isActive: true, deletedAt: null },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        parentId: true,
+        sortOrder: true,
+      },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     }),
     prisma.product.count({
       where: { status: "ACTIVE", isNew: true },
