@@ -293,7 +293,6 @@ export default async function ProductsPage({ searchParams }: Props) {
     ...(!activeSubcategory && search ? [{ label: `Pesquisa: ${search}` }] : []),
   ];
 
-  // ✅ Classe da grelha — depende das colunas escolhidas
   const gridColsClass =
   cols === 2
     ? "grid-cols-1 sm:grid-cols-2"
