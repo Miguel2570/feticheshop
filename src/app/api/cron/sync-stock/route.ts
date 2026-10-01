@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { syncStock } from "@/lib/sync-stock";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60; // segundos — Vercel Hobby permite até 60s
+export const maxDuration = 60; // segundos
 
 export async function GET(request: NextRequest) {
   // Proteção por secret
@@ -23,20 +23,28 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  try {
-    const result = await syncStock();
-    return NextResponse.json(result, {
-      status: result.success ? 200 : 500,
+  // ✅ Fire and forget: dispara o sync e responde imediatamente
+  // O sync continua a correr em background.
+  const startedAt = new Date();
+
+  void syncStock()
+    .then((result) => {
+      console.log("✅ Sync concluído:", {
+        duration: result.durationMs,
+        itemsProcessed: result.itemsProcessed,
+        variantsUpdated: result.variantsUpdated,
+        errors: result.errors,
+      });
+    })
+    .catch((error) => {
+      console.error("❌ Sync falhou:", error);
     });
-  } catch (error) {
-    console.error("Erro no cron:", error);
-    return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 }
-    );
-  }
+
+  return NextResponse.json({
+    status: "started",
+    message: "Sync a correr em background",
+    startedAt: startedAt.toISOString(),
+  });
 }
 
 export async function POST(request: NextRequest) {
