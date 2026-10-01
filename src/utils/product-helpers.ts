@@ -1,6 +1,49 @@
+// utils/product-helpers.ts
+
+// ─────────────────────────────────────────────────────────────
+// DESCRIÇÃO
+// ─────────────────────────────────────────────────────────────
 
 export function extractDescription(html: string): string {
   if (!html) return "";
+
+  // 🔍 Se é HTML moderno (TipTap), preserva as tags
+  const isModernHtml = /<(p|strong|em|h[1-6])\b[^>]*>/i.test(html);
+
+  if (isModernHtml) {
+    // Remove as secções "Características:", "Especificações:", etc.
+    // diretamente do HTML (procura em <p> ou <h1>-<h6>, com ou sem <strong>)
+    const sectionPatterns = [
+      /<(?:p|h[1-6])[^>]*>\s*(?:<strong>)?\s*CARACTER[IÍ]STICAS?\s*:?\s*(?:<\/strong>)?\s*<\/(?:p|h[1-6])>/i,
+      /<(?:p|h[1-6])[^>]*>\s*(?:<strong>)?\s*ESPECIFICA[ÇC][ÃÕ]ES\s*:?\s*(?:<\/strong>)?\s*<\/(?:p|h[1-6])>/i,
+      /<(?:p|h[1-6])[^>]*>\s*(?:<strong>)?\s*MEDIDAS?\s*:?\s*(?:<\/strong>)?\s*<\/(?:p|h[1-6])>/i,
+      /<(?:p|h[1-6])[^>]*>\s*(?:<strong>)?\s*MATERIAL\s*:?\s*(?:<\/strong>)?\s*<\/(?:p|h[1-6])>/i,
+      /<(?:p|h[1-6])[^>]*>\s*(?:<strong>)?\s*CONTENIDO\s*:?\s*(?:<\/strong>)?\s*<\/(?:p|h[1-6])>/i,
+      /<(?:p|h[1-6])[^>]*>\s*(?:<strong>)?\s*CONTE[UÚ]DO\s*:?\s*(?:<\/strong>)?\s*<\/(?:p|h[1-6])>/i,
+      /<(?:p|h[1-6])[^>]*>\s*(?:<strong>)?\s*INSTRUCCIONES\s*:?\s*(?:<\/strong>)?\s*<\/(?:p|h[1-6])>/i,
+      /<(?:p|h[1-6])[^>]*>\s*(?:<strong>)?\s*ADVERTENCIAS\s*:?\s*(?:<\/strong>)?\s*<\/(?:p|h[1-6])>/i,
+      /<(?:p|h[1-6])[^>]*>\s*(?:<strong>)?\s*MANTENIMIENTO\s*:?\s*(?:<\/strong>)?\s*<\/(?:p|h[1-6])>/i,
+      /<(?:p|h[1-6])[^>]*>\s*(?:<strong>)?\s*LIMPIEZA\s*:?\s*(?:<\/strong>)?\s*<\/(?:p|h[1-6])>/i,
+    ];
+
+    let earliestIndex = html.length;
+    for (const pattern of sectionPatterns) {
+      const match = html.match(pattern);
+      if (match && match.index !== undefined && match.index < earliestIndex) {
+        earliestIndex = match.index;
+      }
+    }
+
+    if (earliestIndex < html.length) {
+      html = html.substring(0, earliestIndex);
+    }
+
+    return html.trim();
+  }
+
+  // ─────────────────────────────────────────────
+  // ABAIXO: lógica antiga para HTML do Dreamlove
+  // ─────────────────────────────────────────────
 
   let text = html
     .replace(/<br\s*\/?>/gi, "\n")
@@ -24,8 +67,8 @@ export function extractDescription(html: string): string {
     '&euro;': '€', '&copy;': '©',
     '&reg;': '®', '&trade;': '™',
   };
-  
-  text = text.replace(/&[a-z]+;/gi, match => entities[match.toLowerCase()] || match);
+
+  text = text.replace(/&[a-z]+;/gi, (match) => entities[match.toLowerCase()] || match);
 
   const sectionPatterns = [
     /(?:^|\n\n)\s*CARACTER[IÍ]STICAS?\s*:?/i,
@@ -41,7 +84,6 @@ export function extractDescription(html: string): string {
   ];
 
   let earliestIndex = text.length;
-
   for (const pattern of sectionPatterns) {
     const match = text.match(pattern);
     if (match && match.index !== undefined && match.index < earliestIndex) {
@@ -53,10 +95,12 @@ export function extractDescription(html: string): string {
     text = text.substring(0, earliestIndex);
   }
 
-  return text
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+  return text.replace(/\n{3,}/g, "\n\n").trim();
 }
+
+// ─────────────────────────────────────────────────────────────
+// FEATURES
+// ─────────────────────────────────────────────────────────────
 
 export function extractFeatures(html: string): string[] {
   if (!html) return [];
@@ -75,10 +119,10 @@ export function extractFeatures(html: string): string[] {
   const match = html.match(
     /CARACTER[IÍ]STICAS?[:\s]*([\s\S]*?)(?:ESPECIFICA[CÇÕES]|MEDIDAS|MATERIAL|CONTENIDO|$)/i
   );
-  
+
   if (match) {
     const featuresText = match[1];
-    
+
     const liMatches = featuresText.match(/<li[^>]*>([\s\S]*?)<\/li>/gi);
     if (liMatches) {
       return liMatches
@@ -89,7 +133,11 @@ export function extractFeatures(html: string): string[] {
     const features = featuresText
       .split(/[•\-\*]|\d+\.\s*/)
       .map((item) => item.trim())
-      .filter((item) => item.length > 0 && !item.match(/^(MEDIDAS|MATERIAL|CONTENIDO|ESPECIFICAÇÕES)/i));
+      .filter(
+        (item) =>
+          item.length > 0 &&
+          !item.match(/^(MEDIDAS|MATERIAL|CONTENIDO|ESPECIFICAÇÕES)/i)
+      );
 
     if (features.length > 0) {
       return features;
@@ -98,6 +146,10 @@ export function extractFeatures(html: string): string[] {
 
   return [];
 }
+
+// ─────────────────────────────────────────────────────────────
+// ESPECIFICAÇÕES
+// ─────────────────────────────────────────────────────────────
 
 export function extractSpecifications(html: string): {
   material: string;
@@ -127,7 +179,7 @@ export function extractSpecifications(html: string): {
   );
   if (medidasMatch) {
     const medidasText = medidasMatch[1];
-    
+
     const liMatches = medidasText.match(/<li[^>]*>([\s\S]*?)<\/li>/gi);
     if (liMatches) {
       liMatches.forEach((item) => {
