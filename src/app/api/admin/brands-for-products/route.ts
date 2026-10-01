@@ -1,17 +1,31 @@
 // app/api/admin/brands-for-products/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 import { requireAdmin } from "@/server/middleware/admin";
 import { prisma } from "@/lib/prisma";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     await requireAdmin();
 
+    const categoryId = request.nextUrl.searchParams.get("category");
+
     const brands = await prisma.brand.findMany({
       where: {
-        isActive: true,
-        products: { some: { status: "ACTIVE", deletedAt: null } },
+        // Sem filtro de isActive — queres ver TODAS as marcas no admin
+        ...(categoryId
+          ? {
+              products: {
+                some: {
+                  deletedAt: null,
+                  categories: { some: { categoryId } },
+                  // Sem filtro status — mostra produtos HIDDEN, ARCHIVED, etc.
+                },
+              },
+            }
+          : {
+              products: { some: { deletedAt: null } },
+            }),
       },
       select: { id: true, name: true },
       orderBy: { name: "asc" },

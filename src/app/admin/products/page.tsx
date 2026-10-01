@@ -1,6 +1,6 @@
 // app/admin/products/page.tsx
 
-import { Prisma, ProductStatus } from "@prisma/client";
+import { Prisma, ProductStatus, StockMode } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ProductToolbar } from "@/components/admin/products/ProductToolbar";
 import { ProductsTable } from "@/components/admin/products/ProductsTable";
@@ -38,7 +38,6 @@ const PAGE_SIZE = 20;
 const productInclude = {
   brand: true,
   images: { where: { isPrimary: true, isHidden: false }, take: 1 },
-  //                                    ↑ NOVO
   categories: { include: { category: true } },
   _count: { select: { variants: true } },
 } satisfies Prisma.ProductInclude;
@@ -181,6 +180,22 @@ export default async function ProductsPage({ searchParams }: Props) {
     isOrphan: product.canonicalUrl !== null,
   }));
 
+  // ─── MODO DE STOCK DOMINANTE + TOTAL (para o modal) ──────
+  const [stockModeCounts, totalAllProducts] = await Promise.all([
+    prisma.product.groupBy({
+      by: ["stockMode"],
+      where: { deletedAt: null },
+      _count: { stockMode: true },
+      orderBy: { _count: { stockMode: "desc" } },
+    }),
+    prisma.product.count({
+      where: { deletedAt: null },
+    }),
+  ]);
+
+  const currentStockMode: StockMode | null =
+    stockModeCounts[0]?.stockMode ?? null;
+
   // ─── QUERY PARAMS PARA PAGINAÇÃO ─────────────────────────
   const queryParams = new URLSearchParams();
   if (search) queryParams.set("search", search);
@@ -215,7 +230,10 @@ export default async function ProductsPage({ searchParams }: Props) {
       </div>
 
       <div className="w-full min-w-0">
-        <ProductToolbar />
+        <ProductToolbar
+          currentStockMode={currentStockMode}
+          totalProducts={totalAllProducts}
+        />
       </div>
 
       <div className="w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm sm:rounded-2xl">
