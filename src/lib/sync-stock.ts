@@ -1,4 +1,6 @@
 // lib/sync-stock.ts
+import { Prisma } from "@prisma/client";
+
 import { prisma } from "@/lib/prisma";
 
 const API_URL = process.env.DREAMLOVE_API_URL!;
@@ -6,6 +8,9 @@ const USERNAME = process.env.DREAMLOVE_USERNAME!;
 const PASSWORD = process.env.DREAMLOVE_PASSWORD!;
 
 const SETTING_KEY = "supplier-stock:lastSyncAt";
+
+// Nº de updates por batch
+const BATCH_SIZE = 500;
 
 // ═══════════════════════════════════════════════════════════════
 // Tipos
@@ -150,7 +155,9 @@ export async function syncStock(): Promise<SyncResult> {
   let itemsProcessed = 0;
   let variantsUpdated = 0;
   let errors = 0;
-  const affectedProductIds = new Set<string>();
+
+  // Map<dreamloveId, stock> — acumula novos stocks em memória
+  const newStocksByDreamloveId = new Map<number, number>();
 
   try {
     // 1. Login
@@ -161,16 +168,14 @@ export async function syncStock(): Promise<SyncResult> {
     // 2. Última sync
     const lastSyncAt = await getLastSyncAt();
     if (lastSyncAt) {
-      console.log(
-        `📅 Última sync: ${lastSyncAt.toISOString()} (incremental)`
-      );
+      console.log(`📅 Última sync: ${lastSyncAt.toISOString()} (incremental)`);
     } else {
       console.log("📅 Primeira sync (full)");
     }
     console.log("");
 
     // 3. Iterar páginas
-    const MAX_PAGES = 50; // safety guard
+    const MAX_PAGES = 20;
     let page = 1;
 
     while (page <= MAX_PAGES) {
@@ -187,45 +192,16 @@ export async function syncStock(): Promise<SyncResult> {
 
       console.log(`   ${items.length} itens processados`);
 
-      // 4. Processar cada item
+      // 4. Acumular novos stocks (SEM queries à BD)
       for (const item of items) {
-        try {
-          const dreamloveId = extractDreamloveId(item.product);
-          if (!dreamloveId) {
-            errors++;
-            continue;
-          }
-
-          // Encontrar variante por dreamloveId
-          const variant = await prisma.productVariant.findUnique({
-            where: { dreamloveId },
-            select: { id: true, productId: true, stock: true },
-          });
-
-          if (!variant) {
-            // Não é erro — pode ser produto que não importaste
-            continue;
-          }
-
-          const newStock = item.available;
-
-          // Atualizar se mudou
-          if (variant.stock !== newStock) {
-            await prisma.productVariant.update({
-              where: { id: variant.id },
-              data: { stock: newStock },
-            });
-            variantsUpdated++;
-          }
-
-          affectedProductIds.add(variant.productId);
-        } catch (err) {
-          console.error(`   ❌ Erro no item ${item.id}:`, err);
+        const dreamloveId = extractDreamloveId(item.product);
+        if (!dreamloveId) {
           errors++;
+          continue;
         }
+        newStocksByDreamloveId.set(dreamloveId, item.available);
       }
 
-      // Se veio menos de 1000, acabámos
       if (items.length < 1000) {
         console.log(`   Última página (${items.length} < 1000)`);
         break;
@@ -234,38 +210,123 @@ export async function syncStock(): Promise<SyncResult> {
       page++;
     }
 
-    // 5. Recalcular Product.stock dos produtos afetados
+    console.log(
+      `\n📊 ${newStocksByDreamloveId.size} dreamloveIds a processar na BD`
+    );
+
+    // 5. OTIMIZAÇÃO: Carregar TODAS as variantes com dreamloveId de uma vez
+    const dreamloveIds = Array.from(newStocksByDreamloveId.keys());
+
+    console.log(`🔍 A carregar variantes da BD...`);
+    const variants = await prisma.productVariant.findMany({
+      where: { dreamloveId: { in: dreamloveIds } },
+      select: {
+        id: true,
+        productId: true,
+        dreamloveId: true,
+        stock: true,
+      },
+    });
+
+    console.log(`   ${variants.length} variantes encontradas`);
+
+    // 6. Filtrar só as que mudaram
+    const toUpdate: Array<{ id: string; stock: number }> = [];
+    const affectedProductIds = new Set<string>();
+
+    for (const v of variants) {
+      if (v.dreamloveId == null) continue;
+      const newStock = newStocksByDreamloveId.get(v.dreamloveId);
+      if (newStock === undefined) continue;
+
+      affectedProductIds.add(v.productId);
+
+      if (v.stock !== newStock) {
+        toUpdate.push({ id: v.id, stock: newStock });
+      }
+    }
+
+    console.log(`   ${toUpdate.length} variantes com stock alterado`);
+    console.log(`   ${affectedProductIds.size} produtos afetados\n`);
+
+    // 7. OTIMIZAÇÃO: Updates em batch com transações
+    if (toUpdate.length > 0) {
+      console.log(`🔄 A atualizar variantes em batches de ${BATCH_SIZE}...`);
+
+      for (let i = 0; i < toUpdate.length; i += BATCH_SIZE) {
+        const batch = toUpdate.slice(i, i + BATCH_SIZE);
+
+        try {
+          await prisma.$transaction(
+            batch.map((u) =>
+              prisma.productVariant.update({
+                where: { id: u.id },
+                data: { stock: u.stock },
+              })
+            )
+          );
+
+          variantsUpdated += batch.length;
+
+          const done = Math.min(i + BATCH_SIZE, toUpdate.length);
+          console.log(`   ${done}/${toUpdate.length}...`);
+        } catch (err) {
+          console.error(`   ❌ Erro no batch ${i}:`, err);
+          errors += batch.length;
+        }
+      }
+    }
+
+    // 8. OTIMIZAÇÃO: Recalcular stocks dos produtos em batch
     console.log(
       `\n🔄 A recalcular stock de ${affectedProductIds.size} produtos...`
     );
 
+    const affectedArray = Array.from(affectedProductIds);
+
+    // 8a. Agregar stocks de todas as variantes em UMA query
+    const aggregates = await prisma.productVariant.groupBy({
+      by: ["productId"],
+      where: {
+        productId: { in: affectedArray },
+        isActive: true,
+      },
+      _sum: { stock: true },
+    });
+
+    console.log(`   ${aggregates.length} produtos agregados`);
+
+    // 8b. OTIMIZAÇÃO MÁXIMA: 1 query SQL por batch
     let productsRecalculated = 0;
 
-    for (const productId of affectedProductIds) {
+    for (let i = 0; i < aggregates.length; i += BATCH_SIZE) {
+      const batch = aggregates.slice(i, i + BATCH_SIZE);
+
       try {
-        const variants = await prisma.productVariant.findMany({
-          where: { productId, isActive: true },
-          select: { stock: true },
-        });
+        const values = batch.map(
+          (a) => Prisma.sql`(${a.productId}, ${a._sum.stock ?? 0})`
+        );
 
-        const totalStock = variants.reduce((sum, v) => sum + v.stock, 0);
+        await prisma.$executeRaw`
+          UPDATE "Product" AS p
+          SET 
+            stock = v.stock,
+            "supplierStock" = v.stock
+          FROM (VALUES ${Prisma.join(values)}) AS v(id, stock)
+          WHERE p.id = v.id
+        `;
 
-        await prisma.product.update({
-          where: { id: productId },
-          data: {
-            stock: totalStock,
-            supplierStock: totalStock,
-          },
-        });
+        productsRecalculated += batch.length;
 
-        productsRecalculated++;
+        const done = Math.min(i + BATCH_SIZE, aggregates.length);
+        console.log(`   ${done}/${aggregates.length}...`);
       } catch (err) {
-        console.error(`   ❌ Erro no produto ${productId}:`, err);
-        errors++;
+        console.error(`   ❌ Erro no batch de produtos ${i}:`, err);
+        errors += batch.length;
       }
     }
 
-    // 6. Guardar data da última sync
+    // 9. Guardar data da última sync
     await setLastSyncAt(startedAt);
 
     const finishedAt = new Date();
