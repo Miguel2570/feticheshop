@@ -36,13 +36,9 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
   }, [activeVariant, product.images]);
 
   // Preço efetivo (variante sobrepõe produto se tiver price)
-  const effectivePrice =
-    activeVariant?.price != null ? activeVariant.price : product.price;
+  const effectivePrice = product.price;
 
-  const effectiveComparePrice =
-    activeVariant?.comparePrice != null
-      ? activeVariant.comparePrice
-      : product.oldPrice;
+  const effectiveComparePrice = product.oldPrice;
 
   const effectiveStock = product.stock;
 

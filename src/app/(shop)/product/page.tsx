@@ -5,6 +5,7 @@ import Link from "next/link";
 
 import { prisma } from "@/lib/prisma";
 import { getAllActiveSlugs } from "@/lib/categories";
+import { getEffectiveStock } from "@/utils/product-helpers";
 import { ProductCard } from "@/components/product/ProductCard";
 import { Button } from "@/components/ui/Button";
 import { ProductSort } from "@/components/product/ProductSort";
@@ -29,7 +30,7 @@ type Props = {
     new?: string | string[];
     sort?: string | string[];
     page?: string | string[];
-    cols?: string | string[]; // ← NOVO
+    cols?: string | string[];
   }>;
 };
 
@@ -71,11 +72,9 @@ export default async function ProductsPage({ searchParams }: Props) {
   const sort = getParam(params.sort);
   const page = Math.max(1, Number(getParam(params.page) || "1"));
 
-  // ✅ Colunas da grelha (2, 4, 6, 8) — default 4
   const colsParam = Number(getParam(params.cols));
   const cols = ALLOWED_COLS.includes(colsParam) ? colsParam : DEFAULT_COLS;
 
-  // ✅ Slugs ativos (raízes + subcategorias) — vêm da BD
   const allActiveSlugs = await getAllActiveSlugs();
 
   let categoryIds: string[] = [];
@@ -130,93 +129,62 @@ export default async function ProductsPage({ searchParams }: Props) {
       ? ({ soldCount: "desc" } as const)
       : ({ createdAt: "desc" } as const);
 
-  // ─── CONTAGEM ────────────────────────────────────────────
-  const [inStockCount, outOfStockCount] = await Promise.all([
-    prisma.product.count({ where: { ...baseWhere, stock: { gt: 0 } } }),
-    prisma.product.count({ where: { ...baseWhere, stock: 0 } }),
-  ]);
-
-  const total = inStockCount + outOfStockCount;
-  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-
-  // ─── QUERY PAGINADA ──────────────────────────────────────
-  const skip = (currentPage - 1) * PAGE_SIZE;
-  const stockRemaining = Math.max(0, inStockCount - skip);
-
-  let displayProducts: DisplayProduct[] = [];
-
+  // ─── QUERY: buscar todos + incluir variants ──────────────
   const include = {
     brand: true,
     images: {
       where: { isPrimary: true, isHidden: false },
       take: 1,
     },
+    variants: {
+      where: { isActive: true },
+      select: { stock: true, isActive: true },
+    },
   } as const;
 
-  if (stockRemaining > 0) {
-    const takeFromStock = Math.min(PAGE_SIZE, stockRemaining);
-    const takeFromOutOfStock = PAGE_SIZE - takeFromStock;
+  const allProducts = await prisma.product.findMany({
+    where: baseWhere,
+    orderBy,
+    include,
+  });
 
-    const [stockProducts, outOfStockProducts] = await Promise.all([
-      prisma.product.findMany({
-        where: { ...baseWhere, stock: { gt: 0 } },
-        skip,
-        take: takeFromStock,
-        orderBy,
-        include,
-      }),
-      takeFromOutOfStock > 0
-        ? prisma.product.findMany({
-            where: { ...baseWhere, stock: 0 },
-            skip: 0,
-            take: takeFromOutOfStock,
-            orderBy,
-            include,
-          })
-        : Promise.resolve([]),
-    ]);
-
-    displayProducts = [...stockProducts, ...outOfStockProducts].map((p) => ({
-      id: p.id,
-      slug: p.slug,
-      name: p.name,
-      shortDescription: p.shortDescription,
-      price: Number(p.price),
-      comparePrice: p.comparePrice ? Number(p.comparePrice) : null,
-      isNew: p.isNew,
-      isOnSale: p.isOnSale,
+  // ─── Calcular stock efetivo + separar in/out of stock ────
+  const withEffectiveStock = allProducts.map((p) => ({
+    ...p,
+    effectiveStock: getEffectiveStock({
       stock: p.stock,
-      ratingAverage: p.ratingAverage,
-      ratingCount: p.ratingCount,
-      brand: p.brand ? { name: p.brand.name } : null,
-      images: p.images.map((img) => ({ url: img.url })),
-    }));
-  } else {
-    const outOfStockProducts = await prisma.product.findMany({
-      where: { ...baseWhere, stock: 0 },
-      skip: skip - inStockCount,
-      take: PAGE_SIZE,
-      orderBy,
-      include,
-    });
+      variants: p.variants,
+    }),
+  }));
 
-    displayProducts = outOfStockProducts.map((p) => ({
-      id: p.id,
-      slug: p.slug,
-      name: p.name,
-      shortDescription: p.shortDescription,
-      price: Number(p.price),
-      comparePrice: p.comparePrice ? Number(p.comparePrice) : null,
-      isNew: p.isNew,
-      isOnSale: p.isOnSale,
-      stock: p.stock,
-      ratingAverage: p.ratingAverage,
-      ratingCount: p.ratingCount,
-      brand: p.brand ? { name: p.brand.name } : null,
-      images: p.images.map((img) => ({ url: img.url })),
-    }));
-  }
+  const inStock = withEffectiveStock.filter((p) => p.effectiveStock > 0);
+  const outOfStock = withEffectiveStock.filter((p) => p.effectiveStock === 0);
+  const ordered = [...inStock, ...outOfStock];
+
+  const inStockCount = inStock.length;
+  const outOfStockCount = outOfStock.length;
+  const total = ordered.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const skip = (currentPage - 1) * PAGE_SIZE;
+  const pagedProducts = ordered.slice(skip, skip + PAGE_SIZE);
+
+  // ─── Mapear para DisplayProduct ──────────────────────────
+  const displayProducts: DisplayProduct[] = pagedProducts.map((p) => ({
+    id: p.id,
+    slug: p.slug,
+    name: p.name,
+    shortDescription: p.shortDescription,
+    price: Number(p.price),
+    comparePrice: p.comparePrice ? Number(p.comparePrice) : null,
+    isNew: p.isNew,
+    isOnSale: p.isOnSale,
+    stock: p.effectiveStock,
+    ratingAverage: p.ratingAverage,
+    ratingCount: p.ratingCount,
+    brand: p.brand ? { name: p.brand.name } : null,
+    images: p.images.map((img) => ({ url: img.url })),
+  }));
 
   // ─── CATEGORIAS + MARCAS ─────────────────────────────────
   const [categories, brands] = await Promise.all([
@@ -255,7 +223,7 @@ export default async function ProductsPage({ searchParams }: Props) {
     if (sale) query.set("sale", sale);
     if (isNew) query.set("new", isNew);
     if (sort) query.set("sort", sort);
-    if (cols !== DEFAULT_COLS) query.set("cols", String(cols)); // ← NOVO
+    if (cols !== DEFAULT_COLS) query.set("cols", String(cols));
     Object.entries(extra).forEach(([key, value]) => query.set(key, value));
     return query.toString();
   };
@@ -294,9 +262,9 @@ export default async function ProductsPage({ searchParams }: Props) {
   ];
 
   const gridColsClass =
-  cols === 2
-    ? "grid-cols-1 sm:grid-cols-2"
-    : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
+    cols === 2
+      ? "grid-cols-1 sm:grid-cols-2"
+      : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
 
   return (
     <main className="arabesque-bg relative overflow-hidden min-h-screen">
@@ -326,7 +294,6 @@ export default async function ProductsPage({ searchParams }: Props) {
               </p>
             </div>
 
-            {/* ✅ Sort + GridSelector lado a lado */}
             <div className="flex flex-wrap items-center gap-3">
               <GridSelector defaultCols={DEFAULT_COLS} />
               <ProductSort defaultSort={sort} />
@@ -493,7 +460,6 @@ export default async function ProductsPage({ searchParams }: Props) {
           </div>
         ) : (
           <section>
-            {/* ✅ Grelha com classe dinâmica conforme as colunas */}
             <div className={`grid gap-x-5 gap-y-10 ${gridColsClass}`}>
               {displayProducts.map((product) => (
                 <ProductCard

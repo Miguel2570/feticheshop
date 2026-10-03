@@ -34,7 +34,6 @@
     "@types/bcrypt": "^6.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^20.19.43",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "bcrypt": "^6.0.0",
@@ -62,6 +61,7 @@
     "recharts": "^3.10.1",
     "resend": "^6.19.0",
     "sharp": "^0.35.4",
+    "soap": "^1.13.2",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.6.0",
     "tailwind-scrollbar": "^4.0.2",
@@ -71,6 +71,7 @@
   },
   "devDependencies": {
     "@better-auth/cli": "^1.4.21",
+    "@types/node": "^26.6.4",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
     "prisma-merge": "^0.2.0",

@@ -8,6 +8,7 @@ import { useState, useEffect } from "react";
 import { X, ShoppingBag, Trash2, Plus, Minus, ArrowRight, Truck, Star } from "lucide-react";
 
 import { useCart } from "./CartProvider";
+import { removeItem } from "framer-motion";
 
 const FREE_SHIPPING_THRESHOLD = 50;
 
@@ -28,7 +29,7 @@ export function CartSidePanel() {
     total, 
     isOpen, 
     closeCart,
-    removeFromCart,
+    removeItem,
     updateQuantity,
     addToCart,
   } = useCart();
@@ -371,7 +372,7 @@ export function CartSidePanel() {
 
                         <button
                           type="button"
-                          onClick={() => removeFromCart(item.id)}
+                          onClick={() => removeItem(item.id)}
                           aria-label="Remover produto"
                           className="transition-colors hover:text-red-500 cursor-pointer"
                           style={{ color: "#a1a1aa" }}

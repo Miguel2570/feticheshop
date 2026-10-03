@@ -6,6 +6,7 @@ import {
   extractFeatures,
   extractSpecifications,
   extractDescription,
+  getEffectiveStock,
 } from "@/utils/product-helpers";
 
 export type ProductWithRelations = Prisma.ProductGetPayload<{
@@ -99,6 +100,12 @@ export function mapProduct(product: ProductWithRelations): Product {
           .sort((a, b) => a.position - b.position)
           .map((img) => img.url);
 
+  // ✅ Stock efetivo (soma variantes ativas ou usa stock do produto)
+  const effectiveStock = getEffectiveStock({
+    stock: product.stock,
+    variants: product.variants,
+  });
+
   return {
     id: product.id,
     slug: product.slug,
@@ -109,7 +116,7 @@ export function mapProduct(product: ProductWithRelations): Product {
     oldPrice: product.comparePrice ? Number(product.comparePrice) : undefined,
     rating: product.ratingAverage,
     reviews: product.ratingCount,
-    stock: product.stock > 0,
+    stock: effectiveStock > 0,
     sku: product.sku ?? "",
     category: product.categories[0]?.category.name ?? "",
     images,

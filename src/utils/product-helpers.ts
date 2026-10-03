@@ -238,3 +238,18 @@ export function extractSpecifications(html: string): {
 
   return specs;
 }
+
+interface ProductWithVariants {
+  stock: number;
+  variants?: Array<{ stock: number; isActive?: boolean }>;
+}
+
+export function getEffectiveStock(product: ProductWithVariants): number {
+  if (!product.variants || product.variants.length === 0) {
+    return product.stock;
+  }
+
+  return product.variants
+    .filter((v) => v.isActive !== false)
+    .reduce((sum, v) => sum + v.stock, 0);
+}

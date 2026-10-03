@@ -40,6 +40,66 @@ interface ProductEditFormProps {
   categories?: Category[];
 }
 
+// ─────────────────────────────────────────────────────────────
+// Split / Merge da descrição
+// ─────────────────────────────────────────────────────────────
+
+const FEATURES_MARKER = "<h2>Características:</h2>";
+
+/**
+ * Divide o HTML do description em duas partes:
+ *  - descriptionHtml: tudo antes de "Características:"
+ *  - featuresHtml:    o conteúdo a partir daí (sem o heading)
+ *
+ * Suporta tanto HTML do TipTap como HTML antigo do Dreamlove.
+ */
+function splitDescription(fullHtml: string): {
+  descriptionHtml: string;
+  featuresHtml: string;
+} {
+  if (!fullHtml) return { descriptionHtml: "", featuresHtml: "" };
+
+  // Padrões que marcam o início da secção de características
+  const patterns = [
+    /<h[1-6][^>]*>\s*(?:<strong>)?\s*Caracter[íi]sticas?\s*:?\s*(?:<\/strong>)?\s*<\/h[1-6]>/i,
+    /<p[^>]*>\s*(?:<strong>)?\s*Caracter[íi]sticas?\s*:?\s*(?:<\/strong>)?\s*<\/p>/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = fullHtml.match(pattern);
+    if (match && match.index !== undefined) {
+      const before = fullHtml.substring(0, match.index).trim();
+      const after = fullHtml
+        .substring(match.index + match[0].length)
+        .trim();
+      return { descriptionHtml: before, featuresHtml: after };
+    }
+  }
+
+  // Não encontrou heading → tudo é descrição
+  return { descriptionHtml: fullHtml.trim(), featuresHtml: "" };
+}
+
+/**
+ * Junta as duas partes num só HTML para gravar.
+ */
+function mergeDescription(
+  descriptionHtml: string,
+  featuresHtml: string
+): string {
+  const desc = descriptionHtml.trim();
+  const feat = featuresHtml.trim();
+
+  if (!feat) return desc;
+  if (!desc) return `${FEATURES_MARKER}\n${feat}`;
+
+  return `${desc}\n${FEATURES_MARKER}\n${feat}`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Componente
+// ─────────────────────────────────────────────────────────────
+
 export function ProductEditForm({
   product,
   categories = [],
@@ -48,7 +108,18 @@ export function ProductEditForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
-  const [description, setDescription] = useState(product.description ?? "");
+
+  // Divide a descrição inicial em duas partes
+  const initial = splitDescription(product.description ?? "");
+  const [descriptionHtml, setDescriptionHtml] = useState(
+    initial.descriptionHtml
+  );
+  const [featuresHtml, setFeaturesHtml] = useState(initial.featuresHtml);
+
+  // Tab ativa dentro da "Descrição Completa"
+  const [descTab, setDescTab] = useState<"Descrição" | "Características">(
+    "Descrição"
+  );
 
   // Hierarquia: raízes + filhas por parent
   const roots = categories.filter((c) => c.parentId === null);
@@ -60,7 +131,6 @@ export function ProductEditForm({
     childrenByParent.set(c.parentId, arr);
   }
 
-  // Categoria atual — separar em raiz e sub
   const [rootId, setRootId] = useState(() => {
     const current = product.categoryIds ?? [];
     return roots.find((r) => current.includes(r.id))?.id ?? "";
@@ -72,7 +142,6 @@ export function ProductEditForm({
     );
   });
 
-  // Estado para cálculo de margem
   const [salePrice, setSalePrice] = useState(product.price);
   const costPrice = product.costPrice ?? 0;
   const profit = salePrice - costPrice;
@@ -85,8 +154,10 @@ export function ProductEditForm({
     setMessage("");
 
     const formData = new FormData(e.currentTarget);
-
     const categoryIds = [rootId, subId].filter(Boolean);
+
+    // Junta as duas partes no description final
+    const finalDescription = mergeDescription(descriptionHtml, featuresHtml);
 
     const data = {
       name: formData.get("name"),
@@ -94,7 +165,7 @@ export function ProductEditForm({
       sku: formData.get("sku") || null,
       ean: formData.get("ean") || null,
       shortDescription: formData.get("shortDescription") || null,
-      description: description || null,
+      description: finalDescription || null,
       price: Number(formData.get("price")),
       comparePrice: formData.get("comparePrice")
         ? Number(formData.get("comparePrice"))
@@ -318,11 +389,59 @@ export function ProductEditForm({
           />
         </div>
 
+        {/* ✨ DESCRIÇÃO COMPLETA — com tabs internas */}
         <div>
           <label className="block text-sm font-semibold text-zinc-700 mb-2">
             Descrição Completa
           </label>
-          <RichTextEditor value={description} onChange={setDescription} />
+
+          {/* Tabs internas */}
+          <div className="mb-3 flex flex-wrap gap-2 border-b border-pink-100 pb-3">
+            <button
+              type="button"
+              onClick={() => setDescTab("Descrição")}
+              className={`
+                rounded-full px-5 py-2 text-xs font-semibold
+                transition-all duration-300 cursor-pointer
+                ${
+                  descTab === "Descrição"
+                    ? "bg-pink-500 text-white shadow-[0_0_20px_rgba(255,46,136,.35)]"
+                    : "bg-white text-zinc-600 border border-pink-200 hover:bg-pink-50 hover:text-pink-500 hover:border-pink-300"
+                }
+              `}
+            >
+              Descrição
+            </button>
+            <button
+              type="button"
+              onClick={() => setDescTab("Características")}
+              className={`
+                rounded-full px-5 py-2 text-xs font-semibold
+                transition-all duration-300 cursor-pointer
+                ${
+                  descTab === "Características"
+                    ? "bg-pink-500 text-white shadow-[0_0_20px_rgba(255,46,136,.35)]"
+                    : "bg-white text-zinc-600 border border-pink-200 hover:bg-pink-50 hover:text-pink-500 hover:border-pink-300"
+                }
+              `}
+            >
+              Características
+            </button>
+          </div>
+
+          {/* Editor da tab ativa — ambos ficam no DOM, só um é visível */}
+          <div className={descTab === "Descrição" ? "block" : "hidden"}>
+            <RichTextEditor
+              value={descriptionHtml}
+              onChange={setDescriptionHtml}
+            />
+          </div>
+          <div className={descTab === "Características" ? "block" : "hidden"}>
+            <RichTextEditor
+              value={featuresHtml}
+              onChange={setFeaturesHtml}
+            />
+          </div>
         </div>
       </div>
 

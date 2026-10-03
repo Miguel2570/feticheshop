@@ -22,8 +22,6 @@ export async function GET(request: NextRequest) {
       take: 50,
     });
 
-    console.log(`✅ ${products.length} produtos encontrados`);
-
     let recommendedProducts = products;
 
     if (recommendedProducts.length < 4) {
