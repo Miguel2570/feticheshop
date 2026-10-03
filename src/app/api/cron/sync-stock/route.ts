@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { syncStock } from "@/lib/sync-stock";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 60; // segundos
+export const maxDuration = 300; // segundos
 
 export async function GET(request: NextRequest) {
   // Proteção por secret

@@ -17,9 +17,9 @@ const BATCH_SIZE = 500;
 // ═══════════════════════════════════════════════════════════════
 
 type AvailableStockItem = {
-  id: string; // "69-23" (warehouseId-productId)
+  id: string;
   warehouse: string;
-  product: string; // "/products/23"
+  product: string;
   available: number;
   updatedAt: string;
   inventoryFree: boolean;
@@ -35,6 +35,7 @@ type SyncResult = {
   itemsProcessed: number;
   variantsUpdated: number;
   productsRecalculated: number;
+  orphansCleaned: number;
   errors: number;
   message?: string;
 };
@@ -132,7 +133,6 @@ async function fetchAvailableStocksPage(
 // ═══════════════════════════════════════════════════════════════
 
 function extractDreamloveId(productRef: string): number | null {
-  // "product" vem no formato "/products/23"
   const parts = productRef.split("/");
   const idStr = parts[parts.length - 1];
   const id = Number(idStr);
@@ -154,10 +154,14 @@ export async function syncStock(): Promise<SyncResult> {
   let pagesProcessed = 0;
   let itemsProcessed = 0;
   let variantsUpdated = 0;
+  let orphansCleaned = 0;
   let errors = 0;
 
-  // Map<dreamloveId, stock> — acumula novos stocks em memória
+  // Map<dreamloveId, stock>
   const newStocksByDreamloveId = new Map<number, number>();
+
+  // Set com TODOS os dreamloveIds vistos no CSV (para detetar órfãos)
+  const seenDreamloveIds = new Set<number>();
 
   try {
     // 1. Login
@@ -192,7 +196,7 @@ export async function syncStock(): Promise<SyncResult> {
 
       console.log(`   ${items.length} itens processados`);
 
-      // 4. Acumular novos stocks (SEM queries à BD)
+      // 4. Acumular stocks + registar todos os IDs vistos
       for (const item of items) {
         const dreamloveId = extractDreamloveId(item.product);
         if (!dreamloveId) {
@@ -200,6 +204,7 @@ export async function syncStock(): Promise<SyncResult> {
           continue;
         }
         newStocksByDreamloveId.set(dreamloveId, item.available);
+        seenDreamloveIds.add(dreamloveId);
       }
 
       if (items.length < 1000) {
@@ -214,7 +219,7 @@ export async function syncStock(): Promise<SyncResult> {
       `\n📊 ${newStocksByDreamloveId.size} dreamloveIds a processar na BD`
     );
 
-    // 5. OTIMIZAÇÃO: Carregar TODAS as variantes com dreamloveId de uma vez
+    // 5. Carregar TODAS as variantes com dreamloveId
     const dreamloveIds = Array.from(newStocksByDreamloveId.keys());
 
     console.log(`🔍 A carregar variantes da BD...`);
@@ -249,7 +254,7 @@ export async function syncStock(): Promise<SyncResult> {
     console.log(`   ${toUpdate.length} variantes com stock alterado`);
     console.log(`   ${affectedProductIds.size} produtos afetados\n`);
 
-    // 7. OTIMIZAÇÃO: Updates em batch com transações
+    // 7. Updates em batch
     if (toUpdate.length > 0) {
       console.log(`🔄 A atualizar variantes em batches de ${BATCH_SIZE}...`);
 
@@ -277,14 +282,13 @@ export async function syncStock(): Promise<SyncResult> {
       }
     }
 
-    // 8. OTIMIZAÇÃO: Recalcular stocks dos produtos em batch
+    // 8. Recalcular stocks dos produtos afetados
     console.log(
       `\n🔄 A recalcular stock de ${affectedProductIds.size} produtos...`
     );
 
     const affectedArray = Array.from(affectedProductIds);
 
-    // 8a. Agregar stocks de todas as variantes em UMA query
     const aggregates = await prisma.productVariant.groupBy({
       by: ["productId"],
       where: {
@@ -296,7 +300,6 @@ export async function syncStock(): Promise<SyncResult> {
 
     console.log(`   ${aggregates.length} produtos agregados`);
 
-    // 8b. OTIMIZAÇÃO MÁXIMA: 1 query SQL por batch
     let productsRecalculated = 0;
 
     for (let i = 0; i < aggregates.length; i += BATCH_SIZE) {
@@ -326,7 +329,105 @@ export async function syncStock(): Promise<SyncResult> {
       }
     }
 
-    // 9. Guardar data da última sync
+    // ═══════════════════════════════════════════════════════════
+    // 9. LIMPEZA — Variantes órfãs (já não existem na Dreamlove)
+    // ═══════════════════════════════════════════════════════════
+
+    console.log(`\n🧹 A procurar variantes órfãs (já não existem na Dreamlove)...`);
+
+    const orphanVariants = await prisma.productVariant.findMany({
+      where: {
+        dreamloveId: { not: null },
+        NOT: { dreamloveId: { in: Array.from(seenDreamloveIds) } },
+      },
+      select: {
+        id: true,
+        productId: true,
+        dreamloveId: true,
+        stock: true,
+      },
+    });
+
+    console.log(`   ${orphanVariants.length} variantes órfãs na BD`);
+
+    const orphansToClean = orphanVariants.filter((v) => v.stock > 0);
+
+    console.log(
+      `   ${orphansToClean.length} variantes órfãs com stock > 0 para limpar`
+    );
+
+    const affectedByOrphans = new Set<string>();
+
+    if (orphansToClean.length > 0) {
+      console.log(`\n🔄 A zerar stock de variantes órfãs em batches...`);
+
+      for (let i = 0; i < orphansToClean.length; i += BATCH_SIZE) {
+        const batch = orphansToClean.slice(i, i + BATCH_SIZE);
+        const ids = batch.map((v) => v.id);
+
+        try {
+          await prisma.productVariant.updateMany({
+            where: { id: { in: ids } },
+            data: {
+              stock: 0,
+              isActive: false,
+            },
+          });
+
+          orphansCleaned += batch.length;
+          batch.forEach((v) => affectedByOrphans.add(v.productId));
+
+          const done = Math.min(i + BATCH_SIZE, orphansToClean.length);
+          console.log(`   ${done}/${orphansToClean.length}...`);
+        } catch (err) {
+          console.error(`   ❌ Erro no batch de órfãs ${i}:`, err);
+          errors += batch.length;
+        }
+      }
+
+      // Recalcular stock dos produtos afetados pela limpeza
+      if (affectedByOrphans.size > 0) {
+        console.log(
+          `\n🔄 A recalcular stock de ${affectedByOrphans.size} produtos afetados pela limpeza...`
+        );
+
+        const orphanAggregates = await prisma.productVariant.groupBy({
+          by: ["productId"],
+          where: {
+            productId: { in: Array.from(affectedByOrphans) },
+            isActive: true,
+          },
+          _sum: { stock: true },
+        });
+
+        for (let i = 0; i < orphanAggregates.length; i += BATCH_SIZE) {
+          const batch = orphanAggregates.slice(i, i + BATCH_SIZE);
+
+          try {
+            const values = batch.map(
+              (a) => Prisma.sql`(${a.productId}, ${a._sum.stock ?? 0})`
+            );
+
+            await prisma.$executeRaw`
+              UPDATE "Product" AS p
+              SET 
+                stock = v.stock,
+                "supplierStock" = v.stock
+              FROM (VALUES ${Prisma.join(values)}) AS v(id, stock)
+              WHERE p.id = v.id
+            `;
+          } catch (err) {
+            console.error(
+              `   ❌ Erro no batch de produtos órfãos ${i}:`,
+              err
+            );
+            errors += batch.length;
+          }
+        }
+      }
+    }
+
+    // 10. Guardar data da última sync
     await setLastSyncAt(startedAt);
 
     const finishedAt = new Date();
@@ -339,6 +440,7 @@ export async function syncStock(): Promise<SyncResult> {
     console.log(`Itens processados:         ${itemsProcessed}`);
     console.log(`Variantes atualizadas:     ${variantsUpdated}`);
     console.log(`Produtos recalculados:     ${productsRecalculated}`);
+    console.log(`Variantes órfãs limpas:    ${orphansCleaned}`);
     console.log(`Erros:                     ${errors}`);
     console.log(`Duração:                   ${(durationMs / 1000).toFixed(2)}s`);
     console.log("");
@@ -352,6 +454,7 @@ export async function syncStock(): Promise<SyncResult> {
       itemsProcessed,
       variantsUpdated,
       productsRecalculated,
+      orphansCleaned,
       errors,
     };
   } catch (error) {
@@ -371,6 +474,7 @@ export async function syncStock(): Promise<SyncResult> {
       itemsProcessed,
       variantsUpdated,
       productsRecalculated: 0,
+      orphansCleaned: 0,
       errors: errors + 1,
       message,
     };
