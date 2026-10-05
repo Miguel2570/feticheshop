@@ -149,14 +149,77 @@ export class ProductService {
     data: Prisma.ProductUpdateInput & {
       categoryId?: string | null;
       categoryIds?: string[];
+      variants?: Array<{
+        id: string;
+        price?: number | null;
+        comparePrice?: number | null;
+        costPrice?: number | null;
+        stock?: number;
+        isActive?: boolean;
+      }>;
     }
   ) {
     await this.getProductById(id);
 
-    const { categoryId, categoryIds, ...productData } = data;
+    const { categoryId, categoryIds, variants, ...productData } = data;
 
+    // 1. Atualizar produto-pai
     const product = await this.repository.update(id, productData);
 
+    // 2. Atualizar variantes (se vieram)
+    if (variants !== undefined && variants.length > 0) {
+      // Validar que as variantes pertencem a este produto
+      const variantIds = variants.map((v) => v.id);
+      const existingVariants = await prisma.productVariant.findMany({
+        where: {
+          id: { in: variantIds },
+          productId: id,
+        },
+        select: { id: true },
+      });
+
+      const validIds = new Set(existingVariants.map((v) => v.id));
+
+      for (const variantUpdate of variants) {
+        if (!validIds.has(variantUpdate.id)) continue;
+
+        const updateData: Prisma.ProductVariantUpdateInput = {};
+
+        if (variantUpdate.price !== undefined) {
+          updateData.price =
+            variantUpdate.price !== null
+              ? new Prisma.Decimal(variantUpdate.price)
+              : null;
+        }
+        if (variantUpdate.comparePrice !== undefined) {
+          updateData.comparePrice =
+            variantUpdate.comparePrice !== null
+              ? new Prisma.Decimal(variantUpdate.comparePrice)
+              : null;
+        }
+        if (variantUpdate.costPrice !== undefined) {
+          updateData.costPrice =
+            variantUpdate.costPrice !== null
+              ? new Prisma.Decimal(variantUpdate.costPrice)
+              : null;
+        }
+        if (variantUpdate.stock !== undefined) {
+          updateData.stock = variantUpdate.stock;
+        }
+        if (variantUpdate.isActive !== undefined) {
+          updateData.isActive = variantUpdate.isActive;
+        }
+
+        if (Object.keys(updateData).length > 0) {
+          await prisma.productVariant.update({
+            where: { id: variantUpdate.id },
+            data: updateData,
+          });
+        }
+      }
+    }
+
+    // 3. Atualizar categorias
     if (categoryIds !== undefined) {
       await prisma.productCategory.deleteMany({
         where: { productId: id },

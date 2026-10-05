@@ -1,5 +1,14 @@
 import { z } from "zod";
 
+export const variantUpdateSchema = z.object({
+  id: z.string(),
+  price: z.coerce.number().nonnegative().nullable().optional(),
+  comparePrice: z.coerce.number().nonnegative().nullable().optional(),
+  costPrice: z.coerce.number().nonnegative().nullable().optional(),
+  stock: z.coerce.number().int().nonnegative().optional(),
+  isActive: z.boolean().optional(),
+});
+
 export const createProductSchema = z.object({
   name: z.string().min(3).max(255),
   slug: z.string().min(3).max(255),
@@ -31,9 +40,11 @@ export const createProductSchema = z.object({
   brandId: z.string().nullable().optional(),
   categoryId: z.string().nullable().optional(),
   categoryIds: z.array(z.string()).optional(),
+  variants: z.array(variantUpdateSchema).optional(),
 });
 
 export const updateProductSchema = createProductSchema.partial();
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
+export type VariantUpdateInput = z.infer<typeof variantUpdateSchema>;

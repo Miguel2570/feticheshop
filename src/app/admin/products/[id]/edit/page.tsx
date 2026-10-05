@@ -19,6 +19,19 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
     include: {
       categories: { include: { category: true } },
       images: { orderBy: { position: "asc" } },
+      variants: {
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          name: true,
+          sku: true,
+          price: true,
+          comparePrice: true,
+          costPrice: true,
+          stock: true,
+          isActive: true,
+        },
+      },
     },
   });
 
@@ -54,6 +67,17 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
     categoryIds: currentCategoryIds,
     categorySource: product.categorySource,
     categoryReason: product.categoryReason,
+    // ✅ NOVO: variantes
+    variants: product.variants.map((v) => ({
+      id: v.id,
+      name: v.name,
+      sku: v.sku,
+      price: v.price != null ? Number(v.price) : null,
+      comparePrice: v.comparePrice != null ? Number(v.comparePrice) : null,
+      costPrice: v.costPrice != null ? Number(v.costPrice) : null,
+      stock: v.stock,
+      isActive: v.isActive,
+    })),
   };
 
   const plainImages = product.images.map((img) => ({

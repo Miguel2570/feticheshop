@@ -11,6 +11,17 @@ type Category = {
   parentId: string | null;
 };
 
+type Variant = {
+  id: string;
+  name: string;
+  sku: string | null;
+  price: number | null;
+  comparePrice: number | null;
+  costPrice: number | null;
+  stock: number;
+  isActive: boolean;
+};
+
 type Product = {
   id: string;
   name: string;
@@ -33,6 +44,7 @@ type Product = {
   categoryIds: string[];
   categorySource: "AUTO" | "MANUAL";
   categoryReason: string | null;
+  variants: Variant[];
 };
 
 interface ProductEditFormProps {
@@ -46,20 +58,12 @@ interface ProductEditFormProps {
 
 const FEATURES_MARKER = "<h2>Características:</h2>";
 
-/**
- * Divide o HTML do description em duas partes:
- *  - descriptionHtml: tudo antes de "Características:"
- *  - featuresHtml:    o conteúdo a partir daí (sem o heading)
- *
- * Suporta tanto HTML do TipTap como HTML antigo do Dreamlove.
- */
 function splitDescription(fullHtml: string): {
   descriptionHtml: string;
   featuresHtml: string;
 } {
   if (!fullHtml) return { descriptionHtml: "", featuresHtml: "" };
 
-  // Padrões que marcam o início da secção de características
   const patterns = [
     /<h[1-6][^>]*>\s*(?:<strong>)?\s*Caracter[íi]sticas?\s*:?\s*(?:<\/strong>)?\s*<\/h[1-6]>/i,
     /<p[^>]*>\s*(?:<strong>)?\s*Caracter[íi]sticas?\s*:?\s*(?:<\/strong>)?\s*<\/p>/i,
@@ -76,13 +80,9 @@ function splitDescription(fullHtml: string): {
     }
   }
 
-  // Não encontrou heading → tudo é descrição
   return { descriptionHtml: fullHtml.trim(), featuresHtml: "" };
 }
 
-/**
- * Junta as duas partes num só HTML para gravar.
- */
 function mergeDescription(
   descriptionHtml: string,
   featuresHtml: string
@@ -121,6 +121,9 @@ export function ProductEditForm({
     "Descrição"
   );
 
+  // ✅ Estado das variantes (preços editáveis)
+  const [variants, setVariants] = useState<Variant[]>(product.variants ?? []);
+
   // Hierarquia: raízes + filhas por parent
   const roots = categories.filter((c) => c.parentId === null);
   const childrenByParent = new Map<string, Category[]>();
@@ -147,6 +150,13 @@ export function ProductEditForm({
   const profit = salePrice - costPrice;
   const margin = salePrice > 0 ? (profit / salePrice) * 100 : 0;
 
+  // ✅ Helper para atualizar uma variante
+  const updateVariant = (id: string, patch: Partial<Variant>) => {
+    setVariants((prev) =>
+      prev.map((v) => (v.id === id ? { ...v, ...patch } : v))
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSaving(true);
@@ -156,8 +166,29 @@ export function ProductEditForm({
     const formData = new FormData(e.currentTarget);
     const categoryIds = [rootId, subId].filter(Boolean);
 
-    // Junta as duas partes no description final
     const finalDescription = mergeDescription(descriptionHtml, featuresHtml);
+
+    // ✅ Verificar se alguma variante foi alterada
+    const variantsPayload = variants.map((v, idx) => {
+      const original = product.variants[idx];
+      const changed =
+        v.price !== original?.price ||
+        v.comparePrice !== original?.comparePrice ||
+        v.stock !== original?.stock;
+
+      return changed
+        ? {
+            id: v.id,
+            price: v.price,
+            comparePrice: v.comparePrice,
+            stock: v.stock,
+          }
+        : null;
+    });
+
+    const variantsToUpdate = variantsPayload.filter(
+      (v): v is NonNullable<typeof v> => v !== null
+    );
 
     const data = {
       name: formData.get("name"),
@@ -177,6 +208,10 @@ export function ProductEditForm({
       isNew: formData.get("isNew") === "true",
       isOnSale: formData.get("isOnSale") === "true",
       categoryIds,
+      // ✅ Enviar variantes alteradas
+      ...(variantsToUpdate.length > 0
+        ? { variants: variantsToUpdate }
+        : {}),
     };
 
     try {
@@ -389,13 +424,12 @@ export function ProductEditForm({
           />
         </div>
 
-        {/* ✨ DESCRIÇÃO COMPLETA — com tabs internas */}
+        {/* DESCRIÇÃO COMPLETA — com tabs internas */}
         <div>
           <label className="block text-sm font-semibold text-zinc-700 mb-2">
             Descrição Completa
           </label>
 
-          {/* Tabs internas */}
           <div className="mb-3 flex flex-wrap gap-2 border-b border-pink-100 pb-3">
             <button
               type="button"
@@ -429,7 +463,6 @@ export function ProductEditForm({
             </button>
           </div>
 
-          {/* Editor da tab ativa — ambos ficam no DOM, só um é visível */}
           <div className={descTab === "Descrição" ? "block" : "hidden"}>
             <RichTextEditor
               value={descriptionHtml}
@@ -559,6 +592,113 @@ export function ProductEditForm({
           </select>
         </div>
       </div>
+
+      {/* ✅ NOVA SECÇÃO: PREÇOS DAS VARIANTES */}
+      {variants.length > 0 && (
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 space-y-4 shadow-sm">
+          <div>
+            <h2 className="text-lg font-bold" style={{ color: "#18181b" }}>
+              Preços das Variantes ({variants.length})
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500">
+              Define preços individuais para cada variante. Se deixares vazio,
+              herda o preço do produto-pai.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            {variants.map((variant) => (
+              <div
+                key={variant.id}
+                className={`rounded-xl border-2 p-4 space-y-3 transition-all ${
+                  !variant.isActive
+                    ? "border-zinc-200 bg-zinc-50 opacity-60"
+                    : "border-zinc-200 bg-white"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-bold text-zinc-900">
+                      {variant.name}
+                    </p>
+                    {variant.sku && (
+                      <p className="text-xs text-zinc-500">
+                        SKU: {variant.sku}
+                      </p>
+                    )}
+                  </div>
+                  {!variant.isActive && (
+                    <span className="text-xs bg-zinc-200 text-zinc-600 px-2 py-0.5 rounded">
+                      Oculto
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-600 mb-1">
+                      Preço (€)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={variant.price ?? ""}
+                      onChange={(e) =>
+                        updateVariant(variant.id, {
+                          price: e.target.value
+                            ? Number(e.target.value)
+                            : null,
+                        })
+                      }
+                      placeholder={`herda €${product.price.toFixed(2)}`}
+                      className="h-9 w-full rounded-lg border-2 border-zinc-200 px-3 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-600 mb-1">
+                      P. Antigo (€)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      value={variant.comparePrice ?? ""}
+                      onChange={(e) =>
+                        updateVariant(variant.id, {
+                          comparePrice: e.target.value
+                            ? Number(e.target.value)
+                            : null,
+                        })
+                      }
+                      placeholder="—"
+                      className="h-9 w-full rounded-lg border-2 border-zinc-200 px-3 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-zinc-600 mb-1">
+                      Stock
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={variant.stock}
+                      onChange={(e) =>
+                        updateVariant(variant.id, {
+                          stock: Number(e.target.value) || 0,
+                        })
+                      }
+                      className="h-9 w-full rounded-lg border-2 border-zinc-200 px-3 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* ESTADO */}
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 space-y-4 shadow-sm">

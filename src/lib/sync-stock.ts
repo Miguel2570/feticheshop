@@ -160,7 +160,7 @@ export async function syncStock(): Promise<SyncResult> {
   // Map<dreamloveId, stock>
   const newStocksByDreamloveId = new Map<number, number>();
 
-  // Set com TODOS os dreamloveIds vistos no CSV (para detetar órfãos)
+  // Set com TODOS os dreamloveIds vistos nesta sync
   const seenDreamloveIds = new Set<number>();
 
   try {
@@ -330,101 +330,116 @@ export async function syncStock(): Promise<SyncResult> {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // 9. LIMPEZA — Variantes órfãs (já não existem na Dreamlove)
+    // 9. LIMPEZA — SÓ corre em FULL SYNC
+    //
+    // ⚠️ IMPORTANTE: em modo incremental, a API devolve apenas os
+    //    itens que MUDARAM desde a última sync. Não podemos assumir
+    //    que "o que não veio é órfão" — isso zeraria stocks válidos.
+    //
+    //    Só corremos a limpeza quando a resposta é COMPLETA
+    //    (lastSyncAt === null → full sync).
     // ═══════════════════════════════════════════════════════════
 
-    console.log(`\n🧹 A procurar variantes órfãs (já não existem na Dreamlove)...`);
+    if (lastSyncAt === null) {
+      console.log(
+        `\n🧹 FULL SYNC — a procurar variantes órfãs (já não existem na Dreamlove)...`
+      );
 
-    const orphanVariants = await prisma.productVariant.findMany({
-      where: {
-        dreamloveId: { not: null },
-        NOT: { dreamloveId: { in: Array.from(seenDreamloveIds) } },
-      },
-      select: {
-        id: true,
-        productId: true,
-        dreamloveId: true,
-        stock: true,
-      },
-    });
+      const orphanVariants = await prisma.productVariant.findMany({
+        where: {
+          dreamloveId: { not: null },
+          NOT: { dreamloveId: { in: Array.from(seenDreamloveIds) } },
+        },
+        select: {
+          id: true,
+          productId: true,
+          dreamloveId: true,
+          stock: true,
+        },
+      });
 
-    console.log(`   ${orphanVariants.length} variantes órfãs na BD`);
+      console.log(`   ${orphanVariants.length} variantes órfãs na BD`);
 
-    const orphansToClean = orphanVariants.filter((v) => v.stock > 0);
+      const orphansToClean = orphanVariants.filter((v) => v.stock > 0);
 
-    console.log(
-      `   ${orphansToClean.length} variantes órfãs com stock > 0 para limpar`
-    );
+      console.log(
+        `   ${orphansToClean.length} variantes órfãs com stock > 0 para limpar`
+      );
 
-    const affectedByOrphans = new Set<string>();
+      const affectedByOrphans = new Set<string>();
 
-    if (orphansToClean.length > 0) {
-      console.log(`\n🔄 A zerar stock de variantes órfãs em batches...`);
+      if (orphansToClean.length > 0) {
+        console.log(`\n🔄 A zerar stock de variantes órfãs em batches...`);
 
-      for (let i = 0; i < orphansToClean.length; i += BATCH_SIZE) {
-        const batch = orphansToClean.slice(i, i + BATCH_SIZE);
-        const ids = batch.map((v) => v.id);
-
-        try {
-          await prisma.productVariant.updateMany({
-            where: { id: { in: ids } },
-            data: {
-              stock: 0,
-              isActive: false,
-            },
-          });
-
-          orphansCleaned += batch.length;
-          batch.forEach((v) => affectedByOrphans.add(v.productId));
-
-          const done = Math.min(i + BATCH_SIZE, orphansToClean.length);
-          console.log(`   ${done}/${orphansToClean.length}...`);
-        } catch (err) {
-          console.error(`   ❌ Erro no batch de órfãs ${i}:`, err);
-          errors += batch.length;
-        }
-      }
-
-      // Recalcular stock dos produtos afetados pela limpeza
-      if (affectedByOrphans.size > 0) {
-        console.log(
-          `\n🔄 A recalcular stock de ${affectedByOrphans.size} produtos afetados pela limpeza...`
-        );
-
-        const orphanAggregates = await prisma.productVariant.groupBy({
-          by: ["productId"],
-          where: {
-            productId: { in: Array.from(affectedByOrphans) },
-            isActive: true,
-          },
-          _sum: { stock: true },
-        });
-
-        for (let i = 0; i < orphanAggregates.length; i += BATCH_SIZE) {
-          const batch = orphanAggregates.slice(i, i + BATCH_SIZE);
+        for (let i = 0; i < orphansToClean.length; i += BATCH_SIZE) {
+          const batch = orphansToClean.slice(i, i + BATCH_SIZE);
+          const ids = batch.map((v) => v.id);
 
           try {
-            const values = batch.map(
-              (a) => Prisma.sql`(${a.productId}, ${a._sum.stock ?? 0})`
-            );
+            await prisma.productVariant.updateMany({
+              where: { id: { in: ids } },
+              data: {
+                stock: 0,
+                isActive: false,
+              },
+            });
 
-            await prisma.$executeRaw`
-              UPDATE "Product" AS p
-              SET 
-                stock = v.stock,
-                "supplierStock" = v.stock
-              FROM (VALUES ${Prisma.join(values)}) AS v(id, stock)
-              WHERE p.id = v.id
-            `;
+            orphansCleaned += batch.length;
+            batch.forEach((v) => affectedByOrphans.add(v.productId));
+
+            const done = Math.min(i + BATCH_SIZE, orphansToClean.length);
+            console.log(`   ${done}/${orphansToClean.length}...`);
           } catch (err) {
-            console.error(
-              `   ❌ Erro no batch de produtos órfãos ${i}:`,
-              err
-            );
+            console.error(`   ❌ Erro no batch de órfãs ${i}:`, err);
             errors += batch.length;
           }
         }
+
+        // Recalcular stock dos produtos afetados pela limpeza
+        if (affectedByOrphans.size > 0) {
+          console.log(
+            `\n🔄 A recalcular stock de ${affectedByOrphans.size} produtos afetados pela limpeza...`
+          );
+
+          const orphanAggregates = await prisma.productVariant.groupBy({
+            by: ["productId"],
+            where: {
+              productId: { in: Array.from(affectedByOrphans) },
+              isActive: true,
+            },
+            _sum: { stock: true },
+          });
+
+          for (let i = 0; i < orphanAggregates.length; i += BATCH_SIZE) {
+            const batch = orphanAggregates.slice(i, i + BATCH_SIZE);
+
+            try {
+              const values = batch.map(
+                (a) => Prisma.sql`(${a.productId}, ${a._sum.stock ?? 0})`
+              );
+
+              await prisma.$executeRaw`
+                UPDATE "Product" AS p
+                SET 
+                  stock = v.stock,
+                  "supplierStock" = v.stock
+                FROM (VALUES ${Prisma.join(values)}) AS v(id, stock)
+                WHERE p.id = v.id
+              `;
+            } catch (err) {
+              console.error(
+                `   ❌ Erro no batch de produtos órfãos ${i}:`,
+                err
+              );
+              errors += batch.length;
+            }
+          }
+        }
       }
+    } else {
+      console.log(
+        `\n⏭️  Sync incremental — limpeza de órfãos ignorada (só corre em full sync)`
+      );
     }
 
     // 10. Guardar data da última sync
