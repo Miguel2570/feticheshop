@@ -100,6 +100,8 @@ function mergeDescription(
 // Componente
 // ─────────────────────────────────────────────────────────────
 
+const MAX_SUBCATEGORIES = 3;
+
 export function ProductEditForm({
   product,
   categories = [],
@@ -134,15 +136,19 @@ export function ProductEditForm({
     childrenByParent.set(c.parentId, arr);
   }
 
+  // ✅ Raiz (1 só)
   const [rootId, setRootId] = useState(() => {
     const current = product.categoryIds ?? [];
     return roots.find((r) => current.includes(r.id))?.id ?? "";
   });
-  const [subId, setSubId] = useState(() => {
+
+  // ✅ Subcategorias (checkbox, até 3) — já marca as existentes
+  const [subIds, setSubIds] = useState<string[]>(() => {
     const current = product.categoryIds ?? [];
-    return (
-      categories.find((c) => c.parentId && current.includes(c.id))?.id ?? ""
-    );
+    return categories
+      .filter((c) => c.parentId && current.includes(c.id))
+      .map((c) => c.id)
+      .slice(0, MAX_SUBCATEGORIES);
   });
 
   const [salePrice, setSalePrice] = useState(product.price);
@@ -157,6 +163,25 @@ export function ProductEditForm({
     );
   };
 
+  // ✅ Toggle de uma subcategoria
+  const toggleSubcategory = (id: string) => {
+    setSubIds((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((s) => s !== id);
+      }
+      if (prev.length >= MAX_SUBCATEGORIES) {
+        return prev; // já atingiu o máximo
+      }
+      return [...prev, id];
+    });
+  };
+
+  // ✅ Subs disponíveis (da raiz atual)
+  const selectedRoot = roots.find((r) => r.id === rootId);
+  const subOptions = selectedRoot
+    ? childrenByParent.get(selectedRoot.id) ?? []
+    : [];
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSaving(true);
@@ -164,7 +189,9 @@ export function ProductEditForm({
     setMessage("");
 
     const formData = new FormData(e.currentTarget);
-    const categoryIds = [rootId, subId].filter(Boolean);
+
+    // ✅ Categoria raiz + subcategorias (até 3)
+    const categoryIds = [rootId, ...subIds].filter(Boolean);
 
     const finalDescription = mergeDescription(descriptionHtml, featuresHtml);
 
@@ -208,7 +235,6 @@ export function ProductEditForm({
       isNew: formData.get("isNew") === "true",
       isOnSale: formData.get("isOnSale") === "true",
       categoryIds,
-      // ✅ Enviar variantes alteradas
       ...(variantsToUpdate.length > 0
         ? { variants: variantsToUpdate }
         : {}),
@@ -268,11 +294,6 @@ export function ProductEditForm({
       setSaving(false);
     }
   };
-
-  const selectedRoot = roots.find((r) => r.id === rootId);
-  const subOptions = selectedRoot
-    ? childrenByParent.get(selectedRoot.id) ?? []
-    : [];
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -354,7 +375,7 @@ export function ProductEditForm({
             value={rootId}
             onChange={(e) => {
               setRootId(e.target.value);
-              setSubId("");
+              setSubIds([]); // limpa subs quando muda a raiz
             }}
             className="h-10 w-full rounded-xl border-2 border-zinc-200 px-4 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
           >
@@ -367,24 +388,65 @@ export function ProductEditForm({
           </select>
         </div>
 
-        {/* CATEGORIA — sub */}
+        {/* ✅ SUBCATEGORIAS — checkboxes (até 3) */}
         <div>
           <label className="block text-sm font-semibold text-zinc-700 mb-2">
-            Subcategoria
+            Subcategorias{" "}
+            <span className="text-xs font-normal text-zinc-500">
+              ({subIds.length}/{MAX_SUBCATEGORIES})
+            </span>
           </label>
-          <select
-            value={subId}
-            onChange={(e) => setSubId(e.target.value)}
-            disabled={!rootId}
-            className="h-10 w-full rounded-xl border-2 border-zinc-200 px-4 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none disabled:bg-zinc-50 disabled:text-zinc-400"
-          >
-            <option value="">Selecionar subcategoria</option>
-            {subOptions.map((cat) => (
-              <option key={cat.id} value={cat.id}>
-                {cat.name}
-              </option>
-            ))}
-          </select>
+
+          {!rootId ? (
+            <p className="text-xs text-zinc-500">
+              Seleciona uma categoria raiz primeiro.
+            </p>
+          ) : subOptions.length === 0 ? (
+            <p className="text-xs text-zinc-500">
+              Esta raiz não tem subcategorias.
+            </p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {subOptions.map((cat) => {
+                const isChecked = subIds.includes(cat.id);
+                const isDisabled =
+                  !isChecked && subIds.length >= MAX_SUBCATEGORIES;
+
+                return (
+                  <label
+                    key={cat.id}
+                    className={`
+                      flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm
+                      transition-all cursor-pointer
+                      ${
+                        isChecked
+                          ? "border-pink-300 bg-pink-50 text-pink-700 font-medium"
+                          : isDisabled
+                          ? "border-zinc-100 bg-zinc-50 text-zinc-400 cursor-not-allowed"
+                          : "border-zinc-200 bg-white text-zinc-700 hover:border-pink-200 hover:bg-pink-50/50"
+                      }
+                    `}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      disabled={isDisabled}
+                      onChange={() => toggleSubcategory(cat.id)}
+                      className="h-4 w-4 accent-pink-500 cursor-pointer disabled:cursor-not-allowed"
+                    />
+                    <span className="truncate">{cat.name}</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+
+          {rootId && subIds.length >= MAX_SUBCATEGORIES && (
+            <p className="mt-2 text-xs text-zinc-500">
+              Máximo de {MAX_SUBCATEGORIES} subcategorias atingido. Desmarca uma
+              para escolher outra.
+            </p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-4">
