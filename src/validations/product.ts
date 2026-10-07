@@ -54,7 +54,39 @@ export const createProductSchema = z.object({
   variants: z.array(variantCreateSchema).optional(),
 });
 
-export const updateProductSchema = createProductSchema.partial();
+export const updateProductSchema = z.object({
+  name: z.string().min(3).max(255).optional(),
+  slug: z.string().min(3).max(255).optional(),
+  sku: z.string().nullable().optional(),
+  ean: z.string().nullable().optional(),
+  shortDescription: z.string().nullable().optional(),
+  description: z.string().nullable().optional(),
+  metaTitle: z.string().nullable().optional(),
+  metaDescription: z.string().nullable().optional(),
+  keywords: z.string().nullable().optional(),
+  price: z.coerce.number().positive().optional(),
+  comparePrice: z.coerce.number().nullable().optional(),
+  costPrice: z.coerce.number().nullable().optional(),
+  stock: z.coerce.number().int().optional(),
+  physicalStock: z.coerce.number().int().optional(),
+  supplierStock: z.coerce.number().int().optional(),
+  stockMode: z.enum(["PHYSICAL", "SUPPLIER", "BOTH"]).optional(),
+  manageStock: z.boolean().optional(),
+  status: z
+    .enum(["DRAFT", "ACTIVE", "HIDDEN", "OUT_OF_STOCK", "ARCHIVED"])
+    .optional(),
+  isFeatured: z.boolean().optional(),
+  isNew: z.boolean().optional(),
+  isOnSale: z.boolean().optional(),
+  weight: z.coerce.number().nullable().optional(),
+  width: z.coerce.number().nullable().optional(),
+  height: z.coerce.number().nullable().optional(),
+  length: z.coerce.number().nullable().optional(),
+  brandId: z.string().nullable().optional(),
+  categoryId: z.string().nullable().optional(),
+  categoryIds: z.array(z.string()).optional(),
+  variants: z.array(variantUpdateSchema).optional(),
+});
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;

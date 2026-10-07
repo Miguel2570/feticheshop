@@ -3,7 +3,10 @@ import { z } from "zod";
 
 import { ProductRepository } from "@/server/repositories/product.repository";
 import { prisma } from "@/lib/prisma";
-import { createProductSchema } from "@/validations/product";
+import {
+  createProductSchema,
+  updateProductSchema,
+} from "@/validations/product";
 
 interface GetProductsParams {
   search?: string;
@@ -25,6 +28,7 @@ interface GetProductsParams {
 }
 
 type CreateProductBody = z.infer<typeof createProductSchema>;
+type UpdateProductBody = z.infer<typeof updateProductSchema>;
 
 export class ProductService {
   private repository = new ProductRepository();
@@ -192,26 +196,15 @@ export class ProductService {
     return this.repository.create(data);
   }
 
-  async updateProduct(
-    id: string,
-    data: Prisma.ProductUpdateInput & {
-      categoryId?: string | null;
-      categoryIds?: string[];
-      variants?: Array<{
-        id: string;
-        price?: number | null;
-        comparePrice?: number | null;
-        costPrice?: number | null;
-        stock?: number;
-        isActive?: boolean;
-      }>;
-    }
-  ) {
+  async updateProduct(id: string, data: UpdateProductBody) {
     await this.getProductById(id);
 
     const { categoryId, categoryIds, variants, ...productData } = data;
 
-    const product = await this.repository.update(id, productData);
+    const product = await this.repository.update(
+      id,
+      productData as Prisma.ProductUpdateInput
+    );
 
     if (variants !== undefined && variants.length > 0) {
       const variantIds = variants.map((v) => v.id);
