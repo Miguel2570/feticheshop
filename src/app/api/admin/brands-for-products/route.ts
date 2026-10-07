@@ -13,7 +13,6 @@ export async function GET(request: NextRequest) {
     const brands = await prisma.brand.findMany({
       where: {
         deletedAt: null,
-
         ...(categoryId
           ? {
               products: {
@@ -25,7 +24,17 @@ export async function GET(request: NextRequest) {
             }
           : {}),
       },
-      select: { id: true, name: true },
+      select: {
+        id: true,
+        name: true,
+        _count: {
+          select: {
+            products: {
+              where: { deletedAt: null },
+            },
+          },
+        },
+      },
       orderBy: { name: "asc" },
     });
 
