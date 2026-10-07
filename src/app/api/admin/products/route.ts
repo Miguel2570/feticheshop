@@ -11,23 +11,11 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
 
-    const page = Number(
-      searchParams.get("page") ?? "1"
-    );
+    const page = Number(searchParams.get("page") ?? "1");
+    const limit = Number(searchParams.get("limit") ?? "20");
+    const search = searchParams.get("search") ?? "";
 
-    const limit = Number(
-      searchParams.get("limit") ?? "20"
-    );
-
-    const search =
-      searchParams.get("search") ?? "";
-
-    const products =
-      await productService.listProducts(
-        page,
-        limit,
-        search
-      );
+    const products = await productService.listProducts(page, limit, search);
 
     return NextResponse.json(products);
   } catch (error) {
@@ -35,27 +23,17 @@ export async function GET(request: NextRequest) {
 
     if (error instanceof Error) {
       if (error.message === "Unauthorized") {
-        return NextResponse.json(
-          { message: error.message },
-          { status: 401 }
-        );
+        return NextResponse.json({ message: error.message }, { status: 401 });
       }
 
       if (error.message === "Forbidden") {
-        return NextResponse.json(
-          { message: error.message },
-          { status: 403 }
-        );
+        return NextResponse.json({ message: error.message }, { status: 403 });
       }
     }
 
     return NextResponse.json(
-      {
-        message: "Failed to fetch products",
-      },
-      {
-        status: 500,
-      }
+      { message: "Failed to fetch products" },
+      { status: 500 }
     );
   }
 }
@@ -64,42 +42,27 @@ export async function POST(request: NextRequest) {
   try {
     await requireAdmin();
 
-    const body = createProductSchema.parse(
-      await request.json()
-    );
+    const body = createProductSchema.parse(await request.json());
 
-    const product =
-      await productService.createProduct(body);
+    const product = await productService.createProduct(body);
 
-    return NextResponse.json(product, {
-      status: 201,
-    });
+    return NextResponse.json(product, { status: 201 });
   } catch (error) {
     console.error(error);
 
     if (error instanceof Error) {
       if (error.message === "Unauthorized") {
-        return NextResponse.json(
-          { message: error.message },
-          { status: 401 }
-        );
+        return NextResponse.json({ message: error.message }, { status: 401 });
       }
 
       if (error.message === "Forbidden") {
-        return NextResponse.json(
-          { message: error.message },
-          { status: 403 }
-        );
+        return NextResponse.json({ message: error.message }, { status: 403 });
       }
     }
 
     return NextResponse.json(
-      {
-        message: "Failed to create product",
-      },
-      {
-        status: 500,
-      }
+      { message: "Failed to create product" },
+      { status: 500 }
     );
   }
 }

@@ -9,6 +9,17 @@ export const variantUpdateSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+export const variantCreateSchema = z.object({
+  name: z.string().min(1).max(255),
+  sku: z.string().nullable().optional(),
+  ean: z.string().nullable().optional(),
+  price: z.coerce.number().nonnegative().nullable().optional(),
+  comparePrice: z.coerce.number().nonnegative().nullable().optional(),
+  costPrice: z.coerce.number().nonnegative().nullable().optional(),
+  stock: z.coerce.number().int().nonnegative().default(0),
+  isActive: z.boolean().default(true),
+});
+
 export const createProductSchema = z.object({
   name: z.string().min(3).max(255),
   slug: z.string().min(3).max(255),
@@ -40,7 +51,7 @@ export const createProductSchema = z.object({
   brandId: z.string().nullable().optional(),
   categoryId: z.string().nullable().optional(),
   categoryIds: z.array(z.string()).optional(),
-  variants: z.array(variantUpdateSchema).optional(),
+  variants: z.array(variantCreateSchema).optional(),
 });
 
 export const updateProductSchema = createProductSchema.partial();
@@ -48,3 +59,4 @@ export const updateProductSchema = createProductSchema.partial();
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
 export type VariantUpdateInput = z.infer<typeof variantUpdateSchema>;
+export type VariantCreateInput = z.infer<typeof variantCreateSchema>;

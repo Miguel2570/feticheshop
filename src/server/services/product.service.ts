@@ -1,7 +1,9 @@
 import { Prisma, ProductStatus } from "@prisma/client";
+import { z } from "zod";
 
 import { ProductRepository } from "@/server/repositories/product.repository";
 import { prisma } from "@/lib/prisma";
+import { createProductSchema } from "@/validations/product";
 
 interface GetProductsParams {
   search?: string;
@@ -21,6 +23,8 @@ interface GetProductsParams {
     | "stockDesc"
     | "name";
 }
+
+type CreateProductBody = z.infer<typeof createProductSchema>;
 
 export class ProductService {
   private repository = new ProductRepository();
@@ -140,7 +144,51 @@ export class ProductService {
     return product;
   }
 
-  async createProduct(data: Prisma.ProductCreateInput) {
+  async createProduct(body: CreateProductBody) {
+    const { variants, categoryIds, categoryId, ...productData } = body;
+
+    const data: Prisma.ProductCreateInput = {
+      ...productData,
+      ...(categoryIds && categoryIds.length > 0
+        ? {
+            categories: {
+              create: categoryIds.map((id) => ({ categoryId: id })),
+            },
+          }
+        : categoryId
+          ? {
+              categories: {
+                create: [{ categoryId }],
+              },
+            }
+          : {}),
+      ...(variants && variants.length > 0
+        ? {
+            variants: {
+              create: variants.map((v) => ({
+                name: v.name,
+                sku: v.sku ?? null,
+                ean: v.ean ?? null,
+                price:
+                  v.price !== undefined && v.price !== null
+                    ? new Prisma.Decimal(v.price)
+                    : null,
+                comparePrice:
+                  v.comparePrice !== undefined && v.comparePrice !== null
+                    ? new Prisma.Decimal(v.comparePrice)
+                    : null,
+                costPrice:
+                  v.costPrice !== undefined && v.costPrice !== null
+                    ? new Prisma.Decimal(v.costPrice)
+                    : null,
+                stock: v.stock ?? 0,
+                isActive: v.isActive ?? true,
+              })),
+            },
+          }
+        : {}),
+    };
+
     return this.repository.create(data);
   }
 
@@ -163,12 +211,9 @@ export class ProductService {
 
     const { categoryId, categoryIds, variants, ...productData } = data;
 
-    // 1. Atualizar produto-pai
     const product = await this.repository.update(id, productData);
 
-    // 2. Atualizar variantes (se vieram)
     if (variants !== undefined && variants.length > 0) {
-      // Validar que as variantes pertencem a este produto
       const variantIds = variants.map((v) => v.id);
       const existingVariants = await prisma.productVariant.findMany({
         where: {
@@ -219,7 +264,6 @@ export class ProductService {
       }
     }
 
-    // 3. Atualizar categorias
     if (categoryIds !== undefined) {
       await prisma.productCategory.deleteMany({
         where: { productId: id },

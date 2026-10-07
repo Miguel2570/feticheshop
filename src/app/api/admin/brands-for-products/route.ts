@@ -12,20 +12,18 @@ export async function GET(request: NextRequest) {
 
     const brands = await prisma.brand.findMany({
       where: {
-        // Sem filtro de isActive — queres ver TODAS as marcas no admin
+        deletedAt: null,
+
         ...(categoryId
           ? {
               products: {
                 some: {
                   deletedAt: null,
                   categories: { some: { categoryId } },
-                  // Sem filtro status — mostra produtos HIDDEN, ARCHIVED, etc.
                 },
               },
             }
-          : {
-              products: { some: { deletedAt: null } },
-            }),
+          : {}),
       },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
