@@ -10,11 +10,6 @@ interface ProductDetailClientProps {
   product: Product;
 }
 
-/**
- * Wrapper cliente que junta:
- *  - ProductGallery (imagens mudam com a cor)
- *  - ProductInfo (preço/stock + seletor de variantes + botão de carrinho)
- */
 export function ProductDetailClient({ product }: ProductDetailClientProps) {
   const [activeVariantId, setActiveVariantId] = useState<string | null>(
     product.variants[0]?.id ?? null
@@ -35,12 +30,31 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
     return product.images;
   }, [activeVariant, product.images]);
 
-  // Preço efetivo (variante sobrepõe produto se tiver price)
-  const effectivePrice = product.price;
+  // ✅ Preço efetivo:
+  //  1. Se a variante ativa tem preço próprio → usa-o
+  //  2. Senão → herda o preço do produto-pai
+  const effectivePrice = useMemo(() => {
+    if (activeVariant?.price != null && activeVariant.price > 0) {
+      return activeVariant.price;
+    }
+    return product.price;
+  }, [activeVariant, product.price]);
 
-  const effectiveComparePrice = product.oldPrice;
+  // ✅ Preço antigo (comparePrice) — mesma lógica
+  const effectiveComparePrice = useMemo(() => {
+    if (activeVariant?.comparePrice != null && activeVariant.comparePrice > 0) {
+      return activeVariant.comparePrice;
+    }
+    return product.oldPrice;
+  }, [activeVariant, product.oldPrice]);
 
-  const effectiveStock = product.stock;
+  // ✅ Stock: se a variante tem stock, usa esse; senão usa o do produto
+  const effectiveStock = useMemo(() => {
+    if (activeVariant) {
+      return activeVariant.stock > 0;
+    }
+    return product.stock;
+  }, [activeVariant, product.stock]);
 
   return (
     <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-2 lg:gap-16 w-full">
@@ -49,7 +63,6 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
       </div>
 
       <div className="w-full min-w-0 order-3 lg:order-2 flex flex-col gap-6">
-        {/* Info com preço/stock da variante ativa + seletor de variantes */}
         <ProductInfo
           product={product}
           activeVariant={activeVariant}

@@ -54,6 +54,27 @@ const cleanText = (text: string): string => {
     .replace(/&nbsp;/g, " ");
 };
 
+/**
+ * Resolve o preço efetivo do produto:
+ * - Se o produto tem variantes ativas com preço próprio, usa o MÍNIMO (o "desde X€")
+ * - Caso contrário, usa o preço do produto-pai
+ */
+function resolveEffectivePrice(
+  parentPrice: number,
+  variants: Array<{ price: number | null; isActive: boolean }>
+): number {
+  const activeVariantsWithPrice = variants.filter(
+    (v) => v.isActive && v.price != null && v.price > 0
+  );
+
+  if (activeVariantsWithPrice.length === 0) {
+    return parentPrice;
+  }
+
+  const prices = activeVariantsWithPrice.map((v) => v.price!);
+  return Math.min(...prices);
+}
+
 export function mapProduct(product: ProductWithRelations): Product {
   const rawDescription = product.description ?? "";
 
@@ -92,7 +113,6 @@ export function mapProduct(product: ProductWithRelations): Product {
     .sort((a, b) => a.position - b.position)
     .map((img) => img.url);
 
-  // Se não há imagens gerais, usa todas
   const images =
     generalImages.length > 0
       ? generalImages
@@ -100,11 +120,21 @@ export function mapProduct(product: ProductWithRelations): Product {
           .sort((a, b) => a.position - b.position)
           .map((img) => img.url);
 
-  // ✅ Stock efetivo (soma variantes ativas ou usa stock do produto)
+  // Stock efetivo
   const effectiveStock = getEffectiveStock({
     stock: product.stock,
     variants: product.variants,
   });
+
+  // ✅ Preço efetivo (mínimo das variantes com preço, ou o do pai)
+  const parentPrice = Number(product.price);
+  const effectivePrice = resolveEffectivePrice(
+    parentPrice,
+    product.variants.map((v) => ({
+      price: v.price != null ? Number(v.price) : null,
+      isActive: v.isActive,
+    }))
+  );
 
   return {
     id: product.id,
@@ -112,7 +142,7 @@ export function mapProduct(product: ProductWithRelations): Product {
     name: product.name,
     brand: product.brand?.name ?? "",
     description: description,
-    price: Number(product.price),
+    price: effectivePrice,
     oldPrice: product.comparePrice ? Number(product.comparePrice) : undefined,
     rating: product.ratingAverage,
     reviews: product.ratingCount,
