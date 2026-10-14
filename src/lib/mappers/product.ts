@@ -54,6 +54,104 @@ const cleanText = (text: string): string => {
     .replace(/&nbsp;/g, " ");
 };
 
+// ─────────────────────────────────────────────────────────────
+// ORDENAÇÃO DE VARIANTES
+// ─────────────────────────────────────────────────────────────
+
+type VarianteParseada = {
+  tipo: "tamanho" | "volume" | "combo" | "outro";
+  valor: number;
+  raw: string;
+};
+
+function parseVariante(nome: string): VarianteParseada {
+  const n = nome.trim().toUpperCase();
+
+  // Ordem alfabética de tamanhos comuns
+  const tamanhoOrdem: Record<string, number> = {
+    // Tamanhos tipo "S/M/L"
+    XS: 1,
+    S: 2,
+    M: 3,
+    L: 4,
+    XL: 5,
+    XXL: 6,
+    XXXL: 7,
+    // Tamanhos tipo "P/M/G"
+    PP: 1,
+    P: 2,
+    G: 4,
+    GG: 5,
+    GGG: 6,
+    // Especiais (vão para o fim)
+    ÚNICO: 99,
+    UNICO: 99,
+    UNIQUE: 99,
+  };
+
+  // Combinações tipo "PRETO / S/M" — extrai a parte do tamanho
+  const comboMatch = n.match(/\/\s*([A-Z/]+)$/);
+  if (comboMatch) {
+    const parte = comboMatch[1].trim();
+    const partes = parte.split("/").map((p) => tamanhoOrdem[p] ?? 50);
+    return {
+      tipo: "combo",
+      valor: Math.max(...partes),
+      raw: n,
+    };
+  }
+
+  // Se for um tamanho simples
+  if (tamanhoOrdem[n] != null) {
+    return { tipo: "tamanho", valor: tamanhoOrdem[n], raw: n };
+  }
+
+  // Se for volume (ex: "50 ML", "1000 ML", "1 L", "150 G")
+  const volumeMatch = n.match(/^(\d+(?:[.,]\d+)?)\s*(ML|L|G|KG|GR)$/);
+  if (volumeMatch) {
+    const num = parseFloat(volumeMatch[1].replace(",", "."));
+    const unidade = volumeMatch[2];
+
+    // Normaliza tudo para ML/G para comparar
+    let normalizado = num;
+    if (unidade === "L" || unidade === "KG") normalizado = num * 1000;
+    else if (unidade === "GR") normalizado = num;
+
+    return { tipo: "volume", valor: normalizado, raw: n };
+  }
+
+  // Fallback: alfabético
+  return { tipo: "outro", valor: 0, raw: n };
+}
+
+function sortVariants<T extends { name: string }>(variants: T[]): T[] {
+  return [...variants].sort((a, b) => {
+    const aP = parseVariante(a.name);
+    const bP = parseVariante(b.name);
+
+    // Ordem dos tipos: tamanho > volume > combo > outro
+    const ordemTipos: Record<string, number> = {
+      tamanho: 1,
+      volume: 2,
+      combo: 3,
+      outro: 4,
+    };
+
+    if (aP.tipo !== bP.tipo) {
+      return ordemTipos[aP.tipo] - ordemTipos[bP.tipo];
+    }
+
+    if (aP.valor !== bP.valor) return aP.valor - bP.valor;
+
+    // Empate → alfabético
+    return aP.raw.localeCompare(bP.raw);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// PREÇO EFETIVO
+// ─────────────────────────────────────────────────────────────
+
 /**
  * Resolve o preço efetivo do produto:
  * - Se o produto tem variantes ativas com preço próprio, usa o MÍNIMO (o "desde X€")
@@ -75,6 +173,10 @@ function resolveEffectivePrice(
   return Math.min(...prices);
 }
 
+// ─────────────────────────────────────────────────────────────
+// MAPPER PRINCIPAL
+// ─────────────────────────────────────────────────────────────
+
 export function mapProduct(product: ProductWithRelations): Product {
   const rawDescription = product.description ?? "";
 
@@ -84,28 +186,31 @@ export function mapProduct(product: ProductWithRelations): Product {
 
   const cleanedFeatures = features.map(cleanText);
 
-  // Mapear variantes
-  const variants: ProductVariant[] = product.variants
-    .filter((v) => v.isActive)
-    .map((v) => ({
-      id: v.id,
-      name: v.name,
-      sku: v.sku,
-      price: v.price != null ? Number(v.price) : null,
-      comparePrice: v.comparePrice != null ? Number(v.comparePrice) : null,
-      stock: v.stock,
-      isActive: v.isActive,
-      attributes: v.attributeValues.map((av) => ({
-        slug: av.attributeValue.attribute.slug,
-        name: av.attributeValue.attribute.name,
-        value: av.attributeValue.value,
-        valueSlug: av.attributeValue.slug,
-        colorHex: av.attributeValue.colorHex,
-      })),
-      images: v.images
-        .sort((a, b) => a.position - b.position)
-        .map((img) => img.url),
-    }));
+  // Mapear variantes + ordenar
+  const variants: ProductVariant[] = sortVariants(
+    product.variants
+      .filter((v) => v.isActive)
+      .map((v) => ({
+        id: v.id,
+        name: v.name,
+        sku: v.sku,
+        price: v.price != null ? Number(v.price) : null,
+        comparePrice:
+          v.comparePrice != null ? Number(v.comparePrice) : null,
+        stock: v.stock,
+        isActive: v.isActive,
+        attributes: v.attributeValues.map((av) => ({
+          slug: av.attributeValue.attribute.slug,
+          name: av.attributeValue.attribute.name,
+          value: av.attributeValue.value,
+          valueSlug: av.attributeValue.slug,
+          colorHex: av.attributeValue.colorHex,
+        })),
+        images: v.images
+          .sort((a, b) => a.position - b.position)
+          .map((img) => img.url),
+      }))
+  );
 
   // Imagens gerais (sem variantId)
   const generalImages = product.images
@@ -126,7 +231,7 @@ export function mapProduct(product: ProductWithRelations): Product {
     variants: product.variants,
   });
 
-  // ✅ Preço efetivo (mínimo das variantes com preço, ou o do pai)
+  // Preço efetivo
   const parentPrice = Number(product.price);
   const effectivePrice = resolveEffectivePrice(
     parentPrice,
@@ -143,7 +248,9 @@ export function mapProduct(product: ProductWithRelations): Product {
     brand: product.brand?.name ?? "",
     description: description,
     price: effectivePrice,
-    oldPrice: product.comparePrice ? Number(product.comparePrice) : undefined,
+    oldPrice: product.comparePrice
+      ? Number(product.comparePrice)
+      : undefined,
     rating: product.ratingAverage,
     reviews: product.ratingCount,
     stock: effectiveStock > 0,
