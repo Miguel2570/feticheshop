@@ -25,7 +25,7 @@ export function LoginForm() {
     setError("");
 
     if (!email || !password) {
-      setError("Introdu o email e a palavra-passe.");
+      setError("Introduza o email e a palavra-passe.");
       return;
     }
 

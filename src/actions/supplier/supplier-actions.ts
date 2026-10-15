@@ -2,7 +2,7 @@
 
 import { spawn } from "node:child_process";
 
-import { syncEmitter } from "@/lib/sync-emitter";
+import { syncEmitter } from "@/lib/sync/sync-emitter";
 
 export async function syncDreamlove(): Promise<void> {
   return new Promise((resolve, reject) => {

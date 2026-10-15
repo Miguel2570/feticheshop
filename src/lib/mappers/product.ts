@@ -67,9 +67,7 @@ type VarianteParseada = {
 function parseVariante(nome: string): VarianteParseada {
   const n = nome.trim().toUpperCase();
 
-  // Ordem alfabética de tamanhos comuns
   const tamanhoOrdem: Record<string, number> = {
-    // Tamanhos tipo "S/M/L"
     XS: 1,
     S: 2,
     M: 3,
@@ -77,19 +75,16 @@ function parseVariante(nome: string): VarianteParseada {
     XL: 5,
     XXL: 6,
     XXXL: 7,
-    // Tamanhos tipo "P/M/G"
     PP: 1,
     P: 2,
     G: 4,
     GG: 5,
     GGG: 6,
-    // Especiais (vão para o fim)
     ÚNICO: 99,
     UNICO: 99,
     UNIQUE: 99,
   };
 
-  // Combinações tipo "PRETO / S/M" — extrai a parte do tamanho
   const comboMatch = n.match(/\/\s*([A-Z/]+)$/);
   if (comboMatch) {
     const parte = comboMatch[1].trim();
@@ -101,18 +96,15 @@ function parseVariante(nome: string): VarianteParseada {
     };
   }
 
-  // Se for um tamanho simples
   if (tamanhoOrdem[n] != null) {
     return { tipo: "tamanho", valor: tamanhoOrdem[n], raw: n };
   }
 
-  // Se for volume (ex: "50 ML", "1000 ML", "1 L", "150 G")
   const volumeMatch = n.match(/^(\d+(?:[.,]\d+)?)\s*(ML|L|G|KG|GR)$/);
   if (volumeMatch) {
     const num = parseFloat(volumeMatch[1].replace(",", "."));
     const unidade = volumeMatch[2];
 
-    // Normaliza tudo para ML/G para comparar
     let normalizado = num;
     if (unidade === "L" || unidade === "KG") normalizado = num * 1000;
     else if (unidade === "GR") normalizado = num;
@@ -120,7 +112,6 @@ function parseVariante(nome: string): VarianteParseada {
     return { tipo: "volume", valor: normalizado, raw: n };
   }
 
-  // Fallback: alfabético
   return { tipo: "outro", valor: 0, raw: n };
 }
 
@@ -129,7 +120,6 @@ function sortVariants<T extends { name: string }>(variants: T[]): T[] {
     const aP = parseVariante(a.name);
     const bP = parseVariante(b.name);
 
-    // Ordem dos tipos: tamanho > volume > combo > outro
     const ordemTipos: Record<string, number> = {
       tamanho: 1,
       volume: 2,
@@ -143,34 +133,8 @@ function sortVariants<T extends { name: string }>(variants: T[]): T[] {
 
     if (aP.valor !== bP.valor) return aP.valor - bP.valor;
 
-    // Empate → alfabético
     return aP.raw.localeCompare(bP.raw);
   });
-}
-
-// ─────────────────────────────────────────────────────────────
-// PREÇO EFETIVO
-// ─────────────────────────────────────────────────────────────
-
-/**
- * Resolve o preço efetivo do produto:
- * - Se o produto tem variantes ativas com preço próprio, usa o MÍNIMO (o "desde X€")
- * - Caso contrário, usa o preço do produto-pai
- */
-function resolveEffectivePrice(
-  parentPrice: number,
-  variants: Array<{ price: number | null; isActive: boolean }>
-): number {
-  const activeVariantsWithPrice = variants.filter(
-    (v) => v.isActive && v.price != null && v.price > 0
-  );
-
-  if (activeVariantsWithPrice.length === 0) {
-    return parentPrice;
-  }
-
-  const prices = activeVariantsWithPrice.map((v) => v.price!);
-  return Math.min(...prices);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -231,15 +195,8 @@ export function mapProduct(product: ProductWithRelations): Product {
     variants: product.variants,
   });
 
-  // Preço efetivo
-  const parentPrice = Number(product.price);
-  const effectivePrice = resolveEffectivePrice(
-    parentPrice,
-    product.variants.map((v) => ({
-      price: v.price != null ? Number(v.price) : null,
-      isActive: v.isActive,
-    }))
-  );
+  // ✅ Preço efetivo = preço do produto-pai (fonte de verdade)
+  const effectivePrice = Number(product.price);
 
   return {
     id: product.id,

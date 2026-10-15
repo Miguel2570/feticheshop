@@ -3,9 +3,9 @@ import { NextResponse } from "next/server";
 import {
   clearSyncProcess,
   getSyncProcess,
-} from "@/lib/sync-process";
+} from "@/lib/sync/sync-process";
 
-import { syncEmitter } from "@/lib/sync-emitter";
+import { syncEmitter } from "@/lib/sync/sync-emitter";
 
 export async function POST() {
   const child = getSyncProcess();

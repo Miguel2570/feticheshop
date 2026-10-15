@@ -11,18 +11,14 @@ interface ProductDetailClientProps {
 }
 
 export function ProductDetailClient({ product }: ProductDetailClientProps) {
-  const [activeVariantId, setActiveVariantId] = useState<string | null>(
-    product.variants[0]?.id ?? null
-  );
+  const [activeVariantId, setActiveVariantId] = useState<string | null>(null);
 
   const activeVariant: ProductVariant | null = useMemo(
     () => product.variants.find((v) => v.id === activeVariantId) ?? null,
     [product.variants, activeVariantId]
   );
 
-  // Imagens a mostrar na galeria:
-  //  1. Se há variante ativa e essa variante tem imagens → usa-as
-  //  2. Senão → usa as imagens gerais
+  // ✅ Imagens mudam com a variante ativa
   const displayImages = useMemo(() => {
     if (activeVariant && activeVariant.images.length > 0) {
       return activeVariant.images;
@@ -30,25 +26,13 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
     return product.images;
   }, [activeVariant, product.images]);
 
-  // ✅ Preço efetivo:
-  //  1. Se a variante ativa tem preço próprio → usa-o
-  //  2. Senão → herda o preço do produto-pai
-  const effectivePrice = useMemo(() => {
-    if (activeVariant?.price != null && activeVariant.price > 0) {
-      return activeVariant.price;
-    }
-    return product.price;
-  }, [activeVariant, product.price]);
+  // ✅ Preço é SEMPRE o do produto-pai
+  const effectivePrice = product.price;
 
-  // ✅ Preço antigo (comparePrice) — mesma lógica
-  const effectiveComparePrice = useMemo(() => {
-    if (activeVariant?.comparePrice != null && activeVariant.comparePrice > 0) {
-      return activeVariant.comparePrice;
-    }
-    return product.oldPrice;
-  }, [activeVariant, product.oldPrice]);
+  // ✅ Preço antigo também vem do pai
+  const effectiveComparePrice = product.oldPrice;
 
-  // ✅ Stock: se a variante tem stock, usa esse; senão usa o do produto
+  // ✅ Stock: usa o da variante escolhida; senão, o do produto
   const effectiveStock = useMemo(() => {
     if (activeVariant) {
       return activeVariant.stock > 0;

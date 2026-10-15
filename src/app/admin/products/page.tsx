@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { ProductToolbar } from "@/components/admin/products/ProductToolbar";
 import { ProductsTable } from "@/components/admin/products/ProductsTable";
 import { ProductsMobile } from "@/components/admin/products/ProductsMobile";
+import { PaginationGoto } from "@/components/admin/products/PaginationGoto";
 
 type Props = {
   searchParams: Promise<{
@@ -275,13 +276,12 @@ export default async function ProductsPage({ searchParams }: Props) {
             ‹<span className="hidden sm:inline">&nbsp;Anterior</span>
           </a>
 
-          {/* Indicador */}
-          <div
-            className="flex h-10 min-w-[80px] shrink-0 items-center justify-center rounded-xl px-4 text-sm font-bold shadow-lg"
-            style={{ backgroundColor: "#ec4899", color: "#ffffff" }}
-          >
-            {currentPage} / {totalPages}
-          </div>
+          {/* Input de página manual */}
+          <PaginationGoto
+            currentPage={currentPage}
+            totalPages={totalPages}
+            baseQuery={queryParams.toString()}
+          />
 
           {/* Seguinte */}
           <a

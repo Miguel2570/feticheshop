@@ -1,7 +1,6 @@
-// app/api/cron/sync-stock/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
-import { syncStock } from "@/lib/sync-stock";
+import { syncStock } from "@/lib/sync/sync-stock";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300; // segundos
