@@ -31,5 +31,4 @@
     "**/*.mts",
     "src/actions/categories/toggleFeaturedCategory.ts"
   ],
-  "exclude": ["node_modules", "scripts"]
 }
