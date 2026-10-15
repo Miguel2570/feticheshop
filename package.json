@@ -6,7 +6,7 @@
     "dev": "next dev --webpack",
     "build": "npm run prisma:generate && next build",
     "start": "next start",
-    "postinstall": "npm run prisma:generate",
+    "postinstall": "prisma generate",
     "lint": "eslint",
     "prisma:merge": "node merge-prisma.mjs",
     "prisma:generate": "npm run prisma:merge && prisma generate",
