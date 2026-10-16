@@ -31,5 +31,5 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts",
     "src/actions/categories/toggleFeaturedCategory.ts"
-  ],
+  ]
 }
