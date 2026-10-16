@@ -1,7 +1,5 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npx prisma generate && next build",
-  "installCommand": "npm install --legacy-peer-deps",
   "regions": ["fra1"],
   "functions": {
     "src/app/api/supplier/start-sync/route.ts": {
