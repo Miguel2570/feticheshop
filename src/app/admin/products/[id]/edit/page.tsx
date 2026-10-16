@@ -9,10 +9,19 @@ import { ProductImagesManager } from "@/components/admin/products/ProductImagesM
 
 interface EditProductPageProps {
   params: Promise<{ id: string }>;
+  // ✅ NOVO: Adicionar searchParams para ler o returnUrl
+  searchParams: Promise<{ returnUrl?: string }>;
 }
 
-export default async function EditProductPage({ params }: EditProductPageProps) {
+export default async function EditProductPage({ 
+  params, 
+  searchParams 
+}: EditProductPageProps) {
   const { id } = await params;
+  const { returnUrl } = await searchParams;
+
+  // ✅ NOVO: Definir o URL de retorno (se não existir, volta para a página de detalhe)
+  const backUrl = returnUrl ? decodeURIComponent(returnUrl) : `/admin/products/${id}`;
 
   const product = await prisma.product.findUnique({
     where: { id },
@@ -97,8 +106,9 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
           <p className="mt-1 text-zinc-500">{product.name}</p>
         </div>
 
+        {/* ✅ Usar o backUrl no botão Voltar */}
         <Link
-          href={`/admin/products/${product.id}`}
+          href={backUrl}
           className="inline-flex items-center justify-center h-10 px-5 text-sm font-semibold rounded-xl transition-all duration-200 cursor-pointer bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
         >
           ← Voltar

@@ -218,6 +218,10 @@ export default async function ProductsPage({ searchParams }: Props) {
     return `/admin/products?${p.toString()}`;
   };
 
+  // ✅ NOVO: Gerar o URL completo atual para passar como returnUrl
+  const currentFullUrl = `/admin/products?${queryParams.toString()}`;
+  const encodedReturnUrl = encodeURIComponent(currentFullUrl);
+
   return (
     <div className="w-full min-w-0 max-w-full overflow-x-hidden space-y-4 sm:space-y-5 lg:space-y-6">
       <div className="w-full min-w-0">
@@ -239,10 +243,12 @@ export default async function ProductsPage({ searchParams }: Props) {
 
       <div className="w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm sm:rounded-2xl">
         <div className="hidden w-full max-w-full overflow-x-auto lg:block">
-          <ProductsTable products={products} />
+          {/* ✅ Passar o returnUrl para a tabela */}
+          <ProductsTable products={products} returnUrl={encodedReturnUrl} />
         </div>
         <div className="block w-full min-w-0 max-w-full overflow-hidden lg:hidden">
-          <ProductsMobile products={products} />
+          {/* ✅ Passar o returnUrl para a versão mobile */}
+          <ProductsMobile products={products} returnUrl={encodedReturnUrl} />
         </div>
       </div>
 

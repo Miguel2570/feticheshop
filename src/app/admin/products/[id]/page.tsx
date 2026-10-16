@@ -25,12 +25,21 @@ interface ProductDetailPageProps {
   params: Promise<{
     id: string;
   }>;
+  // ✅ NOVO: Adicionar searchParams para ler o returnUrl
+  searchParams: Promise<{
+    returnUrl?: string;
+  }>;
 }
 
 export default async function ProductDetailPage({
   params,
+  searchParams,
 }: ProductDetailPageProps) {
   const { id } = await params;
+  const { returnUrl } = await searchParams;
+
+  // ✅ NOVO: Definir o URL de retorno (se não existir, volta para a lista principal)
+  const backUrl = returnUrl ? decodeURIComponent(returnUrl) : "/admin/products";
 
   // ✅ Slugs ativos (raízes + subcategorias) — vêm da BD
   const allActiveSlugs = await getAllActiveSlugs();
@@ -150,8 +159,9 @@ export default async function ProductDetailPage({
         "
       >
         <div className="flex min-w-0 max-w-full items-center gap-3">
+          {/* ✅ Usar o backUrl no botão Voltar */}
           <Link
-            href="/admin/products"
+            href={backUrl}
             className="
               inline-flex h-9 shrink-0 items-center gap-1.5
               rounded-lg bg-pink-500 px-3
@@ -197,8 +207,9 @@ export default async function ProductDetailPage({
             <span>Ver no site</span>
           </Link>
 
+          {/* ✅ Passar o returnUrl para o botão Editar */}
           <Link
-            href={`/admin/products/${dbProduct.id}/edit`}
+            href={`/admin/products/${dbProduct.id}/edit?returnUrl=${encodeURIComponent(backUrl)}`}
             className="
               inline-flex h-9 items-center gap-1.5
               rounded-lg bg-white px-3

@@ -30,16 +30,23 @@ interface Product {
   images: {
     url: string;
   }[];
-  // ✅ NOVOS
   variantCount?: number;
   isOrphan?: boolean;
 }
 
 interface ProductsMobileProps {
   products: Product[];
+  // ✅ NOVO: URL de retorno (já encoded) para preservar filtros e página
+  returnUrl?: string;
 }
 
-export function ProductsMobile({ products }: ProductsMobileProps) {
+export function ProductsMobile({ products, returnUrl }: ProductsMobileProps) {
+  // ✅ Helper para construir links com o returnUrl preservado
+  const buildLink = (path: string) => {
+    if (!returnUrl) return path;
+    return `${path}?returnUrl=${returnUrl}`;
+  };
+
   // =========================================================
   // SEM PRODUTOS
   // =========================================================
@@ -116,7 +123,6 @@ export function ProductsMobile({ products }: ProductsMobileProps) {
                     {product.name}
                   </p>
 
-                  {/* ✅ Badge órfão */}
                   {isOrphan && (
                     <span
                       className="inline-flex shrink-0 items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-[10px] font-semibold text-purple-600"
@@ -127,7 +133,6 @@ export function ProductsMobile({ products }: ProductsMobileProps) {
                     </span>
                   )}
 
-                  {/* ✅ Badge grupo */}
                   {isGroup && (
                     <span
                       className="inline-flex shrink-0 items-center gap-1 rounded-full border border-pink-200 bg-pink-50 px-2 py-0.5 text-[10px] font-semibold text-pink-600"
@@ -138,7 +143,6 @@ export function ProductsMobile({ products }: ProductsMobileProps) {
                     </span>
                   )}
 
-                  {/* ✅ Badge variantes */}
                   {variantCount >= 2 && (
                     <span
                       className="inline-flex shrink-0 items-center gap-1 rounded-full border border-pink-200 bg-pink-50 px-2 py-0.5 text-[10px] font-bold text-pink-600"
@@ -288,8 +292,9 @@ export function ProductsMobile({ products }: ProductsMobileProps) {
             <div className="mt-4 grid w-full min-w-0 grid-cols-1 gap-2 sm:flex sm:items-center">
               {/* VER PRODUTO */}
 
+              {/* ✅ Link com returnUrl */}
               <Link
-                href={`/admin/products/${product.id}`}
+                href={buildLink(`/admin/products/${product.id}`)}
                 className="inline-flex h-10 w-full min-w-0 items-center justify-center rounded-xl bg-pink-500 px-4 text-sm font-semibold text-white transition-colors hover:bg-pink-600 sm:flex-1"
               >
                 Ver produto
@@ -300,8 +305,9 @@ export function ProductsMobile({ products }: ProductsMobileProps) {
               <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex sm:shrink-0">
                 {/* EDITAR */}
 
+                {/* ✅ Link com returnUrl */}
                 <Link
-                  href={`/admin/products/${product.id}/edit`}
+                  href={buildLink(`/admin/products/${product.id}/edit`)}
                   className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-zinc-100 px-3 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-200 sm:w-auto sm:px-4"
                 >
                   Editar

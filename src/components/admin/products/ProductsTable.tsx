@@ -10,9 +10,9 @@ import {
   Eye,
   Package,
   Trash2,
-  Layers,      // ✅ NOVO
-  Ghost,       // ✅ NOVO (órfãos)
-  Crown,       // ✅ NOVO (canónicos)
+  Layers,
+  Ghost,
+  Crown,
 } from "lucide-react";
 
 import { Prisma } from "@prisma/client";
@@ -39,12 +39,14 @@ type ProductTableItem = Omit<
   price: number;
   comparePrice: number | null;
   costPrice: number | null;
-  variantCount?: number;   // ✅ NOVO
-  isOrphan?: boolean;      // ✅ NOVO
+  variantCount?: number;
+  isOrphan?: boolean;
 };
 
 interface ProductsTableProps {
   products: ProductTableItem[];
+  // ✅ NOVO: URL de retorno (já encoded) para preservar filtros e página
+  returnUrl?: string;
 }
 
 function calculateMargin(salePrice: number, costPrice: number): number {
@@ -52,7 +54,13 @@ function calculateMargin(salePrice: number, costPrice: number): number {
   return ((salePrice - costPrice) / salePrice) * 100;
 }
 
-export function ProductsTable({ products }: ProductsTableProps) {
+export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
+  // ✅ Helper para construir links com o returnUrl preservado
+  const buildLink = (path: string) => {
+    if (!returnUrl) return path;
+    return `${path}?returnUrl=${returnUrl}`;
+  };
+
   return (
     <div className="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm">
       <div className="overflow-x-auto">
@@ -169,7 +177,6 @@ export function ProductsTable({ products }: ProductsTableProps) {
                             {product.name}
                           </h3>
 
-                          {/* ✅ Badge órfão */}
                           {isOrphan && (
                             <span
                               className="inline-flex shrink-0 items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-[10px] font-semibold text-purple-600"
@@ -180,7 +187,6 @@ export function ProductsTable({ products }: ProductsTableProps) {
                             </span>
                           )}
 
-                          {/* ✅ Badge canónico (com 2+ variantes) */}
                           {!isOrphan && variantCount >= 2 && (
                             <span
                               className="inline-flex shrink-0 items-center gap-1 rounded-full border border-pink-200 bg-pink-50 px-2 py-0.5 text-[10px] font-semibold text-pink-600"
@@ -255,7 +261,6 @@ export function ProductsTable({ products }: ProductsTableProps) {
                     )}
                   </td>
 
-                  {/* ✅ NOVA COLUNA - VARIANTES */}
                   <td className="p-4 text-center">
                     {variantCount === 0 ? (
                       <span
@@ -306,16 +311,18 @@ export function ProductsTable({ products }: ProductsTableProps) {
 
                   <td className="p-4">
                     <div className="flex items-center justify-end gap-2 whitespace-nowrap">
+                      {/* ✅ Link com returnUrl */}
                       <Link
-                        href={`/admin/products/${product.id}`}
+                        href={buildLink(`/admin/products/${product.id}`)}
                         className="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition"
                         title="Ver"
                       >
                         <Eye size={15} />
                       </Link>
 
+                      {/* ✅ Link com returnUrl */}
                       <Link
-                        href={`/admin/products/${product.id}/edit`}
+                        href={buildLink(`/admin/products/${product.id}/edit`)}
                         className="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition"
                         title="Editar"
                       >
