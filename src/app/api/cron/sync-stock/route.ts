@@ -1,47 +1,45 @@
 import { NextRequest, NextResponse } from "next/server";
-
+import { waitUntil } from "@vercel/functions";
 import { syncStock } from "@/lib/sync/sync-stock";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 300; // segundos
+export const maxDuration = 300;
 
 export async function GET(request: NextRequest) {
-  // Proteção por secret
   const authHeader = request.headers.get("authorization");
   const expectedToken = process.env.CRON_SECRET;
 
   if (!expectedToken) {
-    console.error("❌ CRON_SECRET não configurado");
-    return NextResponse.json(
-      { error: "Server misconfigured" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Server misconfigured" }, { status: 500 });
   }
 
   if (authHeader !== `Bearer ${expectedToken}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // ✅ Fire and forget: dispara o sync e responde imediatamente
-  // O sync continua a correr em background.
   const startedAt = new Date();
 
-  void syncStock()
-    .then((result) => {
-      console.log("✅ Sync concluído:", {
-        duration: result.durationMs,
-        itemsProcessed: result.itemsProcessed,
-        variantsUpdated: result.variantsUpdated,
-        errors: result.errors,
-      });
-    })
-    .catch((error) => {
-      console.error("❌ Sync falhou:", error);
-    });
+  // ✅ A MÁGICA ACONTECE AQUI
+  // Dizes à Vercel para manter a função viva até o sync terminar
+  waitUntil(
+    syncStock()
+      .then((result) => {
+        console.log("✅ Sync concluído:", {
+          duration: result.durationMs,
+          itemsProcessed: result.itemsProcessed,
+          productsUpdated: result.productsUpdated,
+          errors: result.errors,
+        });
+      })
+      .catch((error) => {
+        console.error("❌ Sync falhou:", error);
+      })
+  );
 
+  // O cron-job.org recebe isto em milissegundos e fica verde
   return NextResponse.json({
     status: "started",
-    message: "Sync a correr em background",
+    message: "Sync a correr em background (waitUntil)",
     startedAt: startedAt.toISOString(),
   });
 }
