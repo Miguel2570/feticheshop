@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-
+import { waitUntil } from "@vercel/functions";
 import { syncCatalogStatus } from "@/lib/sync/sync-catalog-status";
 
-// Protege o endpoint com CRON_SECRET
+export const dynamic = "force-dynamic";
+export const maxDuration = 300; // 5 minutos
+
 function isAuthorized(request: NextRequest): boolean {
   const authHeader = request.headers.get("authorization");
   const secret = process.env.CRON_SECRET;
 
   if (!secret) {
     console.warn("⚠️  CRON_SECRET não definido — endpoint desprotegido");
-    return true; // dev only, em prod devia bloquear
+    return true;
   }
 
   return authHeader === `Bearer ${secret}`;
@@ -20,23 +22,28 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  try {
-    console.log("🔄 A iniciar sync-catalog-status...");
-    const resultado = await syncCatalogStatus();
-    console.log("✅ Sync concluído:", resultado);
+  console.log("🔄 A iniciar sync-catalog-status em background...");
 
-    return NextResponse.json({
-      success: true,
-      ...resultado,
-    });
-  } catch (error) {
-    console.error("❌ Erro no sync-catalog-status:", error);
-    return NextResponse.json(
-      {
-        success: false,
-        error: error instanceof Error ? error.message : "Erro desconhecido",
-      },
-      { status: 500 }
-    );
-  }
+  // ✅ waitUntil: garante que a Vercel não mata o processo aos 1s
+  waitUntil(
+    syncCatalogStatus()
+      .then((resultado) => {
+        console.log("✅ Sync catálogo concluído:", resultado);
+      })
+      .catch((error) => {
+        console.error("❌ Erro no sync-catalog-status:", error);
+      })
+  );
+
+  // Responde ao cron-job.org instantaneamente (200 OK)
+  return NextResponse.json({
+    success: true,
+    status: "started",
+    message: "Verificação de catálogo a correr em background",
+    startedAt: new Date().toISOString(),
+  });
+}
+
+export async function POST(request: NextRequest) {
+  return GET(request);
 }

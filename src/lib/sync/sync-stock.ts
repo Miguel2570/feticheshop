@@ -1,4 +1,4 @@
-// lib/sync-stock.ts
+// lib/sync/sync-stock.ts
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
@@ -37,6 +37,7 @@ type SyncResult = {
   pagesProcessed: number;
   itemsProcessed: number;
   productsUpdated: number;
+  notificationsSent: number;
   errors: number;
   message?: string;
 };
@@ -159,6 +160,7 @@ export async function syncStock(): Promise<SyncResult> {
   let pagesProcessed = 0;
   let itemsProcessed = 0;
   let productsUpdated = 0;
+  let notificationsSent = 0;
   let errors = 0;
 
   // Verificar supplier
@@ -264,7 +266,7 @@ export async function syncStock(): Promise<SyncResult> {
       `   ${products.length} produtos encontrados (stockMode=SUPPLIER)`
     );
 
-    // 6. Preparar updates
+    // 6. Preparar updates e detetar quais voltaram a ter stock
     type UpdateRow = {
       id: string;
       stock: number;
@@ -273,12 +275,18 @@ export async function syncStock(): Promise<SyncResult> {
     };
 
     const toUpdate: UpdateRow[] = [];
+    const productIdsThatGotStock = new Set<string>(); // Para notificações
 
     for (const p of products) {
       if (p.dreamloveId == null) continue;
 
       const newStock = stockByProductId.get(p.dreamloveId);
       if (newStock === undefined) continue;
+
+      // Se passou de 0 para > 0, regista para notificar os clientes
+      if (p.stock <= 0 && newStock > 0) {
+        productIdsThatGotStock.add(p.id);
+      }
 
       // Repor status quando há stock
       let newStatus = p.status;
@@ -376,6 +384,71 @@ export async function syncStock(): Promise<SyncResult> {
       console.warn("⚠️  lastSyncAt NÃO atualizado (sync incompleta)");
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // 11. NOTIFICAÇÕES DE STOCK (Stock Notifications)
+    // Disparado apenas para produtos que passaram de 0 para > 0
+    // ═══════════════════════════════════════════════════════════
+    if (productIdsThatGotStock.size > 0) {
+      console.log(
+        `\n📧 A processar alertas de stock para ${productIdsThatGotStock.size} produtos...`
+      );
+
+      try {
+        const notificacoesPendentes = await prisma.stockNotification.findMany({
+          where: {
+            productId: { in: Array.from(productIdsThatGotStock) },
+            notified: false,
+          },
+          select: {
+            id: true,
+            email: true,
+            productId: true,
+            product: { select: { name: true, slug: true } },
+          },
+        });
+
+        console.log(
+          `   ${notificacoesPendentes.length} notificações pendentes encontradas`
+        );
+
+        for (const notif of notificacoesPendentes) {
+          try {
+            // ⚠️ AQUI: substitui o console.log pela tua função real de envio
+            // (Resend, SendGrid, Nodemailer, etc.)
+            //
+            // Exemplo:
+            // await enviarEmailStockDisponivel({
+            //   to: notif.email,
+            //   productName: notif.product.name,
+            //   productUrl: `https://www.fetichesshopstore.com/produto/${notif.product.slug}`,
+            // });
+            console.log(
+              `   ✉️  [SIMULADO] Email para ${notif.email} — "${notif.product.name}" voltou a ter stock`
+            );
+
+            await prisma.stockNotification.update({
+              where: { id: notif.id },
+              data: { notified: true, notifiedAt: new Date() },
+            });
+
+            notificationsSent++;
+          } catch (err) {
+            console.error(
+              `   ❌ Erro ao enviar email para ${notif.email}:`,
+              errorMessage(err)
+            );
+          }
+        }
+
+        console.log(`   ✅ ${notificationsSent} notificações enviadas`);
+      } catch (err) {
+        console.error(
+          `   ❌ Erro ao processar notificações:`,
+          errorMessage(err)
+        );
+      }
+    }
+
     const finishedAt = new Date();
     const durationMs = Date.now() - startTime;
 
@@ -385,6 +458,7 @@ export async function syncStock(): Promise<SyncResult> {
     console.log(`Páginas processadas:     ${pagesProcessed}`);
     console.log(`Itens processados:       ${itemsProcessed}`);
     console.log(`Produtos atualizados:    ${productsUpdated}`);
+    console.log(`Notificações enviadas:   ${notificationsSent}`);
     console.log(`Erros:                   ${errors}`);
     console.log(`Duração:                 ${(durationMs / 1000).toFixed(2)}s`);
     console.log("");
@@ -397,6 +471,7 @@ export async function syncStock(): Promise<SyncResult> {
       pagesProcessed,
       itemsProcessed,
       productsUpdated,
+      notificationsSent,
       errors,
     };
   } catch (error) {
@@ -432,6 +507,7 @@ export async function syncStock(): Promise<SyncResult> {
       pagesProcessed,
       itemsProcessed,
       productsUpdated,
+      notificationsSent,
       errors: errors + 1,
       message,
     };

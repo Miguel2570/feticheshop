@@ -6,6 +6,7 @@ const PASS = process.env.DREAMLOVE_PASSWORD!;
 
 const CONCURRENCY = 8; // 8 pedidos em paralelo
 const TIMEOUT_MS = 20000; // 20s por pedido
+const MAX_PER_RUN = 2000; // ⚠️ Processa no máximo 2000 por execução
 
 interface SyncResult {
   totalVariantes: number;
@@ -50,9 +51,20 @@ export async function syncCatalogStatus(): Promise<SyncResult> {
   const token = await login();
   const headers = { Authorization: `Bearer ${token}` };
 
+  // ✅ Vai buscar as variantes que não são verificadas há mais tempo.
+  // Se nunca foram verificadas (lastCheckedAt == null), vêm primeiro.
   const variantes = await prisma.productVariant.findMany({
     where: { dreamloveId: { not: null } },
-    select: { id: true, dreamloveId: true, isActive: true, productId: true },
+    select: { 
+      id: true, 
+      dreamloveId: true, 
+      isActive: true, 
+      productId: true 
+    },
+    orderBy: [
+      { lastCheckedAt: { sort: "asc", nulls: "first" } }
+    ],
+    take: MAX_PER_RUN, // Limita a carga de trabalho
   });
 
   let validos = 0;
@@ -72,6 +84,7 @@ export async function syncCatalogStatus(): Promise<SyncResult> {
 
   for (let c = 0; c < chunks.length; c++) {
     const chunk = chunks[c];
+    const agora = new Date();
 
     await Promise.all(
       chunk.map(async (v) => {
@@ -80,6 +93,12 @@ export async function syncCatalogStatus(): Promise<SyncResult> {
             `${API}/products/${v.dreamloveId}`,
             headers
           );
+
+          // Atualiza sempre o lastCheckedAt, seja válido ou fantasma
+          await prisma.productVariant.update({
+            where: { id: v.id },
+            data: { lastCheckedAt: agora },
+          });
 
           if (r.ok) {
             validos++;
@@ -116,7 +135,7 @@ export async function syncCatalogStatus(): Promise<SyncResult> {
 
     // Progresso a cada 100 lotes
     if ((c + 1) % 100 === 0) {
-      const processadas = (c + 1) * CONCURRENCY;
+      const processadas = Math.min((c + 1) * CONCURRENCY, variantes.length);
       const duracao = Math.round((Date.now() - inicio) / 1000);
       console.log(
         `  [${processadas}/${variantes.length}] ` +
