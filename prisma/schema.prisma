@@ -369,6 +369,8 @@ model Product {
   price        Decimal  @db.Decimal(10, 2)
   comparePrice Decimal? @db.Decimal(10, 2)
   costPrice    Decimal? @db.Decimal(10, 2)
+  
+  lastImageCheck DateTime?
 
   reviews Review[]
 
