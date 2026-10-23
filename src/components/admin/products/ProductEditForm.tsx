@@ -52,10 +52,6 @@ interface ProductEditFormProps {
   categories?: Category[];
 }
 
-// ─────────────────────────────────────────────────────────────
-// Split / Merge da descrição
-// ─────────────────────────────────────────────────────────────
-
 const FEATURES_MARKER = "<h2>Características:</h2>";
 
 function splitDescription(fullHtml: string): {
@@ -96,10 +92,6 @@ function mergeDescription(
   return `${desc}\n${FEATURES_MARKER}\n${feat}`;
 }
 
-// ─────────────────────────────────────────────────────────────
-// Componente
-// ─────────────────────────────────────────────────────────────
-
 const MAX_SUBCATEGORIES = 3;
 
 export function ProductEditForm({
@@ -111,22 +103,18 @@ export function ProductEditForm({
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  // Divide a descrição inicial em duas partes
   const initial = splitDescription(product.description ?? "");
   const [descriptionHtml, setDescriptionHtml] = useState(
     initial.descriptionHtml
   );
   const [featuresHtml, setFeaturesHtml] = useState(initial.featuresHtml);
 
-  // Tab ativa dentro da "Descrição Completa"
   const [descTab, setDescTab] = useState<"Descrição" | "Características">(
     "Descrição"
   );
 
-  // ✅ Estado das variantes (preços editáveis)
   const [variants, setVariants] = useState<Variant[]>(product.variants ?? []);
 
-  // Hierarquia: raízes + filhas por parent
   const roots = categories.filter((c) => c.parentId === null);
   const childrenByParent = new Map<string, Category[]>();
   for (const c of categories) {
@@ -136,13 +124,11 @@ export function ProductEditForm({
     childrenByParent.set(c.parentId, arr);
   }
 
-  // ✅ Raiz (1 só)
   const [rootId, setRootId] = useState(() => {
     const current = product.categoryIds ?? [];
     return roots.find((r) => current.includes(r.id))?.id ?? "";
   });
 
-  // ✅ Subcategorias (checkbox, até 3) — já marca as existentes
   const [subIds, setSubIds] = useState<string[]>(() => {
     const current = product.categoryIds ?? [];
     return categories
@@ -156,27 +142,24 @@ export function ProductEditForm({
   const profit = salePrice - costPrice;
   const margin = salePrice > 0 ? (profit / salePrice) * 100 : 0;
 
-  // ✅ Helper para atualizar uma variante
   const updateVariant = (id: string, patch: Partial<Variant>) => {
     setVariants((prev) =>
       prev.map((v) => (v.id === id ? { ...v, ...patch } : v))
     );
   };
 
-  // ✅ Toggle de uma subcategoria
   const toggleSubcategory = (id: string) => {
     setSubIds((prev) => {
       if (prev.includes(id)) {
         return prev.filter((s) => s !== id);
       }
       if (prev.length >= MAX_SUBCATEGORIES) {
-        return prev; // já atingiu o máximo
+        return prev;
       }
       return [...prev, id];
     });
   };
 
-  // ✅ Subs disponíveis (da raiz atual)
   const selectedRoot = roots.find((r) => r.id === rootId);
   const subOptions = selectedRoot
     ? childrenByParent.get(selectedRoot.id) ?? []
@@ -190,32 +173,33 @@ export function ProductEditForm({
 
     const formData = new FormData(e.currentTarget);
 
-    // ✅ Categoria raiz + subcategorias (até 3)
     const categoryIds = [rootId, ...subIds].filter(Boolean);
 
     const finalDescription = mergeDescription(descriptionHtml, featuresHtml);
 
-    // ✅ Verificar se alguma variante foi alterada
-    const variantsPayload = variants.map((v, idx) => {
-      const original = product.variants[idx];
-      const changed =
-        v.price !== original?.price ||
-        v.comparePrice !== original?.comparePrice ||
-        v.stock !== original?.stock;
+    // ✅ Comparação por ID (não por índice)
+    const variantsPayload = variants
+      .map((v) => {
+        const original = product.variants.find((ov) => ov.id === v.id);
+        if (!original) return null;
 
-      return changed
-        ? {
-            id: v.id,
-            price: v.price,
-            comparePrice: v.comparePrice,
-            stock: v.stock,
-          }
-        : null;
-    });
+        const changed =
+          v.price !== original.price ||
+          v.comparePrice !== original.comparePrice ||
+          v.costPrice !== original.costPrice ||
+          v.stock !== original.stock;
 
-    const variantsToUpdate = variantsPayload.filter(
-      (v): v is NonNullable<typeof v> => v !== null
-    );
+        return changed
+          ? {
+              id: v.id,
+              price: v.price,
+              comparePrice: v.comparePrice,
+              costPrice: v.costPrice,
+              stock: v.stock,
+            }
+          : null;
+      })
+      .filter((v): v is NonNullable<typeof v> => v !== null);
 
     const data = {
       name: formData.get("name"),
@@ -235,8 +219,8 @@ export function ProductEditForm({
       isNew: formData.get("isNew") === "true",
       isOnSale: formData.get("isOnSale") === "true",
       categoryIds,
-      ...(variantsToUpdate.length > 0
-        ? { variants: variantsToUpdate }
+      ...(variantsPayload.length > 0
+        ? { variants: variantsPayload }
         : {}),
     };
 
@@ -341,7 +325,6 @@ export function ProductEditForm({
           />
         </div>
 
-        {/* CATEGORIA — badge de origem */}
         <div className="rounded-xl border border-zinc-200 bg-zinc-50 p-4">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-zinc-700">
@@ -366,7 +349,6 @@ export function ProductEditForm({
           )}
         </div>
 
-        {/* CATEGORIA — raiz */}
         <div>
           <label className="block text-sm font-semibold text-zinc-700 mb-2">
             Categoria (raiz)
@@ -375,7 +357,7 @@ export function ProductEditForm({
             value={rootId}
             onChange={(e) => {
               setRootId(e.target.value);
-              setSubIds([]); // limpa subs quando muda a raiz
+              setSubIds([]);
             }}
             className="h-10 w-full rounded-xl border-2 border-zinc-200 px-4 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
           >
@@ -388,7 +370,6 @@ export function ProductEditForm({
           </select>
         </div>
 
-        {/* ✅ SUBCATEGORIAS — checkboxes (até 3) */}
         <div>
           <label className="block text-sm font-semibold text-zinc-700 mb-2">
             Subcategorias{" "}
@@ -422,8 +403,8 @@ export function ProductEditForm({
                         isChecked
                           ? "border-pink-300 bg-pink-50 text-pink-700 font-medium"
                           : isDisabled
-                          ? "border-zinc-100 bg-zinc-50 text-zinc-400 cursor-not-allowed"
-                          : "border-zinc-200 bg-white text-zinc-700 hover:border-pink-200 hover:bg-pink-50/50"
+                            ? "border-zinc-100 bg-zinc-50 text-zinc-400 cursor-not-allowed"
+                            : "border-zinc-200 bg-white text-zinc-700 hover:border-pink-200 hover:bg-pink-50/50"
                       }
                     `}
                   >
@@ -486,7 +467,6 @@ export function ProductEditForm({
           />
         </div>
 
-        {/* DESCRIÇÃO COMPLETA — com tabs internas */}
         <div>
           <label className="block text-sm font-semibold text-zinc-700 mb-2">
             Descrição Completa
@@ -603,7 +583,11 @@ export function ProductEditForm({
             <p className="text-xs font-semibold text-emerald-600">
               💰 Lucro por venda
             </p>
-            <p className="mt-1 text-xl font-bold text-emerald-700">
+            <p
+              className={`mt-1 text-xl font-bold ${
+                profit < 0 ? "text-red-600" : "text-emerald-700"
+              }`}
+            >
               €{profit.toFixed(2)}
             </p>
           </div>
@@ -617,14 +601,34 @@ export function ProductEditForm({
                 margin >= 30
                   ? "text-emerald-600"
                   : margin >= 15
-                  ? "text-yellow-600"
-                  : "text-red-500"
+                    ? "text-yellow-600"
+                    : "text-red-500"
               }`}
             >
               {margin.toFixed(0)}%
             </p>
           </div>
         </div>
+
+        {costPrice > 0 && salePrice <= costPrice && (
+          <div className="rounded-xl border-2 border-red-300 bg-red-50 p-4">
+            <p className="text-sm font-bold text-red-700">
+              ⚠️ Atenção: o preço de venda é igual ou inferior ao custo!
+            </p>
+            <p className="mt-1 text-xs text-red-600">
+              Custo: €{costPrice.toFixed(2)} | Venda: €{salePrice.toFixed(2)} |{" "}
+              Prejuízo: €{(salePrice - costPrice).toFixed(2)}
+            </p>
+          </div>
+        )}
+
+        {costPrice > 0 && salePrice > costPrice && margin < 15 && (
+          <div className="rounded-xl border border-yellow-300 bg-yellow-50 p-4">
+            <p className="text-sm font-semibold text-yellow-800">
+              ⚠️ Margem baixa: {margin.toFixed(0)}%. Recomendado &gt; 30%.
+            </p>
+          </div>
+        )}
 
         <div>
           <label className="block text-sm font-semibold text-zinc-700 mb-2">
@@ -655,109 +659,165 @@ export function ProductEditForm({
         </div>
       </div>
 
-      {/* ✅ NOVA SECÇÃO: PREÇOS DAS VARIANTES */}
+      {/* PREÇOS DAS VARIANTES */}
       {variants.length > 0 && (
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 space-y-4 shadow-sm">
           <div>
             <h2 className="text-lg font-bold" style={{ color: "#18181b" }}>
-              Preços das Variantes ({variants.length})
+              Variantes ({variants.length})
             </h2>
             <p className="mt-1 text-sm text-zinc-500">
-              Define preços individuais para cada variante. Se deixares vazio,
-              herda o preço do produto-pai.
+              Define custo, preço de venda e stock para cada variante.
             </p>
           </div>
 
           <div className="space-y-4">
-            {variants.map((variant) => (
-              <div
-                key={variant.id}
-                className={`rounded-xl border-2 p-4 space-y-3 transition-all ${
-                  !variant.isActive
-                    ? "border-zinc-200 bg-zinc-50 opacity-60"
-                    : "border-zinc-200 bg-white"
-                }`}
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-bold text-zinc-900">
-                      {variant.name}
-                    </p>
-                    {variant.sku && (
-                      <p className="text-xs text-zinc-500">
-                        SKU: {variant.sku}
+            {variants.map((variant) => {
+              const vProfit =
+                variant.price != null && variant.costPrice != null
+                  ? variant.price - variant.costPrice
+                  : null;
+              const vMargin =
+                vProfit != null && variant.price != null && variant.price > 0
+                  ? (vProfit / variant.price) * 100
+                  : null;
+
+              return (
+                <div
+                  key={variant.id}
+                  className={`rounded-xl border-2 p-4 space-y-3 transition-all ${
+                    !variant.isActive
+                      ? "border-zinc-200 bg-zinc-50 opacity-60"
+                      : "border-zinc-200 bg-white"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-zinc-900">
+                        {variant.name}
                       </p>
+                      {variant.sku && (
+                        <p className="text-xs text-zinc-500">
+                          SKU: {variant.sku}
+                        </p>
+                      )}
+                    </div>
+                    {!variant.isActive && (
+                      <span className="text-xs bg-zinc-200 text-zinc-600 px-2 py-0.5 rounded">
+                        Oculto
+                      </span>
                     )}
                   </div>
-                  {!variant.isActive && (
-                    <span className="text-xs bg-zinc-200 text-zinc-600 px-2 py-0.5 rounded">
-                      Oculto
-                    </span>
+
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-600 mb-1">
+                        Custo (€)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={variant.costPrice ?? ""}
+                        onChange={(e) =>
+                          updateVariant(variant.id, {
+                            costPrice: e.target.value
+                              ? Number(e.target.value)
+                              : null,
+                          })
+                        }
+                        placeholder="—"
+                        className="h-9 w-full rounded-lg border-2 border-zinc-200 px-3 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-600 mb-1">
+                        Preço de Venda (€)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={variant.price ?? ""}
+                        onChange={(e) =>
+                          updateVariant(variant.id, {
+                            price: e.target.value
+                              ? Number(e.target.value)
+                              : null,
+                          })
+                        }
+                        placeholder={`herda €${product.price.toFixed(2)}`}
+                        className="h-9 w-full rounded-lg border-2 border-zinc-200 px-3 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-600 mb-1">
+                        P. Antigo (€)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={variant.comparePrice ?? ""}
+                        onChange={(e) =>
+                          updateVariant(variant.id, {
+                            comparePrice: e.target.value
+                              ? Number(e.target.value)
+                              : null,
+                          })
+                        }
+                        placeholder="—"
+                        className="h-9 w-full rounded-lg border-2 border-zinc-200 px-3 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-zinc-600 mb-1">
+                        Stock
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={variant.stock}
+                        onChange={(e) =>
+                          updateVariant(variant.id, {
+                            stock: Number(e.target.value) || 0,
+                          })
+                        }
+                        className="h-9 w-full rounded-lg border-2 border-zinc-200 px-3 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  {vProfit != null && vMargin != null && (
+                    <div className="grid grid-cols-2 gap-2 rounded-lg bg-zinc-50 p-2">
+                      <p className="text-xs text-zinc-600">
+                        💰 Lucro:{" "}
+                        <span
+                          className={`font-bold ${
+                            vProfit < 0 ? "text-red-600" : "text-emerald-600"
+                          }`}
+                        >
+                          €{vProfit.toFixed(2)}
+                        </span>
+                      </p>
+                      <p className="text-xs text-zinc-600">
+                        📊 Margem:{" "}
+                        <span
+                          className={`font-bold ${
+                            vMargin < 15 ? "text-red-600" : "text-emerald-600"
+                          }`}
+                        >
+                          {vMargin.toFixed(0)}%
+                        </span>
+                      </p>
+                    </div>
                   )}
                 </div>
-
-                <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-zinc-600 mb-1">
-                      Preço (€)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={variant.price ?? ""}
-                      onChange={(e) =>
-                        updateVariant(variant.id, {
-                          price: e.target.value
-                            ? Number(e.target.value)
-                            : null,
-                        })
-                      }
-                      placeholder={`herda €${product.price.toFixed(2)}`}
-                      className="h-9 w-full rounded-lg border-2 border-zinc-200 px-3 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-zinc-600 mb-1">
-                      P. Antigo (€)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={variant.comparePrice ?? ""}
-                      onChange={(e) =>
-                        updateVariant(variant.id, {
-                          comparePrice: e.target.value
-                            ? Number(e.target.value)
-                            : null,
-                        })
-                      }
-                      placeholder="—"
-                      className="h-9 w-full rounded-lg border-2 border-zinc-200 px-3 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-zinc-600 mb-1">
-                      Stock
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      value={variant.stock}
-                      onChange={(e) =>
-                        updateVariant(variant.id, {
-                          stock: Number(e.target.value) || 0,
-                        })
-                      }
-                      className="h-9 w-full rounded-lg border-2 border-zinc-200 px-3 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
-                    />
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

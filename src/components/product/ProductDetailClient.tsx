@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
-
+import { useMemo, useState, useEffect } from "react";
 import { Product, ProductVariant } from "@/types/product";
 import { ProductGallery } from "./ProductGallery";
 import { ProductInfo } from "./ProductInfo";
@@ -11,7 +10,10 @@ interface ProductDetailClientProps {
 }
 
 export function ProductDetailClient({ product }: ProductDetailClientProps) {
-  const [activeVariantId, setActiveVariantId] = useState<string | null>(null);
+  // Arranca logo com a primeira variante ativa se existir
+  const [activeVariantId, setActiveVariantId] = useState<string | null>(() => {
+    return product.variants.length > 0 ? product.variants[0].id : null;
+  });
 
   const activeVariant: ProductVariant | null = useMemo(
     () => product.variants.find((v) => v.id === activeVariantId) ?? null,
@@ -26,19 +28,17 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
     return product.images;
   }, [activeVariant, product.images]);
 
-  // ✅ Preço é SEMPRE o do produto-pai
-  const effectivePrice = product.price;
+  // ✅ PREÇO: Usa o da variante, se existir. Senão, o do produto.
+  const effectivePrice = activeVariant?.price ?? product.price;
+  
+  // ✅ PREÇO ANTIGO: Mesma lógica.
+  const effectiveComparePrice = activeVariant?.comparePrice ?? product.oldPrice;
 
-  // ✅ Preço antigo também vem do pai
-  const effectiveComparePrice = product.oldPrice;
+  // ✅ STOCK: Usa o número real da variante.
+  const effectiveStock = activeVariant ? activeVariant.stock > 0 : product.stock;
 
-  // ✅ Stock: usa o da variante escolhida; senão, o do produto
-  const effectiveStock = useMemo(() => {
-    if (activeVariant) {
-      return activeVariant.stock > 0;
-    }
-    return product.stock;
-  }, [activeVariant, product.stock]);
+  // Se o preço da variante for nulo, herda o do pai (para o ProductInfo não quebrar)
+  const finalPrice = effectivePrice ?? product.price;
 
   return (
     <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-2 lg:gap-16 w-full">
@@ -50,7 +50,7 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
         <ProductInfo
           product={product}
           activeVariant={activeVariant}
-          overridePrice={effectivePrice}
+          overridePrice={finalPrice}
           overrideComparePrice={effectiveComparePrice ?? undefined}
           overrideStock={effectiveStock}
           selectedVariantId={activeVariantId}

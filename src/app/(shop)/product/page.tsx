@@ -138,7 +138,23 @@ export default async function ProductsPage({ searchParams }: Props) {
     },
     variants: {
       where: { isActive: true },
-      select: { stock: true, isActive: true },
+      select: { 
+        id: true,
+        stock: true, 
+        isActive: true,
+        price: true,          
+        comparePrice: true,   
+        name: true,
+        images: {
+          where: { isHidden: false },
+          orderBy: { position: "asc" }
+        },
+        attributeValues: {
+          include: {
+            attributeValue: { include: { attribute: true } }
+          }
+        }
+      },
     },
   } as const;
 
