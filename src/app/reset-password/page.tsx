@@ -1,5 +1,6 @@
 // src/app/(shop)/reset-password/page.tsx
 
+import { Suspense } from "react";
 import { ResetPasswordForm } from "@/components/auth/ResetPasswordForm";
 
 export default function ResetPasswordPage() {
@@ -28,7 +29,15 @@ export default function ResetPasswordPage() {
             </p>
           </div>
 
-          <ResetPasswordForm />
+          {/* ✅ AQUI: Envolvemos o formulário no Suspense */}
+          <Suspense fallback={
+            <div className="flex justify-center py-10">
+              <div className="animate-pulse text-sm text-zinc-500">A carregar formulário...</div>
+            </div>
+          }>
+            <ResetPasswordForm />
+          </Suspense>
+          
         </div>
       </section>
     </main>

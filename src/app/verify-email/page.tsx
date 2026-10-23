@@ -1,5 +1,7 @@
 import { VerifyEmailForm } from "@/components/auth/VerifyEmailForm";
 
+export const dynamic = "force-dynamic";
+
 export default function VerifyEmailPage() {
   return (
     <main className="arabesque-bg relative overflow-hidden min-h-screen">

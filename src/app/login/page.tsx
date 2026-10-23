@@ -3,6 +3,8 @@ import { ArrowLeft } from "lucide-react";
 
 import { LoginForm } from "@/components/auth/LoginForm";
 
+export const dynamic = "force-dynamic";
+
 export default function LoginPage() {
   return (
     <main className="arabesque-bg relative overflow-hidden min-h-screen">

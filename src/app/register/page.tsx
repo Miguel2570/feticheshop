@@ -3,6 +3,8 @@ import { ArrowLeft } from "lucide-react";
 
 import { RegisterForm } from "@/components/auth/RegisterForm";
 
+export const dynamic = "force-dynamic";
+
 export default function RegisterPage() {
   return (
     <main className="arabesque-bg relative overflow-hidden min-h-screen">
