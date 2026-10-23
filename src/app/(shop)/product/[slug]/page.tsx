@@ -1,14 +1,17 @@
-import { notFound } from "next/navigation";
+// src/app/(shop)/product/[slug]/page.tsx
 
+import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { mapProduct } from "@/lib/mappers/product";
-
 import { BackButton } from "@/components/product/BackButton";
 import { ProductActions } from "@/components/product/ProductActions";
 import { ProductDetailClient } from "@/components/product/ProductDetailClient";
 import { ProductTabs } from "@/components/product/ProductTabs";
 import { ProductReviews } from "@/components/product/ProductReviews";
 import { RelatedProducts } from "@/components/product/RelatedProducts";
+
+// ✅ NOVO: Guarda a página em cache durante 10 minutos (600 segundos)
+export const revalidate = 600;
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
@@ -18,7 +21,8 @@ const productInclude = {
   brand: true,
   images: {
     where: { isHidden: false }, 
-    orderBy: { position: "asc" as const } },
+    orderBy: { position: "asc" as const } 
+  },
   categories: { include: { category: true } },
   attributes: {
     include: {
@@ -28,8 +32,10 @@ const productInclude = {
   variants: {
     where: { isActive: true },
     include: {
-      images: { where: { isHidden: false },
-      orderBy: { position: "asc" as const } },
+      images: {
+        where: { isHidden: false },
+        orderBy: { position: "asc" as const } 
+      },
       attributeValues: {
         include: {
           attributeValue: { include: { attribute: true } },
@@ -90,7 +96,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
         <BackButton />
       </div>
 
-      {/* Título e categoria - visível apenas em mobile */}
       <div className="container-custom pt-4 lg:hidden w-full">
         <span className="text-xs font-medium uppercase tracking-wider text-pink-500">
           {product.category || "Produto"}
@@ -101,7 +106,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
         </h1>
       </div>
 
-      {/* Produto principal — agora com wrapper cliente */}
       <section className="container-custom py-6 sm:py-12 w-full">
         <ProductDetailClient product={product} />
       </section>

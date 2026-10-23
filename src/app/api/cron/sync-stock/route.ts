@@ -19,15 +19,13 @@ export async function GET(request: NextRequest) {
 
   const startedAt = new Date();
 
-  // ✅ A MÁGICA ACONTECE AQUI
-  // Dizes à Vercel para manter a função viva até o sync terminar
   waitUntil(
     syncStock()
       .then((result) => {
         console.log("✅ Sync concluído:", {
           duration: result.durationMs,
           itemsProcessed: result.itemsProcessed,
-          productsUpdated: result.productsUpdated,
+          variantsUpdated: result.variantsUpdated,
           errors: result.errors,
         });
       })
@@ -36,7 +34,6 @@ export async function GET(request: NextRequest) {
       })
   );
 
-  // O cron-job.org recebe isto em milissegundos e fica verde
   return NextResponse.json({
     status: "started",
     message: "Sync a correr em background (waitUntil)",

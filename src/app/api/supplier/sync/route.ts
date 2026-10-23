@@ -11,7 +11,6 @@ export async function GET(request: Request) {
     orderBy: { createdAt: "desc" },
   });
 
-  // Contagem real de produtos na BD
   const totalInDb = await prisma.product.count();
 
   if (!sync) {
@@ -28,14 +27,15 @@ export async function GET(request: Request) {
 
   const total = sync.totalProducts || 14804;
   const processed = sync.imported + sync.updated + sync.failed;
-  const progress = sync.totalProducts > 0
-    ? Math.min(100, Math.round((totalInDb / total) * 100))
-    : Math.min(100, Math.round((processed / total) * 100));
+  const progress =
+    sync.totalProducts > 0
+      ? Math.min(100, Math.round((totalInDb / total) * 100))
+      : Math.min(100, Math.round((processed / total) * 100));
 
-  // Mensagem dinâmica que muda com o progresso
-  const message = sync.status === "RUNNING"
-    ? `A sincronizar... ${totalInDb}/${total} produtos na BD`
-    : sync.message || `Concluída: ${totalInDb} produtos`;
+  const message =
+    sync.status === "RUNNING"
+      ? `A sincronizar... ${totalInDb}/${total} produtos na BD`
+      : sync.message || `Concluída: ${totalInDb} produtos`;
 
   return NextResponse.json({
     status: sync.status,

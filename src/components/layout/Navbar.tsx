@@ -3,10 +3,14 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { NavbarClient } from "./NavbarClient";
 
-export const dynamic = "force-dynamic";
 
 export async function Navbar() {
-  const user = await getCurrentUser();
+  let user = null;
+  try {
+    user = await getCurrentUser();
+  } catch (error) {
+    user = null;
+  }
 
   const [categories, newCount, saleCount] = await Promise.all([
     prisma.category.findMany({

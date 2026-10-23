@@ -1,3 +1,5 @@
+// src/app/(shop)/page.tsx
+
 import { Hero } from "@/components/home/Hero";
 import { BannerCarouselDesktop } from "@/components/home/BannerCarouselDesktop";
 import { BannerCarouselMobile } from "@/components/home/BannerCarouselMobile";
@@ -8,6 +10,8 @@ import { WhyChooseUs } from "@/components/home/WhyChooseUs";
 import { Reviews } from "@/components/home/Reviews";
 import { FAQ } from "@/components/home/FAQ";
 import { Newsletter } from "@/components/home/Newsletter";
+
+export const revalidate = 3600;
 
 export default function Home() {
   return (
