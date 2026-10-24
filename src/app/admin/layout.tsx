@@ -36,7 +36,10 @@ export default async function AdminLayout({
       className="flex min-h-screen w-full max-w-full"
       style={{ backgroundColor: "#fafafa" }}
     >
+      {/* ✅ SIDEBAR (O componente que faltava) */}
+      <AdminSidebar />
 
+      {/* ÁREA PRINCIPAL */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* TOPBAR */}
         <div
