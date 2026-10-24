@@ -68,7 +68,6 @@ export function ProductCard({
   const isOutOfStock = stock === 0;
   const isLowStock = stock > 0 && stock <= 5;
 
-  // ✅ PROTEÇÃO: se a imagem vier vazia, usa o placeholder
   const safeImage =
     image && image.trim() !== ""
       ? image
@@ -94,7 +93,7 @@ export function ProductCard({
       compareAtPrice: oldPrice ?? null,
       stock,
       brand: { name: brand },
-      images: [{ url: safeImage }], // ✅ usa safeImage
+      images: [{ url: safeImage }],
     });
   }
 
@@ -104,7 +103,7 @@ export function ProductCard({
     const success = await addToCart(id, 1, {
       name,
       slug,
-      image: safeImage, // ✅ usa safeImage
+      image: safeImage,
       price,
     });
 
@@ -115,17 +114,18 @@ export function ProductCard({
   }
 
   return (
-    <div className="relative group">
+    // ✅ flex h-full para o cartão ocupar toda a altura da grid
+    <div className="relative group flex h-full flex-col">
       <article
         className="
-          relative z-0 overflow-hidden rounded-2xl sm:rounded-3xl
+          relative z-0 flex h-full flex-col overflow-hidden rounded-2xl sm:rounded-3xl
           border border-pink-100 bg-white shadow-sm
           transition-all duration-300
           hover:z-10 hover:-translate-y-1 hover:border-pink-200
           hover:shadow-[0_8px_30px_rgba(255,46,136,.10)]
         "
       >
-        <div className="relative">
+        <div className="relative shrink-0">
           {isOutOfStock ? (
             <div className="absolute left-2 top-2 sm:left-4 sm:top-4 z-30 rounded-full bg-zinc-900 px-3 py-1.5 text-[10px] sm:px-4 sm:py-2 sm:text-xs font-bold text-white shadow-lg shadow-zinc-900/30">
               Esgotado
@@ -163,7 +163,7 @@ export function ProductCard({
           <Link href={`/product/${slug}`} className="block">
             <div className="relative h-[180px] sm:h-[280px] lg:h-[320px] bg-pink-50/50">
               <Image
-                src={safeImage} // ✅ usa safeImage
+                src={safeImage}
                 alt={name}
                 fill
                 unoptimized
@@ -176,57 +176,62 @@ export function ProductCard({
           </Link>
         </div>
 
-        <div className="space-y-3 sm:space-y-4 p-3 sm:p-6">
-          <div>
-            <Link href={`/product/${slug}`}>
-              <h3 className="mt-1 sm:mt-2 line-clamp-2 text-sm sm:text-xl font-bold text-zinc-900 transition hover:text-pink-500">
-                {name}
-              </h3>
-            </Link>
+        {/* ✅ flex-1 para o conteúdo preencher o resto da altura */}
+        <div className="flex flex-1 flex-col justify-between p-3 sm:p-6">
+          
+          <div className="space-y-3 sm:space-y-4">
+            {/* ✅ min-h para garantir que o espaço do nome é sempre o mesmo (2 linhas) */}
+            <div className="min-h-[2.5rem] sm:min-h-[3.5rem]">
+              <Link href={`/product/${slug}`}>
+                <h3 className="mt-1 sm:mt-2 line-clamp-2 text-sm sm:text-xl font-bold text-zinc-900 transition hover:text-pink-500">
+                  {name}
+                </h3>
+              </Link>
 
-            <p className="mt-1 sm:mt-2 line-clamp-2 text-xs sm:text-sm text-zinc-600">
-              {description}
-            </p>
-          </div>
+              <p className="mt-1 sm:mt-2 line-clamp-2 text-xs sm:text-sm text-zinc-600">
+                {description}
+              </p>
+            </div>
 
-          <div className="flex h-5 items-center gap-1.5">
-            {!isOutOfStock ? (
-              isLowStock ? (
-                <>
-                  <span className="inline-block h-2 w-2 rounded-full bg-yellow-500" />
-                  <span className="text-xs sm:text-sm font-semibold text-yellow-600">
-                    Poucas unidades
-                  </span>
-                </>
+            <div className="flex h-5 items-center gap-1.5">
+              {!isOutOfStock ? (
+                isLowStock ? (
+                  <>
+                    <span className="inline-block h-2 w-2 rounded-full bg-yellow-500" />
+                    <span className="text-xs sm:text-sm font-semibold text-yellow-600">
+                      Poucas unidades
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+                    <span className="text-xs sm:text-sm font-semibold text-emerald-600">
+                      Em stock
+                    </span>
+                  </>
+                )
               ) : (
-                <>
-                  <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-                  <span className="text-xs sm:text-sm font-semibold text-emerald-600">
-                    Em stock
+                <span aria-hidden="true" className="h-5" />
+              )}
+            </div>
+
+            {!isOutOfStock && (
+              <div className="flex items-center gap-1.5 text-xs sm:text-sm text-zinc-500">
+                <Truck
+                  size={14}
+                  className="shrink-0 text-pink-500 sm:w-4 sm:h-4"
+                />
+                <span>
+                  Entrega prevista{" "}
+                  <span className="font-semibold text-zinc-700">
+                    {deliveryDate}
                   </span>
-                </>
-              )
-            ) : (
-              <span aria-hidden="true" className="h-5" />
+                </span>
+              </div>
             )}
           </div>
 
-          {!isOutOfStock && (
-            <div className="flex items-center gap-1.5 text-xs sm:text-sm text-zinc-500">
-              <Truck
-                size={14}
-                className="shrink-0 text-pink-500 sm:w-4 sm:h-4"
-              />
-              <span>
-                Entrega prevista{" "}
-                <span className="font-semibold text-zinc-700">
-                  {deliveryDate}
-                </span>
-              </span>
-            </div>
-          )}
-
-          <div className="flex items-center justify-between gap-2 sm:gap-3">
+          <div className="mt-3 flex items-center justify-between gap-2 sm:mt-4 sm:gap-3">
             <div className="flex items-end gap-2 min-w-0">
               <span className="text-lg sm:text-2xl font-bold text-zinc-900">
                 €{price.toFixed(2)}
