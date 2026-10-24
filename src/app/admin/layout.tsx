@@ -6,7 +6,6 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import AdminSidebar from "@/components/admin/AdminSidebar";
 import AdminTopbar from "@/components/admin/AdminTopbar";
-import AdminMobileMenu from "@/components/admin/AdminMobileMenu";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -34,40 +33,11 @@ export default async function AdminLayout({
 
   return (
     <div
-      className="
-        flex
-        min-h-screen
-        w-full
-        max-w-full
-      "
-      style={{
-        backgroundColor: "#fafafa",
-      }}
+      className="flex min-h-screen w-full max-w-full"
+      style={{ backgroundColor: "#fafafa" }}
     >
-      {/* =====================================================
-          MENU MOBILE
-      ===================================================== */}
 
-      <AdminMobileMenu />
-
-      {/* =====================================================
-          SIDEBAR DESKTOP - ✅ STICKY DIRETO
-      ===================================================== */}
-
-      <AdminSidebar />
-
-      {/* =====================================================
-          ÁREA PRINCIPAL
-      ===================================================== */}
-
-      <div
-        className="
-          flex
-          min-w-0
-          flex-1
-          flex-col
-        "
-      >
+      <div className="flex min-w-0 flex-1 flex-col">
         {/* TOPBAR */}
         <div
           className="
@@ -106,22 +76,16 @@ export default async function AdminLayout({
             flex-1
 
             p-4
-            pt-20
+            pt-6
 
             sm:p-5
-            sm:pt-20
+            sm:pt-6
 
             lg:p-6
             lg:pt-6
           "
         >
-          <div
-            className="
-              w-full
-              min-w-0
-              max-w-full
-            "
-          >
+          <div className="w-full min-w-0 max-w-full">
             {children}
           </div>
         </main>
