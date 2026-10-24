@@ -46,9 +46,6 @@ function addBusinessDays(startDate: Date, days: number): Date {
   return result;
 }
 
-/**
- * Formato intermédio: "30 de setembro"
- */
 function formatDeliveryDate(date: Date): string {
   return date.toLocaleDateString("pt-PT", {
     day: "numeric",
@@ -79,25 +76,26 @@ export function ProductInfo({
   const reviews = product.reviews || 0;
   const favorite = isFavorite(product.id);
 
-  // ✅ Entrega prevista
   const deliveryDate = useMemo(() => {
     const today = new Date();
     const delivery = addBusinessDays(today, DELIVERY_BUSINESS_DAYS);
     return formatDeliveryDate(delivery);
   }, []);
 
+  // ✅ CORRIGIDO: Extrai o .url se for objeto, ou usa a string se for antigo
   const variantImage =
     activeVariant && activeVariant.images.length > 0
-      ? activeVariant.images[0]
+      ? (typeof activeVariant.images[0] === "string"
+          ? activeVariant.images[0]
+          : activeVariant.images[0]?.url)
       : null;
 
   const productImage =
     variantImage ??
-    (Array.isArray(product.images) && product.images.length > 0
-      ? typeof product.images[0] === "string"
-        ? product.images[0]
-        : (product.images[0] as { url?: string })?.url ??
-          "/placeholder-product.png"
+    (product.images && product.images.length > 0
+      ? (typeof product.images[0] === "string"
+          ? product.images[0]
+          : product.images[0]?.url)
       : "/placeholder-product.png");
 
   function handleToggleFavorite() {
@@ -139,7 +137,6 @@ export function ProductInfo({
 
   const hasVariants = product.variants && product.variants.length > 0;
 
-  // ✅ Só mostra o seletor se houver variantes COM atributos (cor, tamanho, etc.)
   const hasVariantAttributes =
     hasVariants &&
     product.variants.some((v) => v.attributes.length > 0);
@@ -153,31 +150,6 @@ export function ProductInfo({
       <h1 className="hidden lg:block break-words text-xl font-bold leading-tight text-zinc-900 md:text-2xl lg:text-3xl">
         {product.name}
       </h1>
-      {/*
-      {product.brand && (
-        <p className="text-sm text-zinc-500">{product.brand}</p>
-      )}
-      
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-        
-        <div className="flex gap-0.5 shrink-0">
-          {Array.from({ length: 5 }).map((_, index) => (
-            <Star
-              key={index}
-              size={16}
-              fill={index < Math.round(rating) ? "#FF2E88" : "transparent"}
-              className={
-                index < Math.round(rating) ? "text-pink-500" : "text-zinc-300"
-              }
-            />
-          ))}
-        </div>
-
-        <span className="text-xs text-zinc-500">
-          {rating.toFixed(1)} ({reviews})
-        </span>
-      </div>
-      */}
 
       {/* PREÇO */}
       <div className="flex flex-wrap items-end gap-2 sm:gap-3">
