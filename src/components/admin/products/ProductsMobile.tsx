@@ -4,7 +4,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Package, Layers, Ghost, Crown } from "lucide-react";
+import { Package, Layers, Ghost, Crown, Video } from "lucide-react"; // ✅ NOVO
 import { ProductStatus } from "@prisma/client";
 
 import { ProductStatusBadge } from "./ProductStatusBadge";
@@ -32,49 +32,30 @@ interface Product {
   }[];
   variantCount?: number;
   isOrphan?: boolean;
+  hasVideo?: boolean; // ✅ NOVO
 }
 
 interface ProductsMobileProps {
   products: Product[];
-  // ✅ NOVO: URL de retorno (já encoded) para preservar filtros e página
   returnUrl?: string;
 }
 
 export function ProductsMobile({ products, returnUrl }: ProductsMobileProps) {
-  // ✅ Helper para construir links com o returnUrl preservado
   const buildLink = (path: string) => {
     if (!returnUrl) return path;
     return `${path}?returnUrl=${returnUrl}`;
   };
 
-  // =========================================================
-  // SEM PRODUTOS
-  // =========================================================
-
   if (products.length === 0) {
     return (
       <div
-        className="
-          flex
-          min-h-[180px]
-          w-full
-          items-center
-          justify-center
-          px-4
-          py-10
-          text-center
-          text-sm
-        "
+        className="flex min-h-[180px] w-full items-center justify-center px-4 py-10 text-center text-sm"
         style={{ color: "#71717a" }}
       >
         Nenhum produto encontrado.
       </div>
     );
   }
-
-  // =========================================================
-  // LISTA
-  // =========================================================
 
   return (
     <div className="w-full min-w-0 divide-y divide-zinc-100">
@@ -85,13 +66,7 @@ export function ProductsMobile({ products, returnUrl }: ProductsMobileProps) {
 
         return (
           <div key={product.id} className="w-full min-w-0 p-3 sm:p-5">
-            {/* =================================================
-                TOPO DO PRODUTO
-            ================================================= */}
-
             <div className="flex w-full min-w-0 items-start gap-3">
-              {/* IMAGEM */}
-
               <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-zinc-100 sm:h-14 sm:w-14">
                 {product.images.length > 0 ? (
                   <Image
@@ -109,11 +84,7 @@ export function ProductsMobile({ products, returnUrl }: ProductsMobileProps) {
                 )}
               </div>
 
-              {/* INFORMAÇÃO PRINCIPAL */}
-
               <div className="min-w-0 flex-1">
-                {/* NOME + BADGES */}
-
                 <div className="flex flex-wrap items-center gap-1.5">
                   <p
                     className="truncate text-sm font-semibold leading-5 sm:text-base"
@@ -122,6 +93,16 @@ export function ProductsMobile({ products, returnUrl }: ProductsMobileProps) {
                   >
                     {product.name}
                   </p>
+
+                  {/* ✅ NOVO: Ícone de vídeo */}
+                  {product.hasVideo && (
+                    <span
+                      className="inline-flex shrink-0 items-center justify-center rounded-full bg-pink-100 p-0.5 text-pink-600"
+                      title="Tem vídeo"
+                    >
+                      <Video size={10} />
+                    </span>
+                  )}
 
                   {isOrphan && (
                     <span
@@ -163,8 +144,6 @@ export function ProductsMobile({ products, returnUrl }: ProductsMobileProps) {
                   )}
                 </div>
 
-                {/* SKU */}
-
                 <p
                   className="mt-0.5 truncate text-xs"
                   style={{ color: "#a1a1aa" }}
@@ -173,35 +152,19 @@ export function ProductsMobile({ products, returnUrl }: ProductsMobileProps) {
                   {product.sku ?? "Sem SKU"}
                 </p>
 
-                {/* PREÇO */}
-
-                <p
-                  className="mt-1 text-sm font-bold sm:text-base"
-                  style={{ color: "#18181b" }}
-                >
+                <p className="mt-1 text-sm font-bold sm:text-base" style={{ color: "#18181b" }}>
                   €{product.price.toFixed(2)}
                 </p>
               </div>
-
-              {/* ESTADO */}
 
               <div className="shrink-0 max-w-[100px] sm:max-w-none">
                 <ProductStatusBadge status={product.status} />
               </div>
             </div>
 
-            {/* =================================================
-                INFORMAÇÃO
-            ================================================= */}
-
             <div className="mt-4 grid w-full min-w-0 grid-cols-1 gap-3 rounded-xl bg-zinc-50 p-3 sm:grid-cols-2 sm:p-4">
-              {/* CATEGORIA */}
-
               <div className="min-w-0">
-                <p
-                  className="text-[11px] font-medium uppercase tracking-wide"
-                  style={{ color: "#a1a1aa" }}
-                >
+                <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "#a1a1aa" }}>
                   Categoria
                 </p>
                 <p
@@ -213,13 +176,8 @@ export function ProductsMobile({ products, returnUrl }: ProductsMobileProps) {
                 </p>
               </div>
 
-              {/* MARCA */}
-
               <div className="min-w-0">
-                <p
-                  className="text-[11px] font-medium uppercase tracking-wide"
-                  style={{ color: "#a1a1aa" }}
-                >
+                <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "#a1a1aa" }}>
                   Marca
                 </p>
                 <p
@@ -231,39 +189,23 @@ export function ProductsMobile({ products, returnUrl }: ProductsMobileProps) {
                 </p>
               </div>
 
-              {/* STOCK */}
-
               <div className="min-w-0">
-                <p
-                  className="text-[11px] font-medium uppercase tracking-wide"
-                  style={{ color: "#a1a1aa" }}
-                >
+                <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "#a1a1aa" }}>
                   Stock
                 </p>
                 <p
                   className="mt-1 truncate text-sm font-bold"
                   style={{
                     color:
-                      product.stock === 0
-                        ? "#ef4444"
-                        : product.stock <= 3
-                        ? "#ca8a04"
-                        : "#22c55e",
+                      product.stock === 0 ? "#ef4444" : product.stock <= 3 ? "#ca8a04" : "#22c55e",
                   }}
                 >
-                  {product.stock === 0
-                    ? "Sem stock"
-                    : `${product.stock} unidades`}
+                  {product.stock === 0 ? "Sem stock" : `${product.stock} unidades`}
                 </p>
               </div>
 
-              {/* VARIANTES */}
-
               <div className="min-w-0">
-                <p
-                  className="text-[11px] font-medium uppercase tracking-wide"
-                  style={{ color: "#a1a1aa" }}
-                >
+                <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "#a1a1aa" }}>
                   Variantes
                 </p>
                 <p className="mt-1">
@@ -285,14 +227,7 @@ export function ProductsMobile({ products, returnUrl }: ProductsMobileProps) {
               </div>
             </div>
 
-            {/* =================================================
-                AÇÕES
-            ================================================= */}
-
             <div className="mt-4 grid w-full min-w-0 grid-cols-1 gap-2 sm:flex sm:items-center">
-              {/* VER PRODUTO */}
-
-              {/* ✅ Link com returnUrl */}
               <Link
                 href={buildLink(`/admin/products/${product.id}`)}
                 className="inline-flex h-10 w-full min-w-0 items-center justify-center rounded-xl bg-pink-500 px-4 text-sm font-semibold text-white transition-colors hover:bg-pink-600 sm:flex-1"
@@ -300,20 +235,13 @@ export function ProductsMobile({ products, returnUrl }: ProductsMobileProps) {
                 Ver produto
               </Link>
 
-              {/* EDITAR + ESTADO */}
-
               <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:flex sm:shrink-0">
-                {/* EDITAR */}
-
-                {/* ✅ Link com returnUrl */}
                 <Link
                   href={buildLink(`/admin/products/${product.id}/edit`)}
                   className="inline-flex h-10 w-full items-center justify-center rounded-xl bg-zinc-100 px-3 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-200 sm:w-auto sm:px-4"
                 >
                   Editar
                 </Link>
-
-                {/* ATIVAR / DESATIVAR */}
 
                 <div className="flex min-w-0 items-center justify-center">
                   <ToggleProductStatusButton

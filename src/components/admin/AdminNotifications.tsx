@@ -1,3 +1,5 @@
+// components/admin/layout/AdminNotifications.tsx
+
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -76,17 +78,18 @@ export function AdminNotifications() {
   };
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <div className="relative flex items-center" ref={dropdownRef}>
+      {/* ✅ Botão corrigido: flex, altura fixa e centrado */}
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="relative cursor-pointer"
+        className="relative flex h-10 w-10 items-center justify-center rounded-full text-zinc-600 transition-colors hover:bg-pink-50 hover:text-pink-500 cursor-pointer"
         aria-label="Notificações"
       >
-        <Bell size={22} style={{ color: "#3f3f46" }} />
+        <Bell size={22} />
 
         {unreadCount > 0 && (
-          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-pink-500 px-1 text-[10px] font-bold text-white">
+          <span className="absolute right-0 top-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-pink-500 px-1 text-[10px] font-bold text-white shadow-sm">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}

@@ -9,7 +9,6 @@ import { ProductImagesManager } from "@/components/admin/products/ProductImagesM
 
 interface EditProductPageProps {
   params: Promise<{ id: string }>;
-  // ✅ NOVO: Adicionar searchParams para ler o returnUrl
   searchParams: Promise<{ returnUrl?: string }>;
 }
 
@@ -20,7 +19,6 @@ export default async function EditProductPage({
   const { id } = await params;
   const { returnUrl } = await searchParams;
 
-  // ✅ NOVO: Definir o URL de retorno (se não existir, volta para a página de detalhe)
   const backUrl = returnUrl ? decodeURIComponent(returnUrl) : `/admin/products/${id}`;
 
   const product = await prisma.product.findUnique({
@@ -46,7 +44,6 @@ export default async function EditProductPage({
 
   if (!product) notFound();
 
-  // Todas as categorias ativas (raiz + filhas)
   const categories = await prisma.category.findMany({
     where: { deletedAt: null, isActive: true },
     orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
@@ -76,7 +73,6 @@ export default async function EditProductPage({
     categoryIds: currentCategoryIds,
     categorySource: product.categorySource,
     categoryReason: product.categoryReason,
-    // ✅ NOVO: variantes
     variants: product.variants.map((v) => ({
       id: v.id,
       name: v.name,
@@ -96,6 +92,7 @@ export default async function EditProductPage({
     position: img.position,
     isPrimary: img.isPrimary,
     isHidden: img.isHidden,
+    videoUrl: img.videoUrl, // ✅ Passa o vídeo para o manager
   }));
 
   return (
@@ -106,7 +103,6 @@ export default async function EditProductPage({
           <p className="mt-1 text-zinc-500">{product.name}</p>
         </div>
 
-        {/* ✅ Usar o backUrl no botão Voltar */}
         <Link
           href={backUrl}
           className="inline-flex items-center justify-center h-10 px-5 text-sm font-semibold rounded-xl transition-all duration-200 cursor-pointer bg-zinc-100 text-zinc-700 hover:bg-zinc-200"

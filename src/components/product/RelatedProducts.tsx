@@ -90,9 +90,8 @@ export function RelatedProducts({
     return null;
   }
 
-  // Calcular qual bolinha está ativa baseado no currentIndex
   const activeDot = maxIndex > 0
-    ? Math.round((currentIndex / maxIndex) * 3) // 4 bolinhas = índices 0, 1, 2, 3
+    ? Math.round((currentIndex / maxIndex) * 3)
     : 0;
 
   return (
@@ -115,7 +114,6 @@ export function RelatedProducts({
           </h2>
         </div>
 
-        {/* Carrossel */}
         <div
           className="relative"
           onMouseEnter={() => setIsAutoPlaying(false)}
@@ -144,9 +142,10 @@ export function RelatedProducts({
                     name={product.name}
                     brand={product.brand}
                     description={product.description || ""}
+                    // ✅ CORRIGIDO: .url para extrair a string do objeto
                     image={
                       product.images && product.images.length > 0
-                        ? product.images[0]
+                        ? product.images[0]?.url || "/images/product-placeholder.png"
                         : "/images/product-placeholder.png"
                     }
                     price={product.price}
@@ -164,36 +163,13 @@ export function RelatedProducts({
             </div>
           </div>
 
-          {/* Botões de navegação */}
           {maxIndex > 0 && (
             <>
               <button
                 type="button"
                 onClick={prevSlide}
                 aria-label="Anterior"
-                className="
-                  absolute
-                  left-0
-                  top-1/2
-                  -translate-y-1/2
-                  z-10
-                  flex
-                  h-11
-                  w-11
-                  items-center
-                  justify-center
-                  rounded-full
-                  bg-white
-                  text-zinc-600
-                  shadow-lg
-                  border
-                  border-zinc-200
-                  transition-all
-                  hover:bg-pink-500
-                  hover:text-white
-                  hover:border-pink-500
-                  cursor-pointer
-                "
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white text-zinc-600 shadow-lg border border-zinc-200 transition-all hover:bg-pink-500 hover:text-white hover:border-pink-500 cursor-pointer"
               >
                 <ChevronLeft size={22} />
               </button>
@@ -202,36 +178,13 @@ export function RelatedProducts({
                 type="button"
                 onClick={nextSlide}
                 aria-label="Próximo"
-                className="
-                  absolute
-                  right-0
-                  top-1/2
-                  -translate-y-1/2
-                  z-10
-                  flex
-                  h-11
-                  w-11
-                  items-center
-                  justify-center
-                  rounded-full
-                  bg-white
-                  text-zinc-600
-                  shadow-lg
-                  border
-                  border-zinc-200
-                  transition-all
-                  hover:bg-pink-500
-                  hover:text-white
-                  hover:border-pink-500
-                  cursor-pointer
-                "
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white text-zinc-600 shadow-lg border border-zinc-200 transition-all hover:bg-pink-500 hover:text-white hover:border-pink-500 cursor-pointer"
               >
                 <ChevronRight size={22} />
               </button>
             </>
           )}
 
-          {/* 4 Bolinhas fixas */}
           {maxIndex > 0 && (
             <div className="mt-6 flex items-center justify-center gap-2">
               {[0, 1, 2, 3].map((index) => (
@@ -239,19 +192,13 @@ export function RelatedProducts({
                   key={index}
                   type="button"
                   onClick={() => {
-                    // Ir para a posição correspondente
                     const targetIndex = Math.round((index / 3) * maxIndex);
                     setCurrentIndex(targetIndex);
                   }}
                   aria-label={`Ir para posição ${index + 1}`}
-                  className={`
-                    h-2
-                    rounded-full
-                    transition-all
-                    duration-300
-                    cursor-pointer
-                    ${index === activeDot ? "w-8 bg-pink-500" : "w-2 bg-zinc-300 hover:bg-pink-300"}
-                  `}
+                  className={`h-2 rounded-full transition-all duration-300 cursor-pointer ${
+                    index === activeDot ? "w-8 bg-pink-500" : "w-2 bg-zinc-300 hover:bg-pink-300"
+                  }`}
                 />
               ))}
             </div>

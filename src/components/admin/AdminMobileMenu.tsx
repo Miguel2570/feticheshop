@@ -1,3 +1,5 @@
+// components/admin/layout/AdminMobileMenu.tsx
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -33,8 +35,12 @@ const links = [
   { title: "Definições", href: "/admin/settings", icon: Settings },
 ];
 
-export default function AdminMobileMenu() {
-  const [isOpen, setIsOpen] = useState(false);
+interface AdminMobileMenuProps {
+  isOpen: boolean;
+  setIsOpen: (value: boolean) => void;
+}
+
+export default function AdminMobileMenu({ isOpen, setIsOpen }: AdminMobileMenuProps) {
   const [loading, setLoading] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
@@ -47,9 +53,8 @@ export default function AdminMobileMenu() {
     setLoading(true);
     try {
       await authClient.signOut();
-      console.log("✅ Logout bem sucedido");
       setIsOpen(false);
-      router.push("/"); // Redirecionar para home
+      router.push("/");
       router.refresh();
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
@@ -71,14 +76,7 @@ export default function AdminMobileMenu() {
 
   return (
     <>
-      <button
-        onClick={() => setIsOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-40 flex h-11 w-11 items-center justify-center rounded-xl bg-pink-500 text-white shadow-lg shadow-pink-500/25 transition hover:bg-pink-600 cursor-pointer"
-        aria-label="Abrir menu"
-      >
-        <Menu size={22} />
-      </button>
-
+      {/* Overlay escuro */}
       {isOpen && (
         <div
           className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
@@ -86,6 +84,7 @@ export default function AdminMobileMenu() {
         />
       )}
 
+      {/* Painel lateral */}
       <div
         className={`
           lg:hidden

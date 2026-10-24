@@ -14,7 +14,9 @@ type DreamloveImageFile = {
 type DreamloveImage = {
   order: number;
   main: boolean;
+  relatedVideo?: string | null;
   image?: {
+    relatedVideo?: string | null;
     files?: DreamloveImageFile[];
   };
 };
@@ -31,13 +33,11 @@ export async function syncMissingImages() {
   const { token } = await loginRes.json();
   const headers = { Authorization: `Bearer ${token}` };
 
-  // 2. Vai buscar os produtos que não têm imagens E que não foram verificados recentemente
   console.log("🔍 A procurar produtos sem imagens...");
   const produtosSemImagem = await prisma.product.findMany({
     where: {
       dreamloveId: { not: null },
       images: { none: {} },
-      // Só verifica produtos que nunca foram vistos ou que foram vistos há mais de 7 dias
       OR: [
         { lastImageCheck: null },
         { lastImageCheck: { lt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } }
@@ -45,7 +45,7 @@ export async function syncMissingImages() {
     },
     select: { id: true, dreamloveId: true, name: true },
     take: MAX_PRODUCTS_PER_RUN,
-    orderBy: { lastImageCheck: { sort: "asc", nulls: "first" } } // Os nunca verificados primeiro
+    orderBy: { lastImageCheck: { sort: "asc", nulls: "first" } }
   });
 
   console.log(`   Encontrados ${produtosSemImagem.length} produtos sem imagens.`);
@@ -57,7 +57,6 @@ export async function syncMissingImages() {
     try {
       const res = await fetch(`${API}/products/${p.dreamloveId}`, { headers });
       
-      // Se der erro na API, marca como verificado para não ficar preso
       if (!res.ok) {
         await prisma.product.update({
           where: { id: p.id },
@@ -69,7 +68,6 @@ export async function syncMissingImages() {
       const data = await res.json();
       const apiImages: DreamloveImage[] = data.images || [];
 
-      // Se não houver imagens na Dreamlove, marca como verificado e avança
       if (apiImages.length === 0) {
         console.log(`⏭️  Sem imagens na Dreamlove: ${p.name}`);
         await prisma.product.update({
@@ -85,6 +83,17 @@ export async function syncMissingImages() {
         const file = item.image?.files?.[0]; 
         if (!file || !file.url || file.url.trim() === "") continue;
 
+        let videoUrl: string | null = null;
+        const rawVideo = item.image?.relatedVideo || item.relatedVideo;
+
+        if (rawVideo && typeof rawVideo === "string") {
+          const match = rawVideo.match(/src="([^"]+)"/);
+          if (match && match[1]) {
+            // Corrige os &amp; para &
+            videoUrl = match[1].replace(/&amp;/g, "&");
+          }
+        }
+
         let width = null;
         let height = null;
         if (file.dimensions) {
@@ -98,12 +107,17 @@ export async function syncMissingImages() {
         imagesToCreate.push({
           productId: p.id,
           url: file.url,
+          videoUrl: videoUrl,
           alt: p.name,
           position: item.order,
           isPrimary: item.main,
           width: width,
           height: height,
         });
+      }
+
+      if (imagesToCreate.length > 0 && !imagesToCreate.some(img => img.isPrimary)) {
+        imagesToCreate[0].isPrimary = true;
       }
 
       if (imagesToCreate.length > 0) {
@@ -117,7 +131,6 @@ export async function syncMissingImages() {
         console.log(`⏭️  Imagens inválidas (sem URL): ${p.name}`);
       }
 
-      // ✅ MARCA COMO VERIFICADO (tenha encontrado imagens ou não)
       await prisma.product.update({
         where: { id: p.id },
         data: { lastImageCheck: new Date() }

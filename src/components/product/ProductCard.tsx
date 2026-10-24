@@ -68,6 +68,12 @@ export function ProductCard({
   const isOutOfStock = stock === 0;
   const isLowStock = stock > 0 && stock <= 5;
 
+  // ✅ PROTEÇÃO: se a imagem vier vazia, usa o placeholder
+  const safeImage =
+    image && image.trim() !== ""
+      ? image
+      : "/images/product-placeholder.png";
+
   const deliveryDate = useMemo(() => {
     const today = new Date();
     const delivery = addBusinessDays(today, DELIVERY_BUSINESS_DAYS);
@@ -88,7 +94,7 @@ export function ProductCard({
       compareAtPrice: oldPrice ?? null,
       stock,
       brand: { name: brand },
-      images: [{ url: image ?? "/placeholder-product.png" }],
+      images: [{ url: safeImage }], // ✅ usa safeImage
     });
   }
 
@@ -98,7 +104,7 @@ export function ProductCard({
     const success = await addToCart(id, 1, {
       name,
       slug,
-      image: image ?? "/placeholder-product.png",
+      image: safeImage, // ✅ usa safeImage
       price,
     });
 
@@ -119,7 +125,6 @@ export function ProductCard({
           hover:shadow-[0_8px_30px_rgba(255,46,136,.10)]
         "
       >
-        {/* SECÇÃO DA IMAGEM */}
         <div className="relative">
           {isOutOfStock ? (
             <div className="absolute left-2 top-2 sm:left-4 sm:top-4 z-30 rounded-full bg-zinc-900 px-3 py-1.5 text-[10px] sm:px-4 sm:py-2 sm:text-xs font-bold text-white shadow-lg shadow-zinc-900/30">
@@ -158,7 +163,7 @@ export function ProductCard({
           <Link href={`/product/${slug}`} className="block">
             <div className="relative h-[180px] sm:h-[280px] lg:h-[320px] bg-pink-50/50">
               <Image
-                src={image ?? "/images/product-placeholder.png"}
+                src={safeImage} // ✅ usa safeImage
                 alt={name}
                 fill
                 unoptimized
@@ -171,7 +176,6 @@ export function ProductCard({
           </Link>
         </div>
 
-        {/* CONTEÚDO */}
         <div className="space-y-3 sm:space-y-4 p-3 sm:p-6">
           <div>
             <Link href={`/product/${slug}`}>
@@ -185,7 +189,6 @@ export function ProductCard({
             </p>
           </div>
 
-          {/* Stock */}
           <div className="flex h-5 items-center gap-1.5">
             {!isOutOfStock ? (
               isLowStock ? (
@@ -208,7 +211,6 @@ export function ProductCard({
             )}
           </div>
 
-          {/* Entrega prevista */}
           {!isOutOfStock && (
             <div className="flex items-center gap-1.5 text-xs sm:text-sm text-zinc-500">
               <Truck
@@ -224,9 +226,7 @@ export function ProductCard({
             </div>
           )}
 
-          {/* ✅ PREÇO + BOTÃO NA MESMA LINHA */}
           <div className="flex items-center justify-between gap-2 sm:gap-3">
-            {/* Preço à esquerda */}
             <div className="flex items-end gap-2 min-w-0">
               <span className="text-lg sm:text-2xl font-bold text-zinc-900">
                 €{price.toFixed(2)}
@@ -238,7 +238,6 @@ export function ProductCard({
               )}
             </div>
 
-            {/* Botão à direita — só aparece no hover */}
             {!isOutOfStock && (
               <button
                 type="button"

@@ -8,16 +8,21 @@ export interface ProductVariantAttribute {
   colorHex?: string | null;
 }
 
+export interface ProductImage {
+  url: string;
+  videoUrl: string | null;
+}
+
 export interface ProductVariant {
   id: string;
   name: string;
   sku: string | null;
-  price: number | null;         // null = herda do produto
+  price: number | null;
   comparePrice: number | null;
   stock: number;
   isActive: boolean;
   attributes: ProductVariantAttribute[];
-  images: string[];             // URLs das imagens desta variante
+  images: ProductImage[];
 }
 
 export interface Product {
@@ -33,9 +38,9 @@ export interface Product {
   stock: boolean;
   sku: string;
   category: string;
-  images: string[];
+  images: ProductImage[];
   features: string[];
-  variants: ProductVariant[];   // ← NOVO
+  variants: ProductVariant[];
   specifications: {
     material: string;
     color: string;

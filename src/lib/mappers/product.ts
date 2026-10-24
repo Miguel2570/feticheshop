@@ -137,10 +137,6 @@ function sortVariants<T extends { name: string }>(variants: T[]): T[] {
   });
 }
 
-// ─────────────────────────────────────────────────────────────
-// MAPPER PRINCIPAL
-// ─────────────────────────────────────────────────────────────
-
 export function mapProduct(product: ProductWithRelations): Product {
   const rawDescription = product.description ?? "";
 
@@ -172,22 +168,30 @@ export function mapProduct(product: ProductWithRelations): Product {
         })),
         images: v.images
           .sort((a, b) => a.position - b.position)
-          .map((img) => img.url),
+          .map((img) => ({
+            url: img.url,
+            videoUrl: img.videoUrl ?? null,
+          })),
       }))
   );
 
-  // Imagens gerais (sem variantId)
   const generalImages = product.images
     .filter((img) => !img.variantId)
     .sort((a, b) => a.position - b.position)
-    .map((img) => img.url);
+    .map((img) => ({
+      url: img.url,
+      videoUrl: img.videoUrl ?? null,
+    }));
 
   const images =
     generalImages.length > 0
       ? generalImages
       : product.images
           .sort((a, b) => a.position - b.position)
-          .map((img) => img.url);
+          .map((img) => ({
+            url: img.url,
+            videoUrl: img.videoUrl ?? null,
+          }));
 
   // Stock efetivo
   const effectiveStock = getEffectiveStock({
@@ -195,7 +199,6 @@ export function mapProduct(product: ProductWithRelations): Product {
     variants: product.variants,
   });
 
-  // ✅ Preço efetivo = preço do produto-pai (fonte de verdade)
   const effectivePrice = Number(product.price);
 
   return {

@@ -10,7 +10,6 @@ import { ProductTabs } from "@/components/product/ProductTabs";
 import { ProductReviews } from "@/components/product/ProductReviews";
 import { RelatedProducts } from "@/components/product/RelatedProducts";
 
-// ✅ NOVO: Guarda a página em cache durante 10 minutos (600 segundos)
 export const revalidate = 600;
 
 interface ProductPageProps {

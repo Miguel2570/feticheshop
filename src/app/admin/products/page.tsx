@@ -38,7 +38,11 @@ const PAGE_SIZE = 20;
 
 const productInclude = {
   brand: true,
-  images: { where: { isPrimary: true, isHidden: false }, take: 1 },
+  // ✅ CORRIGIDO: Removido o select restritivo. O Prisma traz todos os campos.
+  images: { 
+    where: { isPrimary: true, isHidden: false }, 
+    take: 1,
+  },
   categories: { include: { category: true } },
   _count: { select: { variants: true } },
 } satisfies Prisma.ProductInclude;
@@ -179,6 +183,7 @@ export default async function ProductsPage({ searchParams }: Props) {
     costPrice: product.costPrice ? Number(product.costPrice) : null,
     variantCount: product._count.variants,
     isOrphan: product.canonicalUrl !== null,
+    hasVideo: !!product.images[0]?.videoUrl,
   }));
 
   // ─── MODO DE STOCK DOMINANTE + TOTAL (para o modal) ──────
@@ -243,11 +248,9 @@ export default async function ProductsPage({ searchParams }: Props) {
 
       <div className="w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm sm:rounded-2xl">
         <div className="hidden w-full max-w-full overflow-x-auto lg:block">
-          {/* ✅ Passar o returnUrl para a tabela */}
           <ProductsTable products={products} returnUrl={encodedReturnUrl} />
         </div>
         <div className="block w-full min-w-0 max-w-full overflow-hidden lg:hidden">
-          {/* ✅ Passar o returnUrl para a versão mobile */}
           <ProductsMobile products={products} returnUrl={encodedReturnUrl} />
         </div>
       </div>

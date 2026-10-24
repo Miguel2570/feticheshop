@@ -13,6 +13,7 @@ import {
   Layers,
   Ghost,
   Crown,
+  Video,
 } from "lucide-react";
 
 import { Prisma } from "@prisma/client";
@@ -41,11 +42,11 @@ type ProductTableItem = Omit<
   costPrice: number | null;
   variantCount?: number;
   isOrphan?: boolean;
+  hasVideo?: boolean;
 };
 
 interface ProductsTableProps {
   products: ProductTableItem[];
-  // ✅ NOVO: URL de retorno (já encoded) para preservar filtros e página
   returnUrl?: string;
 }
 
@@ -55,7 +56,6 @@ function calculateMargin(salePrice: number, costPrice: number): number {
 }
 
 export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
-  // ✅ Helper para construir links com o returnUrl preservado
   const buildLink = (path: string) => {
     if (!returnUrl) return path;
     return `${path}?returnUrl=${returnUrl}`;
@@ -67,70 +67,38 @@ export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
         <table className="w-full">
           <thead className="border-b border-zinc-200 bg-zinc-50">
             <tr className="text-left">
-              <th
-                className="p-4 text-sm font-semibold"
-                style={{ color: "#52525b" }}
-              >
+              <th className="min-w-[250px] p-4 text-sm font-semibold" style={{ color: "#52525b" }}>
                 Produto
               </th>
-              <th
-                className="p-4 text-sm font-semibold"
-                style={{ color: "#52525b" }}
-              >
+              {/* ✅ align-middle em todos os outros cabeçalhos */}
+              <th className="p-4 text-sm font-semibold align-middle" style={{ color: "#52525b" }}>
                 Marca
               </th>
-              <th
-                className="p-4 text-sm font-semibold"
-                style={{ color: "#52525b" }}
-              >
+              <th className="p-4 text-sm font-semibold align-middle" style={{ color: "#52525b" }}>
                 Preço Venda
               </th>
-              <th
-                className="p-4 text-sm font-semibold"
-                style={{ color: "#52525b" }}
-              >
+              <th className="p-4 text-sm font-semibold align-middle" style={{ color: "#52525b" }}>
                 Preço Custo
               </th>
-              <th
-                className="p-4 text-sm font-semibold"
-                style={{ color: "#52525b" }}
-              >
+              <th className="p-4 text-sm font-semibold align-middle" style={{ color: "#52525b" }}>
                 Margem
               </th>
-              <th
-                className="p-4 text-sm font-semibold"
-                style={{ color: "#52525b" }}
-              >
+              <th className="p-4 text-sm font-semibold align-middle" style={{ color: "#52525b" }}>
                 Stock
               </th>
-              <th
-                className="p-4 text-center text-sm font-semibold"
-                style={{ color: "#52525b" }}
-              >
+              <th className="p-4 text-center text-sm font-semibold align-middle" style={{ color: "#52525b" }}>
                 Variantes
               </th>
-              <th
-                className="p-4 text-sm font-semibold"
-                style={{ color: "#52525b" }}
-              >
+              <th className="p-4 text-sm font-semibold align-middle" style={{ color: "#52525b" }}>
                 Estado
               </th>
-              <th
-                className="p-4 text-center text-sm font-semibold"
-                style={{ color: "#52525b" }}
-              >
+              <th className="p-4 text-center text-sm font-semibold align-middle" style={{ color: "#52525b" }}>
                 Visibilidade
               </th>
-              <th
-                className="p-4 text-center text-sm font-semibold"
-                style={{ color: "#52525b" }}
-              >
+              <th className="p-4 text-center text-sm font-semibold align-middle" style={{ color: "#52525b" }}>
                 Destaque
               </th>
-              <th
-                className="p-4 text-right text-sm font-semibold"
-                style={{ color: "#52525b" }}
-              >
+              <th className="p-4 text-right text-sm font-semibold align-middle" style={{ color: "#52525b" }}>
                 Ações
               </th>
             </tr>
@@ -150,9 +118,10 @@ export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
                   key={product.id}
                   className="border-b border-zinc-100 hover:bg-pink-50/30 transition"
                 >
-                  <td className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="relative h-12 w-12 overflow-hidden rounded-xl bg-zinc-100 shrink-0">
+                  {/* Coluna do Produto: Alinhada ao topo */}
+                  <td className="p-4 align-top">
+                    <div className="flex items-start gap-3">
+                      <div className="relative h-12 w-12 overflow-hidden rounded-xl bg-zinc-100 shrink-0 mt-0.5">
                         {product.images.length ? (
                           <Image
                             fill
@@ -168,18 +137,24 @@ export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
                           </div>
                         )}
                       </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <h3
-                            className="truncate font-medium"
-                            style={{ color: "#18181b" }}
-                          >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start gap-1.5 flex-wrap">
+                          <h3 className="text-sm font-medium leading-snug" style={{ color: "#18181b" }}>
                             {product.name}
                           </h3>
 
+                          {product.hasVideo && (
+                            <span
+                              className="inline-flex shrink-0 items-center justify-center rounded-full bg-pink-100 p-0.5 text-pink-600 mt-0.5"
+                              title="Tem vídeo"
+                            >
+                              <Video size={12} />
+                            </span>
+                          )}
+
                           {isOrphan && (
                             <span
-                              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-[10px] font-semibold text-purple-600"
+                              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-[10px] font-semibold text-purple-600 mt-0.5"
                               title="Órfão (merged, escondido)"
                             >
                               <Ghost size={10} />
@@ -189,7 +164,7 @@ export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
 
                           {!isOrphan && variantCount >= 2 && (
                             <span
-                              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-pink-200 bg-pink-50 px-2 py-0.5 text-[10px] font-semibold text-pink-600"
+                              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-pink-200 bg-pink-50 px-2 py-0.5 text-[10px] font-semibold text-pink-600 mt-0.5"
                               title="Produto canónico com variantes"
                             >
                               <Crown size={10} />
@@ -198,28 +173,23 @@ export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
                           )}
                         </div>
 
-                        <p
-                          className="mt-0.5 text-xs"
-                          style={{ color: "#a1a1aa" }}
-                        >
+                        <p className="mt-1 text-xs" style={{ color: "#a1a1aa" }}>
                           {product.sku ?? "Sem SKU"}
                         </p>
                       </div>
                     </div>
                   </td>
 
-                  <td className="p-4 text-sm" style={{ color: "#52525b" }}>
+                  {/* ✅ align-middle em todas as restantes células */}
+                  <td className="p-4 text-sm align-middle" style={{ color: "#52525b" }}>
                     {product.brand?.name ?? "-"}
                   </td>
 
-                  <td
-                    className="p-4 font-semibold"
-                    style={{ color: "#18181b" }}
-                  >
+                  <td className="p-4 font-semibold align-middle" style={{ color: "#18181b" }}>
                     €{product.price.toFixed(2)}
                   </td>
 
-                  <td className="p-4 text-sm" style={{ color: "#52525b" }}>
+                  <td className="p-4 text-sm align-middle" style={{ color: "#52525b" }}>
                     {product.costPrice ? (
                       <>€{product.costPrice.toFixed(2)}</>
                     ) : (
@@ -227,7 +197,7 @@ export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
                     )}
                   </td>
 
-                  <td className="p-4">
+                  <td className="p-4 align-middle">
                     {margin !== null ? (
                       <span
                         className={`rounded-full px-3 py-1 text-xs font-semibold border ${
@@ -245,7 +215,7 @@ export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
                     )}
                   </td>
 
-                  <td className="p-4 whitespace-nowrap text-center">
+                  <td className="p-4 whitespace-nowrap text-center align-middle">
                     {product.stock === 0 ? (
                       <span className="rounded-full bg-red-50 border border-red-200 px-3 py-1 text-xs font-semibold text-red-500">
                         Sem stock
@@ -261,12 +231,9 @@ export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
                     )}
                   </td>
 
-                  <td className="p-4 text-center">
+                  <td className="p-4 text-center align-middle">
                     {variantCount === 0 ? (
-                      <span
-                        className="inline-block text-xs font-medium"
-                        style={{ color: "#d4d4d8" }}
-                      >
+                      <span className="inline-block text-xs font-medium" style={{ color: "#d4d4d8" }}>
                         —
                       </span>
                     ) : variantCount === 1 ? (
@@ -287,11 +254,11 @@ export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
                     )}
                   </td>
 
-                  <td className="p-4">
+                  <td className="p-4 align-middle">
                     <ProductStatusBadge status={product.status} />
                   </td>
 
-                  <td className="p-4">
+                  <td className="p-4 align-middle">
                     <div className="flex justify-center">
                       <ToggleProductStatusButton
                         id={product.id}
@@ -300,7 +267,7 @@ export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
                     </div>
                   </td>
 
-                  <td className="p-4">
+                  <td className="p-4 align-middle">
                     <div className="flex justify-center">
                       <ToggleFeaturedButton
                         id={product.id}
@@ -309,9 +276,8 @@ export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
                     </div>
                   </td>
 
-                  <td className="p-4">
+                  <td className="p-4 align-middle">
                     <div className="flex items-center justify-end gap-2 whitespace-nowrap">
-                      {/* ✅ Link com returnUrl */}
                       <Link
                         href={buildLink(`/admin/products/${product.id}`)}
                         className="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition"
@@ -320,7 +286,6 @@ export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
                         <Eye size={15} />
                       </Link>
 
-                      {/* ✅ Link com returnUrl */}
                       <Link
                         href={buildLink(`/admin/products/${product.id}/edit`)}
                         className="inline-flex items-center justify-center h-8 w-8 rounded-lg bg-pink-500 text-white hover:bg-pink-600 transition"
@@ -343,11 +308,7 @@ export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
 
             {products.length === 0 && (
               <tr>
-                <td
-                  colSpan={11}
-                  className="p-10 text-center"
-                  style={{ color: "#71717a" }}
-                >
+                <td colSpan={11} className="p-10 text-center" style={{ color: "#71717a" }}>
                   Nenhum produto encontrado.
                 </td>
               </tr>
