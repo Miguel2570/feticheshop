@@ -16,7 +16,7 @@ import { SearchInput } from "@/components/product/SearchInput";
 
 const PAGE_SIZE = 24;
 const DEFAULT_COLS = 4;
-const ALLOWED_COLS = [2, 4];
+const ALLOWED_COLS = [2, 3, 4]; // ✅ Adicionado o 3
 
 type Props = {
   searchParams: Promise<{
@@ -277,10 +277,15 @@ export default async function ProductsPage({ searchParams }: Props) {
     ...(!activeSubcategory && search ? [{ label: `Pesquisa: ${search}` }] : []),
   ];
 
-  const gridColsClass =
-    cols === 2
-      ? "grid-cols-1 sm:grid-cols-2"
-      : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4";
+  // ✅ Lógica de grid responsiva
+  let gridColsClass = "";
+  if (cols === 2) {
+    gridColsClass = "grid-cols-2";
+  } else if (cols === 3) {
+    gridColsClass = "grid-cols-2 sm:grid-cols-3";
+  } else {
+    gridColsClass = "grid-cols-2 sm:grid-cols-3 lg:grid-cols-4";
+  }
 
   return (
     <main className="arabesque-bg relative overflow-hidden min-h-screen">
