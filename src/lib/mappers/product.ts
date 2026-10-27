@@ -31,6 +31,11 @@ export type ProductWithRelations = Prisma.ProductGetPayload<{
   };
 }>;
 
+// ✅ NOVO: Permite que a propriedade "variants" seja opcional
+export type ProductWithOptionalVariants = Omit<ProductWithRelations, "variants"> & {
+  variants?: ProductWithRelations["variants"];
+};
+
 const cleanText = (text: string): string => {
   if (!text) return "";
   return text
@@ -102,16 +107,19 @@ function sortVariants<T extends { name: string }>(variants: T[]): T[] {
   });
 }
 
-export function mapProduct(product: ProductWithRelations): Product {
+// ✅ CORRIGIDO: Aceita ProductWithOptionalVariants
+export function mapProduct(product: ProductWithOptionalVariants): Product {
   const rawDescription = product.description ?? "";
   const features = extractFeatures(rawDescription);
   const specs = extractSpecifications(rawDescription);
   const description = extractDescription(rawDescription);
   const cleanedFeatures = features.map(cleanText);
 
-  // Mapear variantes (vai estar vazio, mas mantém compatibilidade)
+  // ✅ CORRIGIDO: Garante que lida com a ausência de variantes
+  const rawVariants = product.variants ?? [];
+
   const variants: ProductVariant[] = sortVariants(
-    product.variants
+    rawVariants
       .filter((v) => v.isActive)
       .map((v) => ({
         id: v.id,
@@ -143,7 +151,7 @@ export function mapProduct(product: ProductWithRelations): Product {
     .sort((a, b) => a.position - b.position)
     .map((img) => ({ url: img.url, videoUrl: img.videoUrl ?? null }));
 
-  // ✅ Stock e preço vêm DIRETAMENTE do Produto (sem variantes)
+  // Stock e preço vêm DIRETAMENTE do Produto (sem variantes)
   const effectiveStock = product.stock;
   const effectivePrice = Number(product.price);
 

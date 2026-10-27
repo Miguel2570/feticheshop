@@ -20,27 +20,20 @@ export function ProductDetailClient({ product }: ProductDetailClientProps) {
   );
 
   const galleryItems: GalleryItem[] = useMemo(() => {
-    const imagesToUse: (string | ProductImage)[] =
+    const imagesToUse: ProductImage[] =
       activeVariant && activeVariant.images.length > 0
         ? activeVariant.images
         : product.images;
 
-    return imagesToUse.map((img) => {
-      // Se já for o objeto novo (com url e videoUrl)
-      if (typeof img === "object" && img !== null) {
-        return { url: img.url, videoUrl: img.videoUrl || null };
-      }
-      // Se for a string antiga (por compatibilidade)
-      return { url: img as string, videoUrl: null };
-    });
+    return imagesToUse.map((img) => ({
+      url: img.url,
+      videoUrl: img.videoUrl || null,
+    }));
   }, [activeVariant, product.images]);
 
   const effectivePrice = activeVariant?.price ?? product.price;
-  
   const effectiveComparePrice = activeVariant?.comparePrice ?? product.oldPrice;
-
   const effectiveStock = activeVariant ? activeVariant.stock > 0 : product.stock;
-
   const finalPrice = effectivePrice ?? product.price;
 
   return (

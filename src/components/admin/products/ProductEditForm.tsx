@@ -11,17 +11,6 @@ type Category = {
   parentId: string | null;
 };
 
-type Variant = {
-  id: string;
-  name: string;
-  sku: string | null;
-  price: number | null;
-  comparePrice: number | null;
-  costPrice: number | null;
-  stock: number;
-  isActive: boolean;
-};
-
 type Product = {
   id: string;
   name: string;
@@ -44,7 +33,6 @@ type Product = {
   categoryIds: string[];
   categorySource: "AUTO" | "MANUAL";
   categoryReason: string | null;
-  variants: Variant[];
 };
 
 interface ProductEditFormProps {
@@ -113,8 +101,6 @@ export function ProductEditForm({
     "Descrição"
   );
 
-  const [variants, setVariants] = useState<Variant[]>(product.variants ?? []);
-
   const roots = categories.filter((c) => c.parentId === null);
   const childrenByParent = new Map<string, Category[]>();
   for (const c of categories) {
@@ -142,12 +128,6 @@ export function ProductEditForm({
   const profit = salePrice - costPrice;
   const margin = salePrice > 0 ? (profit / salePrice) * 100 : 0;
 
-  const updateVariant = (id: string, patch: Partial<Variant>) => {
-    setVariants((prev) =>
-      prev.map((v) => (v.id === id ? { ...v, ...patch } : v))
-    );
-  };
-
   const toggleSubcategory = (id: string) => {
     setSubIds((prev) => {
       if (prev.includes(id)) {
@@ -174,32 +154,7 @@ export function ProductEditForm({
     const formData = new FormData(e.currentTarget);
 
     const categoryIds = [rootId, ...subIds].filter(Boolean);
-
     const finalDescription = mergeDescription(descriptionHtml, featuresHtml);
-
-    // ✅ Comparação por ID (não por índice)
-    const variantsPayload = variants
-      .map((v) => {
-        const original = product.variants.find((ov) => ov.id === v.id);
-        if (!original) return null;
-
-        const changed =
-          v.price !== original.price ||
-          v.comparePrice !== original.comparePrice ||
-          v.costPrice !== original.costPrice ||
-          v.stock !== original.stock;
-
-        return changed
-          ? {
-              id: v.id,
-              price: v.price,
-              comparePrice: v.comparePrice,
-              costPrice: v.costPrice,
-              stock: v.stock,
-            }
-          : null;
-      })
-      .filter((v): v is NonNullable<typeof v> => v !== null);
 
     const data = {
       name: formData.get("name"),
@@ -219,9 +174,6 @@ export function ProductEditForm({
       isNew: formData.get("isNew") === "true",
       isOnSale: formData.get("isOnSale") === "true",
       categoryIds,
-      ...(variantsPayload.length > 0
-        ? { variants: variantsPayload }
-        : {}),
     };
 
     try {
@@ -658,169 +610,6 @@ export function ProductEditForm({
           </select>
         </div>
       </div>
-
-      {/* PREÇOS DAS VARIANTES */}
-      {variants.length > 0 && (
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 space-y-4 shadow-sm">
-          <div>
-            <h2 className="text-lg font-bold" style={{ color: "#18181b" }}>
-              Variantes ({variants.length})
-            </h2>
-            <p className="mt-1 text-sm text-zinc-500">
-              Define custo, preço de venda e stock para cada variante.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            {variants.map((variant) => {
-              const vProfit =
-                variant.price != null && variant.costPrice != null
-                  ? variant.price - variant.costPrice
-                  : null;
-              const vMargin =
-                vProfit != null && variant.price != null && variant.price > 0
-                  ? (vProfit / variant.price) * 100
-                  : null;
-
-              return (
-                <div
-                  key={variant.id}
-                  className={`rounded-xl border-2 p-4 space-y-3 transition-all ${
-                    !variant.isActive
-                      ? "border-zinc-200 bg-zinc-50 opacity-60"
-                      : "border-zinc-200 bg-white"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm font-bold text-zinc-900">
-                        {variant.name}
-                      </p>
-                      {variant.sku && (
-                        <p className="text-xs text-zinc-500">
-                          SKU: {variant.sku}
-                        </p>
-                      )}
-                    </div>
-                    {!variant.isActive && (
-                      <span className="text-xs bg-zinc-200 text-zinc-600 px-2 py-0.5 rounded">
-                        Oculto
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-zinc-600 mb-1">
-                        Custo (€)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={variant.costPrice ?? ""}
-                        onChange={(e) =>
-                          updateVariant(variant.id, {
-                            costPrice: e.target.value
-                              ? Number(e.target.value)
-                              : null,
-                          })
-                        }
-                        placeholder="—"
-                        className="h-9 w-full rounded-lg border-2 border-zinc-200 px-3 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-zinc-600 mb-1">
-                        Preço de Venda (€)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={variant.price ?? ""}
-                        onChange={(e) =>
-                          updateVariant(variant.id, {
-                            price: e.target.value
-                              ? Number(e.target.value)
-                              : null,
-                          })
-                        }
-                        placeholder={`herda €${product.price.toFixed(2)}`}
-                        className="h-9 w-full rounded-lg border-2 border-zinc-200 px-3 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-zinc-600 mb-1">
-                        P. Antigo (€)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={variant.comparePrice ?? ""}
-                        onChange={(e) =>
-                          updateVariant(variant.id, {
-                            comparePrice: e.target.value
-                              ? Number(e.target.value)
-                              : null,
-                          })
-                        }
-                        placeholder="—"
-                        className="h-9 w-full rounded-lg border-2 border-zinc-200 px-3 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-zinc-600 mb-1">
-                        Stock
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={variant.stock}
-                        onChange={(e) =>
-                          updateVariant(variant.id, {
-                            stock: Number(e.target.value) || 0,
-                          })
-                        }
-                        className="h-9 w-full rounded-lg border-2 border-zinc-200 px-3 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
-                      />
-                    </div>
-                  </div>
-
-                  {vProfit != null && vMargin != null && (
-                    <div className="grid grid-cols-2 gap-2 rounded-lg bg-zinc-50 p-2">
-                      <p className="text-xs text-zinc-600">
-                        💰 Lucro:{" "}
-                        <span
-                          className={`font-bold ${
-                            vProfit < 0 ? "text-red-600" : "text-emerald-600"
-                          }`}
-                        >
-                          €{vProfit.toFixed(2)}
-                        </span>
-                      </p>
-                      <p className="text-xs text-zinc-600">
-                        📊 Margem:{" "}
-                        <span
-                          className={`font-bold ${
-                            vMargin < 15 ? "text-red-600" : "text-emerald-600"
-                          }`}
-                        >
-                          {vMargin.toFixed(0)}%
-                        </span>
-                      </p>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
 
       {/* ESTADO */}
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 space-y-4 shadow-sm">

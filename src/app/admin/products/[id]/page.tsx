@@ -54,18 +54,6 @@ export default async function ProductDetailPage({
           },
         },
       },
-      variants: {
-        include: {
-          images: true,
-          attributeValues: {
-            include: {
-              attributeValue: {
-                include: { attribute: true },
-              },
-            },
-          },
-        },
-      },
     },
   });
 
@@ -86,9 +74,7 @@ export default async function ProductDetailPage({
     (img) => img.url !== primaryImage
   );
 
-  const costPrice = dbProduct.costPrice
-    ? Number(dbProduct.costPrice)
-    : 0;
+  const costPrice = dbProduct.costPrice ? Number(dbProduct.costPrice) : 0;
   const salePrice = product.price;
   const profit = salePrice - costPrice;
   const margin = salePrice > 0 ? (profit / salePrice) * 100 : 0;
@@ -189,7 +175,6 @@ export default async function ProductDetailPage({
                     priority
                     unoptimized
                   />
-                  {/* ✅ NOVO: Badge de vídeo na imagem principal */}
                   {primaryImageHasVideo && (
                     <div className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-pink-500 px-2.5 py-1 text-[10px] font-bold text-white shadow-lg">
                       <span>🎬</span> VÍDEO
@@ -219,7 +204,6 @@ export default async function ProductDetailPage({
                     className="object-contain p-1.5"
                     unoptimized
                   />
-                  {/* ✅ NOVO: Ícone de vídeo nas miniaturas */}
                   {image.videoUrl && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                       <div className="flex h-5 w-5 items-center justify-center rounded-full bg-white text-pink-500">
@@ -289,36 +273,16 @@ export default async function ProductDetailPage({
           {costPrice > 0 && (
             <div className="grid grid-cols-3 gap-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-                  Custo
-                </p>
-                <p className="mt-0.5 text-sm font-bold text-zinc-900">
-                  €{costPrice.toFixed(2)}
-                </p>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Custo</p>
+                <p className="mt-0.5 text-sm font-bold text-zinc-900">€{costPrice.toFixed(2)}</p>
               </div>
-
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-                  Lucro
-                </p>
-                <p className="mt-0.5 text-sm font-bold text-emerald-600">
-                  €{profit.toFixed(2)}
-                </p>
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Lucro</p>
+                <p className="mt-0.5 text-sm font-bold text-emerald-600">€{profit.toFixed(2)}</p>
               </div>
-
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-                  Margem
-                </p>
-                <p
-                  className={`mt-0.5 text-sm font-bold ${
-                    margin >= 30
-                      ? "text-emerald-600"
-                      : margin >= 15
-                      ? "text-yellow-600"
-                      : "text-red-500"
-                  }`}
-                >
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">Margem</p>
+                <p className={`mt-0.5 text-sm font-bold ${margin >= 30 ? "text-emerald-600" : margin >= 15 ? "text-yellow-600" : "text-red-500"}`}>
                   {margin.toFixed(0)}%
                 </p>
               </div>
@@ -336,35 +300,19 @@ export default async function ProductDetailPage({
               </span>
             )}
 
-            <span
-              className={`inline-flex max-w-full shrink-0 rounded-full border px-3 py-1 text-xs font-semibold ${statusBadgeColors[dbProduct.status]}`}
-            >
+            <span className={`inline-flex max-w-full shrink-0 rounded-full border px-3 py-1 text-xs font-semibold ${statusBadgeColors[dbProduct.status]}`}>
               {statusLabels[dbProduct.status]}
             </span>
           </div>
 
           <div className="min-w-0 max-w-full space-y-1.5 border-t border-zinc-100 pt-3">
-            <p className="break-words text-xs text-zinc-500">
-              Criado: {new Date(dbProduct.createdAt).toLocaleDateString("pt-PT")}
-            </p>
-
-            <p className="break-words text-xs text-zinc-500">
-              Atualizado: {new Date(dbProduct.updatedAt).toLocaleDateString("pt-PT")}
-            </p>
-
-            <p className="break-all text-xs text-zinc-500">
-              SKU: {product.sku || "-"} | EAN: {dbProduct.ean ?? "-"}
-            </p>
-
+            <p className="break-words text-xs text-zinc-500">Criado: {new Date(dbProduct.createdAt).toLocaleDateString("pt-PT")}</p>
+            <p className="break-words text-xs text-zinc-500">Atualizado: {new Date(dbProduct.updatedAt).toLocaleDateString("pt-PT")}</p>
+            <p className="break-all text-xs text-zinc-500">SKU: {product.sku || "-"} | EAN: {dbProduct.ean ?? "-"}</p>
             {dbProduct.weight && (
-              <p className="break-all text-xs text-zinc-500">
-                Peso: {dbProduct.weight} kg
-              </p>
+              <p className="break-all text-xs text-zinc-500">Peso: {dbProduct.weight} kg</p>
             )}
-
-            <p className="break-all text-xs text-zinc-500">
-              Modo Stock: {stockModeLabels[dbProduct.stockMode] ?? dbProduct.stockMode}
-            </p>
+            <p className="break-all text-xs text-zinc-500">Modo Stock: {stockModeLabels[dbProduct.stockMode] ?? dbProduct.stockMode}</p>
           </div>
         </div>
       </div>
@@ -379,76 +327,20 @@ export default async function ProductDetailPage({
       {/* CATEGORIAS */}
       <div className="w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
         <h2 className="text-base font-bold text-zinc-900">Categorias</h2>
-
         <div className="mt-3 flex max-w-full flex-wrap gap-1.5 overflow-hidden">
-          {dbProduct.categories.filter(({ category }) =>
-            allActiveSlugs.includes(category.slug)
-          ).length > 0 ? (
+          {dbProduct.categories.filter(({ category }) => allActiveSlugs.includes(category.slug)).length > 0 ? (
             dbProduct.categories
-              .filter(({ category }) =>
-                allActiveSlugs.includes(category.slug)
-              )
+              .filter(({ category }) => allActiveSlugs.includes(category.slug))
               .map(({ category }) => (
-                <span
-                  key={category.id}
-                  className="max-w-full break-words rounded-full border border-pink-200 bg-pink-50 px-3 py-1 text-xs font-medium text-pink-600"
-                >
+                <span key={category.id} className="max-w-full break-words rounded-full border border-pink-200 bg-pink-50 px-3 py-1 text-xs font-medium text-pink-600">
                   {category.name}
                 </span>
               ))
           ) : (
-            <span className="text-xs text-zinc-500">
-              Sem categoria principal
-            </span>
+            <span className="text-xs text-zinc-500">Sem categoria principal</span>
           )}
         </div>
       </div>
-
-      {/* VARIANTES */}
-      {dbProduct.variants.length > 0 && (
-        <div className="w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-zinc-200 bg-white p-4 shadow-sm sm:p-5">
-          <h2 className="text-base font-bold text-zinc-900">
-            Variantes ({dbProduct.variants.length})
-          </h2>
-
-          <div className="mt-3 min-w-0 max-w-full space-y-2">
-            {dbProduct.variants.map((variant) => (
-              <div
-                key={variant.id}
-                className="flex min-w-0 max-w-full flex-col gap-2 rounded-lg border border-zinc-200 px-3 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-3.5 sm:py-2.5"
-              >
-                <div className="min-w-0 max-w-full">
-                  <p className="break-words text-sm font-medium text-zinc-900">
-                    {variant.name}
-                  </p>
-
-                  <p className="break-words text-xs text-zinc-500">
-                    {variant.attributeValues
-                      .map((av) => av.attributeValue.value)
-                      .join(" / ")}
-                  </p>
-                </div>
-
-                <div className="min-w-0 shrink-0 sm:text-right">
-                  <p className="text-sm font-semibold text-zinc-900">
-                    €{Number(variant.price ?? dbProduct.price).toFixed(2)}
-                  </p>
-
-                  <p
-                    className={`text-xs font-medium ${
-                      variant.stock === 0
-                        ? "text-red-500"
-                        : "text-emerald-600"
-                    }`}
-                  >
-                    {variant.stock} em stock
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

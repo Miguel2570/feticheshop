@@ -27,10 +27,6 @@ interface ProductInfoProps {
   onVariantSelect?: (variant: ProductVariant) => void;
 }
 
-// ═══════════════════════════════════════════════════════════════
-// CÁLCULO DA DATA DE ENTREGA
-// ═══════════════════════════════════════════════════════════════
-
 const DELIVERY_BUSINESS_DAYS = 2;
 
 function addBusinessDays(startDate: Date, days: number): Date {
@@ -52,8 +48,6 @@ function formatDeliveryDate(date: Date): string {
     month: "long",
   });
 }
-
-// ═══════════════════════════════════════════════════════════════
 
 export function ProductInfo({
   product,
@@ -82,20 +76,16 @@ export function ProductInfo({
     return formatDeliveryDate(delivery);
   }, []);
 
-  // ✅ CORRIGIDO: Extrai o .url se for objeto, ou usa a string se for antigo
+  // ✅ CORRIGIDO: Lê sempre .url porque as imagens agora são sempre objetos
   const variantImage =
     activeVariant && activeVariant.images.length > 0
-      ? (typeof activeVariant.images[0] === "string"
-          ? activeVariant.images[0]
-          : activeVariant.images[0]?.url)
+      ? activeVariant.images[0].url
       : null;
 
   const productImage =
     variantImage ??
     (product.images && product.images.length > 0
-      ? (typeof product.images[0] === "string"
-          ? product.images[0]
-          : product.images[0]?.url)
+      ? product.images[0].url
       : "/placeholder-product.png");
 
   function handleToggleFavorite() {
@@ -177,7 +167,7 @@ export function ProductInfo({
         )}
       </div>
 
-      {/* ✅ ENTREGA PREVISTA — só quando há stock */}
+      {/* ✅ ENTREGA PREVISTA */}
       {inStock && (
         <div className="flex items-center gap-2 text-sm text-zinc-600">
           <Truck size={16} className="shrink-0 text-pink-500" />
@@ -188,7 +178,7 @@ export function ProductInfo({
         </div>
       )}
 
-      {/* SELETOR DE VARIANTES — só se houver variantes COM atributos */}
+      {/* SELETOR DE VARIANTES (vai estar escondido porque o array está vazio) */}
       {hasVariantAttributes && onVariantSelect && (
         <div className="border-y border-pink-100 py-4">
           <ProductVariants
@@ -199,7 +189,7 @@ export function ProductInfo({
         </div>
       )}
 
-      {/* BOTÃO ADICIONAR AO CARRINHO — só quando há stock */}
+      {/* BOTÃO ADICIONAR AO CARRINHO */}
       {inStock && (
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-3">
@@ -272,7 +262,7 @@ export function ProductInfo({
         </div>
       )}
 
-      {/* NOTIFICAR QUANDO DISPONÍVEL — só quando NÃO há stock */}
+      {/* NOTIFICAR QUANDO DISPONÍVEL */}
       {!inStock && (
         <div className="flex flex-col gap-3">
           {!showNotify ? (

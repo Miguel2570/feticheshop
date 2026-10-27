@@ -26,19 +26,7 @@ export default async function EditProductPage({
     include: {
       categories: { include: { category: true } },
       images: { orderBy: { position: "asc" } },
-      variants: {
-        orderBy: { createdAt: "asc" },
-        select: {
-          id: true,
-          name: true,
-          sku: true,
-          price: true,
-          comparePrice: true,
-          costPrice: true,
-          stock: true,
-          isActive: true,
-        },
-      },
+      // ❌ Removido o include: { variants: ... }
     },
   });
 
@@ -73,16 +61,7 @@ export default async function EditProductPage({
     categoryIds: currentCategoryIds,
     categorySource: product.categorySource,
     categoryReason: product.categoryReason,
-    variants: product.variants.map((v) => ({
-      id: v.id,
-      name: v.name,
-      sku: v.sku,
-      price: v.price != null ? Number(v.price) : null,
-      comparePrice: v.comparePrice != null ? Number(v.comparePrice) : null,
-      costPrice: v.costPrice != null ? Number(v.costPrice) : null,
-      stock: v.stock,
-      isActive: v.isActive,
-    })),
+    variants: [], // ✅ Passa array vazio para o formulário não quebrar
   };
 
   const plainImages = product.images.map((img) => ({
@@ -92,7 +71,7 @@ export default async function EditProductPage({
     position: img.position,
     isPrimary: img.isPrimary,
     isHidden: img.isHidden,
-    videoUrl: img.videoUrl, // ✅ Passa o vídeo para o manager
+    videoUrl: img.videoUrl,
   }));
 
   return (
@@ -102,11 +81,7 @@ export default async function EditProductPage({
           <h1 className="text-3xl font-bold text-zinc-900">Editar Produto</h1>
           <p className="mt-1 text-zinc-500">{product.name}</p>
         </div>
-
-        <Link
-          href={backUrl}
-          className="inline-flex items-center justify-center h-10 px-5 text-sm font-semibold rounded-xl transition-all duration-200 cursor-pointer bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
-        >
+        <Link href={backUrl} className="inline-flex items-center justify-center h-10 px-5 text-sm font-semibold rounded-xl transition-all duration-200 cursor-pointer bg-zinc-100 text-zinc-700 hover:bg-zinc-200">
           ← Voltar
         </Link>
       </div>
