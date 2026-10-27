@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CheckCircle2, XCircle, Info, X } from "lucide-react";
@@ -11,6 +11,8 @@ import { CheckoutSummary } from "@/components/checkout/CheckoutSummary";
 import { PaymentMethod } from "@/components/checkout/PaymentMethod";
 import { ShippingMethod } from "@/components/checkout/ShippingMethod";
 
+// ===== TIPOS =====
+
 type ToastType = "success" | "error" | "info";
 
 interface Toast {
@@ -19,32 +21,47 @@ interface Toast {
   message: string;
 }
 
+type PaymentState = {
+  method: "MBWAY" | "MULTIBANCO";
+  phoneNumber?: string;
+};
+
+type ShippingChangeDetail = {
+  method: "standard" | "express";
+  cost: number;
+};
+
+type AddressSavedDetail = {
+  id: string;
+  fromHydration?: boolean;
+};
+
+// ===== COMPONENTE =====
+
 export default function CheckoutPage() {
   const router = useRouter();
-  const { items } = useCart();
+  const { items, clearCart } = useCart();
 
-  const [paymentMethod, setPaymentMethod] = useState<"MBWAY" | "MULTIBANCO">("MBWAY");
+  const [payment, setPayment] = useState<PaymentState>({ method: "MBWAY" });
   const [addressId, setAddressId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [shippingCost, setShippingCost] = useState(0); // ✅ NOVO
+  const [shippingCost, setShippingCost] = useState(0);
 
-  // ✅ Escutar evento de mudança de envio
-  useEffect(() => {
-    const handleShippingChange = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      setShippingCost(detail.cost);
-    };
+  // Subtotal calculado a partir do carrinho (para envio ao ShippingMethod)
+  const subtotal = useMemo(
+    () =>
+      items.reduce(
+        (sum, item) => sum + item.product.price * item.quantity,
+        0
+      ),
+    [items]
+  );
 
-    window.addEventListener("shipping-change", handleShippingChange);
-
-    return () => {
-      window.removeEventListener("shipping-change", handleShippingChange);
-    };
-  }, []);
+  // ===== TOASTS =====
 
   const showToast = useCallback((type: ToastType, message: string) => {
-    const id = Date.now();
+    const id = Date.now() + Math.random();
     setToasts((prev) => [...prev, { id, type, message }]);
 
     setTimeout(() => {
@@ -56,36 +73,79 @@ export default function CheckoutPage() {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
+  // ===== EVENTOS =====
+
+  useEffect(() => {
+    const handleShippingChange = (e: Event) => {
+      const detail = (e as CustomEvent<ShippingChangeDetail>).detail;
+      setShippingCost(detail.cost);
+    };
+
+    window.addEventListener("shipping-change", handleShippingChange);
+    return () => {
+      window.removeEventListener("shipping-change", handleShippingChange);
+    };
+  }, []);
+
   useEffect(() => {
     const handleAddressSaved = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
+      const detail = (e as CustomEvent<AddressSavedDetail>).detail;
       setAddressId(detail.id);
-      showToast("success", "Morada guardada com sucesso!");
+
+      // Só mostrar toast se a morada foi guardada pelo utilizador
+      // (não na hidratação inicial)
+      if (!detail.fromHydration) {
+        showToast("success", "Morada guardada com sucesso!");
+      }
     };
 
     window.addEventListener("address-saved", handleAddressSaved);
-
     return () => {
       window.removeEventListener("address-saved", handleAddressSaved);
     };
   }, [showToast]);
 
-  const checkoutProducts = items.map((item) => ({
-    id: item.product.id,
-    name: item.product.name,
-    image: item.product.image || "/placeholder-product.png",
-    quantity: item.quantity,
-    price: item.product.price,
-  }));
+  // ===== PRODUTOS PARA O RESUMO =====
 
-  const handleCheckout = async () => {
-    if (!addressId) {
-      showToast("error", "Guarda primeiro a tua morada.");
-      return;
+  const checkoutProducts = useMemo(
+    () =>
+      items.map((item) => ({
+        id: item.product.id,
+        name: item.product.name,
+        image: item.product.image || "/placeholder-product.png",
+        quantity: item.quantity,
+        price: item.product.price,
+      })),
+    [items]
+  );
+
+  // ===== VALIDAÇÃO =====
+
+  const validateCheckout = (): string | null => {
+    if (items.length === 0) {
+      return "O teu carrinho está vazio.";
     }
 
-    if (items.length === 0) {
-      showToast("error", "O teu carrinho está vazio.");
+    if (!addressId) {
+      return "Guarda primeiro a tua morada.";
+    }
+
+    if (payment.method === "MBWAY") {
+      const cleanPhone = (payment.phoneNumber ?? "").replace(/\D/g, "");
+      if (cleanPhone.length !== 9) {
+        return "O número de telemóvel do MB Way deve ter 9 dígitos.";
+      }
+    }
+
+    return null;
+  };
+
+  // ===== SUBMETER =====
+
+  const handleCheckout = async () => {
+    const validationError = validateCheckout();
+    if (validationError) {
+      showToast("error", validationError);
       return;
     }
 
@@ -94,15 +154,15 @@ export default function CheckoutPage() {
     try {
       const response = await fetch("/api/checkout", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           addressId,
-          paymentMethod,
+          paymentMethod: payment.method,
+          paymentPhone:
+            payment.method === "MBWAY" ? payment.phoneNumber : undefined,
           notes: "",
           couponCode: "",
-          shipping: shippingCost, // ✅ ENVIAR CUSTO DE ENVIO
+          shipping: shippingCost,
           items: items.map((item) => ({
             productId: item.product.id,
             quantity: item.quantity,
@@ -112,14 +172,18 @@ export default function CheckoutPage() {
       });
 
       if (!response.ok) {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({}));
         showToast("error", error.message || "Erro ao processar checkout");
         return;
       }
 
       const order = await response.json();
+
       showToast("success", "Encomenda criada com sucesso!");
-      
+
+      // Limpar carrinho antes de redirecionar
+      clearCart();
+
       setTimeout(() => {
         router.push(`/checkout/success?orderId=${order.id}`);
       }, 800);
@@ -130,6 +194,8 @@ export default function CheckoutPage() {
       setIsSubmitting(false);
     }
   };
+
+  // ===== RENDER =====
 
   return (
     <main className="arabesque-bg relative min-h-screen overflow-hidden">
@@ -229,8 +295,17 @@ export default function CheckoutPage() {
           <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-8 xl:grid-cols-[minmax(0,1fr)_420px] xl:gap-10">
             <div className="min-w-0 space-y-5 sm:space-y-6 md:space-y-8">
               <BillingForm />
-              <ShippingMethod />
-              <PaymentMethod onSelect={setPaymentMethod} />
+
+              <ShippingMethod subtotal={subtotal} />
+
+              <PaymentMethod
+                onSelect={(method, details) =>
+                  setPayment({
+                    method,
+                    phoneNumber: details?.phoneNumber,
+                  })
+                }
+              />
             </div>
 
             <aside className="min-w-0 lg:sticky lg:top-6">

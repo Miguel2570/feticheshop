@@ -25,8 +25,7 @@ export function CheckoutSummary({
   shipping = 0,
 }: CheckoutSummaryProps) {
   const subtotal = products.reduce(
-    (total, product) =>
-      total + product.price * product.quantity,
+    (total, product) => total + product.price * product.quantity,
     0
   );
 
@@ -38,7 +37,6 @@ export function CheckoutSummary({
         Resumo da Encomenda
       </h2>
 
-      {/* Produtos */}
       <div className="mt-8 space-y-5">
         {products.length > 0 ? (
           products.map((product) => (
@@ -53,7 +51,10 @@ export function CheckoutSummary({
               </div>
 
               <div className="min-w-0 flex-1">
-                <h3 className="truncate font-medium" style={{ color: "#18181b" }}>
+                <h3
+                  className="truncate font-medium"
+                  style={{ color: "#18181b" }}
+                >
                   {product.name}
                 </h3>
                 <p className="mt-1 text-sm" style={{ color: "#71717a" }}>
@@ -61,7 +62,10 @@ export function CheckoutSummary({
                 </p>
               </div>
 
-              <p className="font-semibold shrink-0" style={{ color: "#18181b" }}>
+              <p
+                className="font-semibold shrink-0"
+                style={{ color: "#18181b" }}
+              >
                 €{(product.price * product.quantity).toFixed(2)}
               </p>
             </div>
@@ -73,7 +77,6 @@ export function CheckoutSummary({
         )}
       </div>
 
-      {/* Totais */}
       <div className="mt-10 space-y-5 border-t border-zinc-100 pt-8">
         <div className="flex justify-between">
           <span style={{ color: "#71717a" }}>Subtotal</span>
@@ -103,7 +106,10 @@ export function CheckoutSummary({
         )}
 
         <div className="flex justify-between border-t border-zinc-100 pt-6">
-          <span className="text-xl font-semibold" style={{ color: "#18181b" }}>
+          <span
+            className="text-xl font-semibold"
+            style={{ color: "#18181b" }}
+          >
             Total
           </span>
           <span className="text-4xl font-bold text-pink-500">
@@ -112,7 +118,6 @@ export function CheckoutSummary({
         </div>
       </div>
 
-      {/* Botão */}
       <button
         type="button"
         onClick={onCheckout}
@@ -145,17 +150,18 @@ export function CheckoutSummary({
         {!isSubmitting && <ArrowRight size={20} />}
       </button>
 
-      {/* Proteção */}
       <div className="mt-8 flex items-start gap-4 rounded-2xl bg-pink-50/50 p-5">
         <ShieldCheck size={24} className="mt-1 shrink-0 text-pink-500" />
         <div>
           <p className="font-medium" style={{ color: "#18181b" }}>
             Compra Protegida
           </p>
-          <p className="mt-2 text-sm leading-7" style={{ color: "#71717a" }}>
-            Todos os pagamentos são protegidos por
-            encriptação SSL e os teus dados nunca são
-            partilhados com terceiros.
+          <p
+            className="mt-2 text-sm leading-7"
+            style={{ color: "#71717a" }}
+          >
+            Todos os pagamentos são protegidos por encriptação SSL e os teus
+            dados nunca são partilhados com terceiros.
           </p>
         </div>
       </div>

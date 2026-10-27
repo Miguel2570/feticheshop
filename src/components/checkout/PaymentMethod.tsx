@@ -1,22 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import {
-  Landmark,
-  Smartphone,
-  Check,
-} from "lucide-react";
+import Image from "next/image";
 
-type PaymentMethod = "MBWAY" | "MULTIBANCO";
+type PaymentMethodType = "MBWAY" | "MULTIBANCO";
 
 interface PaymentMethodProps {
-  onSelect: (method: PaymentMethod, details?: {
-    phoneNumber?: string;
-  }) => void;
+  onSelect: (
+    method: PaymentMethodType,
+    details?: { phoneNumber?: string }
+  ) => void;
 }
 
 export function PaymentMethod({ onSelect }: PaymentMethodProps) {
-  const [selected, setSelected] = useState<PaymentMethod>("MBWAY");
+  const [selected, setSelected] = useState<PaymentMethodType>("MBWAY");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [phoneError, setPhoneError] = useState("");
 
@@ -27,7 +24,7 @@ export function PaymentMethod({ onSelect }: PaymentMethodProps) {
     backgroundColor: "#ffffff !important",
   } as React.CSSProperties;
 
-  const handleSelect = (method: PaymentMethod) => {
+  const handleSelect = (method: PaymentMethodType) => {
     setSelected(method);
     setPhoneError("");
 
@@ -61,10 +58,16 @@ export function PaymentMethod({ onSelect }: PaymentMethodProps) {
   return (
     <section className="rounded-[30px] border border-pink-100 bg-white p-5 sm:p-6 md:p-8 shadow-sm">
       <div className="mb-5 sm:mb-6 md:mb-8">
-        <h2 className="font-display text-2xl sm:text-3xl" style={{ color: "#18181b" }}>
+        <h2
+          className="font-display text-2xl sm:text-3xl"
+          style={{ color: "#18181b" }}
+        >
           Método de Pagamento
         </h2>
-        <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm" style={{ color: "#71717a" }}>
+        <p
+          className="mt-1.5 sm:mt-2 text-xs sm:text-sm"
+          style={{ color: "#71717a" }}
+        >
           Escolhe como pretendes efetuar o pagamento.
         </p>
       </div>
@@ -78,39 +81,47 @@ export function PaymentMethod({ onSelect }: PaymentMethodProps) {
             className={`
               flex w-full cursor-pointer items-center gap-3 sm:gap-5
               rounded-2xl border-2 p-3.5 sm:p-5 md:p-6 transition-all text-left
-              ${selected === "MBWAY"
-                ? "border-pink-500 bg-pink-50/50"
-                : "border-zinc-200 bg-white hover:border-pink-300"
+              ${
+                selected === "MBWAY"
+                  ? "border-pink-500 bg-pink-50/50"
+                  : "border-zinc-200 bg-white hover:border-pink-300"
               }
             `}
           >
             <div
               className={`
                 flex h-10 w-10 sm:h-12 sm:w-12
-                shrink-0
-                items-center justify-center
-                rounded-xl
-                ${selected === "MBWAY" ? "bg-pink-500 text-white" : "bg-zinc-100 text-zinc-600"}
+                shrink-0 items-center justify-center rounded-xl overflow-hidden
+                ${selected === "MBWAY" ? "ring-2 ring-pink-500" : ""}
               `}
             >
-              <Smartphone size={18} className="sm:size-[22px]" />
+              <Image
+                src="/images/pagamento/mbway_icon.png"
+                alt="MB Way"
+                width={48}
+                height={48}
+                className="h-full w-full object-contain"
+              />
             </div>
 
             <div className="min-w-0 flex-1">
-              <h3 className="text-sm sm:text-base font-semibold" style={{ color: "#18181b" }}>
+              <h3
+                className="text-sm sm:text-base font-semibold"
+                style={{ color: "#18181b" }}
+              >
                 MB Way
               </h3>
-              <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm leading-5 sm:leading-6" style={{ color: "#71717a" }}>
+              <p
+                className="mt-0.5 sm:mt-1 text-xs sm:text-sm leading-5 sm:leading-6"
+                style={{ color: "#71717a" }}
+              >
                 Pagamento rápido através do teu telemóvel.
               </p>
             </div>
 
             <div
               className={`
-                flex h-5 w-5
-                shrink-0
-                items-center justify-center
-                rounded-full border-2
+                flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2
                 ${selected === "MBWAY" ? "border-pink-500" : "border-zinc-300"}
               `}
             >
@@ -120,7 +131,6 @@ export function PaymentMethod({ onSelect }: PaymentMethodProps) {
             </div>
           </button>
 
-          {/* Campo de telemóvel para MB Way */}
           {selected === "MBWAY" && (
             <div className="mt-3 rounded-xl border border-pink-200 bg-pink-50/50 p-4">
               <label className="mb-2 block text-xs font-semibold uppercase tracking-wide text-zinc-600">
@@ -146,7 +156,8 @@ export function PaymentMethod({ onSelect }: PaymentMethodProps) {
                 <p className="mt-1.5 text-xs text-red-500">{phoneError}</p>
               ) : (
                 <p className="mt-1.5 text-xs text-zinc-500">
-                  Irás receber uma notificação no teu telemóvel para confirmares o pagamento.
+                  Irás receber uma notificação no teu telemóvel para confirmares
+                  o pagamento.
                 </p>
               )}
             </div>
@@ -161,40 +172,52 @@ export function PaymentMethod({ onSelect }: PaymentMethodProps) {
             className={`
               flex w-full cursor-pointer items-center gap-3 sm:gap-5
               rounded-2xl border-2 p-3.5 sm:p-5 md:p-6 transition-all text-left
-              ${selected === "MULTIBANCO"
-                ? "border-pink-500 bg-pink-50/50"
-                : "border-zinc-200 bg-white hover:border-pink-300"
+              ${
+                selected === "MULTIBANCO"
+                  ? "border-pink-500 bg-pink-50/50"
+                  : "border-zinc-200 bg-white hover:border-pink-300"
               }
             `}
           >
             <div
               className={`
                 flex h-10 w-10 sm:h-12 sm:w-12
-                shrink-0
-                items-center justify-center
-                rounded-xl
-                ${selected === "MULTIBANCO" ? "bg-pink-500 text-white" : "bg-zinc-100 text-zinc-600"}
+                shrink-0 items-center justify-center rounded-xl overflow-hidden
+                ${selected === "MULTIBANCO" ? "ring-2 ring-pink-500" : ""}
               `}
             >
-              <Landmark size={18} className="sm:size-[22px]" />
+              <Image
+                src="/images/pagamento/multibanco_icon.webp"
+                alt="Multibanco"
+                width={48}
+                height={48}
+                className="h-full w-full object-contain"
+              />
             </div>
 
             <div className="min-w-0 flex-1">
-              <h3 className="text-sm sm:text-base font-semibold" style={{ color: "#18181b" }}>
+              <h3
+                className="text-sm sm:text-base font-semibold"
+                style={{ color: "#18181b" }}
+              >
                 Multibanco
               </h3>
-              <p className="mt-0.5 sm:mt-1 text-xs sm:text-sm leading-5 sm:leading-6" style={{ color: "#71717a" }}>
+              <p
+                className="mt-0.5 sm:mt-1 text-xs sm:text-sm leading-5 sm:leading-6"
+                style={{ color: "#71717a" }}
+              >
                 Referência Multibanco após finalizar a compra.
               </p>
             </div>
 
             <div
               className={`
-                flex h-5 w-5
-                shrink-0
-                items-center justify-center
-                rounded-full border-2
-                ${selected === "MULTIBANCO" ? "border-pink-500" : "border-zinc-300"}
+                flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2
+                ${
+                  selected === "MULTIBANCO"
+                    ? "border-pink-500"
+                    : "border-zinc-300"
+                }
               `}
             >
               {selected === "MULTIBANCO" && (
@@ -203,26 +226,31 @@ export function PaymentMethod({ onSelect }: PaymentMethodProps) {
             </div>
           </button>
 
-          {/* Info Multibanco */}
           {selected === "MULTIBANCO" && (
             <div className="mt-3 rounded-xl border border-zinc-200 bg-zinc-50 p-4">
               <p className="text-xs text-zinc-600">
-                Após finalizares a compra, iremos gerar uma referência Multibanco e enviar para o teu email.
-                Podes pagar num multibanco ou homebanking.
+                Após finalizares a compra, iremos gerar uma referência Multibanco
+                e enviar para o teu email. Podes pagar num multibanco ou
+                homebanking.
               </p>
             </div>
           )}
         </div>
       </div>
 
-      {/* Segurança */}
       <div className="mt-5 sm:mt-6 md:mt-8 rounded-2xl border border-pink-100 bg-pink-50/50 p-4 sm:p-5">
-        <p className="text-sm sm:text-base font-medium" style={{ color: "#18181b" }}>
+        <p
+          className="text-sm sm:text-base font-medium"
+          style={{ color: "#18181b" }}
+        >
           Pagamento 100% Seguro
         </p>
-        <p className="mt-1.5 sm:mt-2 text-xs sm:text-sm leading-5 sm:leading-7" style={{ color: "#71717a" }}>
-          Todos os pagamentos são protegidos através de
-          encriptação SSL e processados de forma segura.
+        <p
+          className="mt-1.5 sm:mt-2 text-xs sm:text-sm leading-5 sm:leading-7"
+          style={{ color: "#71717a" }}
+        >
+          Todos os pagamentos são protegidos através de encriptação SSL e
+          processados de forma segura.
         </p>
       </div>
     </section>

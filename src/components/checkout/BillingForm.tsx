@@ -40,7 +40,6 @@ export function BillingForm() {
   const inputClass =
     "w-full rounded-xl border border-pink-200 bg-white px-4 py-2.5 text-sm outline-none transition-all placeholder:text-zinc-400 hover:border-pink-300 focus:border-pink-500 focus:ring-2 focus:ring-pink-200";
 
-  // ✅ Style para forçar cor do texto PRETO em todos os inputs
   const inputStyle = {
     color: "#18181b !important",
     WebkitTextFillColor: "#18181b !important",
@@ -52,10 +51,8 @@ export function BillingForm() {
     async function fetchUserData() {
       try {
         const response = await fetch("/api/auth/me");
-        
         if (response.ok) {
           const data = await response.json();
-          
           if (data.user) {
             setUserData({
               firstName: data.user.firstName || "",
@@ -76,18 +73,20 @@ export function BillingForm() {
     async function fetchAddresses() {
       try {
         const response = await fetch("/api/addresses");
-        
         if (response.ok) {
           const data = await response.json();
           setAddresses(data);
-          
+
           const defaultAddress = data.find((addr: Address) => addr.isDefault);
           if (defaultAddress) {
             setSelectedAddress(defaultAddress);
             setSavedAddressId(defaultAddress.id);
-            
+
+            // Marcar como hidratação para não mostrar toast
             window.dispatchEvent(
-              new CustomEvent("address-saved", { detail: defaultAddress })
+              new CustomEvent("address-saved", {
+                detail: { ...defaultAddress, fromHydration: true },
+              })
             );
           }
         }
@@ -106,7 +105,7 @@ export function BillingForm() {
     setSelectedAddress(address);
     setSavedAddressId(address.id);
     setShowAddressList(false);
-    
+
     window.dispatchEvent(
       new CustomEvent("address-saved", { detail: address })
     );
@@ -199,7 +198,9 @@ export function BillingForm() {
                 </div>
                 <ChevronDown
                   size={18}
-                  className={`shrink-0 text-zinc-400 transition-transform ${showAddressList ? "rotate-180" : ""}`}
+                  className={`shrink-0 text-zinc-400 transition-transform ${
+                    showAddressList ? "rotate-180" : ""
+                  }`}
                 />
               </button>
 
@@ -212,16 +213,21 @@ export function BillingForm() {
                       onClick={() => handleSelectAddress(address)}
                       className={`
                         flex w-full items-center gap-3 rounded-xl border-2 px-4 py-3 text-left transition-all cursor-pointer
-                        ${selectedAddress?.id === address.id
-                          ? "border-pink-500 bg-pink-50"
-                          : "border-zinc-200 bg-white hover:border-pink-300"
+                        ${
+                          selectedAddress?.id === address.id
+                            ? "border-pink-500 bg-pink-50"
+                            : "border-zinc-200 bg-white hover:border-pink-300"
                         }
                       `}
                     >
                       <div
                         className={`
                           flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2
-                          ${selectedAddress?.id === address.id ? "border-pink-500" : "border-zinc-300"}
+                          ${
+                            selectedAddress?.id === address.id
+                              ? "border-pink-500"
+                              : "border-zinc-300"
+                          }
                         `}
                       >
                         {selectedAddress?.id === address.id && (
@@ -238,7 +244,8 @@ export function BillingForm() {
                           )}
                         </p>
                         <p className="text-xs text-zinc-500">
-                          {address.addressLine1}, {address.postalCode} {address.city}
+                          {address.addressLine1}, {address.postalCode}{" "}
+                          {address.city}
                         </p>
                       </div>
                     </button>
@@ -252,13 +259,18 @@ export function BillingForm() {
                 className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-pink-500 hover:text-pink-600 cursor-pointer"
               >
                 <Plus size={16} />
-                {showNewAddressForm ? "Cancelar nova morada" : "Adicionar nova morada"}
+                {showNewAddressForm
+                  ? "Cancelar nova morada"
+                  : "Adicionar nova morada"}
               </button>
             </div>
           )}
 
           {(addresses.length === 0 || showNewAddressForm) && (
-            <form onSubmit={handleSaveAddress} className="grid gap-4 sm:gap-6 md:grid-cols-2">
+            <form
+              onSubmit={handleSaveAddress}
+              className="grid gap-4 sm:gap-6 md:grid-cols-2"
+            >
               <div>
                 <label className="mb-2 block text-sm font-medium text-zinc-700">
                   Primeiro Nome
