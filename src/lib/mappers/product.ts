@@ -6,7 +6,6 @@ import {
   extractFeatures,
   extractSpecifications,
   extractDescription,
-  getEffectiveStock,
 } from "@/utils/product-helpers";
 
 export type ProductWithRelations = Prisma.ProductGetPayload<{
@@ -54,10 +53,6 @@ const cleanText = (text: string): string => {
     .replace(/&nbsp;/g, " ");
 };
 
-// ─────────────────────────────────────────────────────────────
-// ORDENAÇÃO DE VARIANTES
-// ─────────────────────────────────────────────────────────────
-
 type VarianteParseada = {
   tipo: "tamanho" | "volume" | "combo" | "outro";
   valor: number;
@@ -68,47 +63,26 @@ function parseVariante(nome: string): VarianteParseada {
   const n = nome.trim().toUpperCase();
 
   const tamanhoOrdem: Record<string, number> = {
-    XS: 1,
-    S: 2,
-    M: 3,
-    L: 4,
-    XL: 5,
-    XXL: 6,
-    XXXL: 7,
-    PP: 1,
-    P: 2,
-    G: 4,
-    GG: 5,
-    GGG: 6,
-    ÚNICO: 99,
-    UNICO: 99,
-    UNIQUE: 99,
+    XS: 1, S: 2, M: 3, L: 4, XL: 5, XXL: 6, XXXL: 7,
+    PP: 1, P: 2, G: 4, GG: 5, GGG: 6, ÚNICO: 99, UNICO: 99, UNIQUE: 99,
   };
 
   const comboMatch = n.match(/\/\s*([A-Z/]+)$/);
   if (comboMatch) {
     const parte = comboMatch[1].trim();
     const partes = parte.split("/").map((p) => tamanhoOrdem[p] ?? 50);
-    return {
-      tipo: "combo",
-      valor: Math.max(...partes),
-      raw: n,
-    };
+    return { tipo: "combo", valor: Math.max(...partes), raw: n };
   }
 
-  if (tamanhoOrdem[n] != null) {
-    return { tipo: "tamanho", valor: tamanhoOrdem[n], raw: n };
-  }
+  if (tamanhoOrdem[n] != null) return { tipo: "tamanho", valor: tamanhoOrdem[n], raw: n };
 
   const volumeMatch = n.match(/^(\d+(?:[.,]\d+)?)\s*(ML|L|G|KG|GR)$/);
   if (volumeMatch) {
     const num = parseFloat(volumeMatch[1].replace(",", "."));
     const unidade = volumeMatch[2];
-
     let normalizado = num;
     if (unidade === "L" || unidade === "KG") normalizado = num * 1000;
     else if (unidade === "GR") normalizado = num;
-
     return { tipo: "volume", valor: normalizado, raw: n };
   }
 
@@ -120,33 +94,22 @@ function sortVariants<T extends { name: string }>(variants: T[]): T[] {
     const aP = parseVariante(a.name);
     const bP = parseVariante(b.name);
 
-    const ordemTipos: Record<string, number> = {
-      tamanho: 1,
-      volume: 2,
-      combo: 3,
-      outro: 4,
-    };
+    const ordemTipos: Record<string, number> = { tamanho: 1, volume: 2, combo: 3, outro: 4 };
 
-    if (aP.tipo !== bP.tipo) {
-      return ordemTipos[aP.tipo] - ordemTipos[bP.tipo];
-    }
-
+    if (aP.tipo !== bP.tipo) return ordemTipos[aP.tipo] - ordemTipos[bP.tipo];
     if (aP.valor !== bP.valor) return aP.valor - bP.valor;
-
     return aP.raw.localeCompare(bP.raw);
   });
 }
 
 export function mapProduct(product: ProductWithRelations): Product {
   const rawDescription = product.description ?? "";
-
   const features = extractFeatures(rawDescription);
   const specs = extractSpecifications(rawDescription);
   const description = extractDescription(rawDescription);
-
   const cleanedFeatures = features.map(cleanText);
 
-  // Mapear variantes + ordenar
+  // Mapear variantes (vai estar vazio, mas mantém compatibilidade)
   const variants: ProductVariant[] = sortVariants(
     product.variants
       .filter((v) => v.isActive)
@@ -155,8 +118,7 @@ export function mapProduct(product: ProductWithRelations): Product {
         name: v.name,
         sku: v.sku,
         price: v.price != null ? Number(v.price) : null,
-        comparePrice:
-          v.comparePrice != null ? Number(v.comparePrice) : null,
+        comparePrice: v.comparePrice != null ? Number(v.comparePrice) : null,
         stock: v.stock,
         isActive: v.isActive,
         attributes: v.attributeValues.map((av) => ({
@@ -168,37 +130,21 @@ export function mapProduct(product: ProductWithRelations): Product {
         })),
         images: v.images
           .sort((a, b) => a.position - b.position)
-          .map((img) => ({
-            url: img.url,
-            videoUrl: img.videoUrl ?? null,
-          })),
+          .map((img) => ({ url: img.url, videoUrl: img.videoUrl ?? null })),
       }))
   );
 
   const generalImages = product.images
     .filter((img) => !img.variantId)
     .sort((a, b) => a.position - b.position)
-    .map((img) => ({
-      url: img.url,
-      videoUrl: img.videoUrl ?? null,
-    }));
+    .map((img) => ({ url: img.url, videoUrl: img.videoUrl ?? null }));
 
-  const images =
-    generalImages.length > 0
-      ? generalImages
-      : product.images
-          .sort((a, b) => a.position - b.position)
-          .map((img) => ({
-            url: img.url,
-            videoUrl: img.videoUrl ?? null,
-          }));
+  const images = generalImages.length > 0 ? generalImages : product.images
+    .sort((a, b) => a.position - b.position)
+    .map((img) => ({ url: img.url, videoUrl: img.videoUrl ?? null }));
 
-  // Stock efetivo
-  const effectiveStock = getEffectiveStock({
-    stock: product.stock,
-    variants: product.variants,
-  });
-
+  // ✅ Stock e preço vêm DIRETAMENTE do Produto (sem variantes)
+  const effectiveStock = product.stock;
   const effectivePrice = Number(product.price);
 
   return {
@@ -208,9 +154,7 @@ export function mapProduct(product: ProductWithRelations): Product {
     brand: product.brand?.name ?? "",
     description: description,
     price: effectivePrice,
-    oldPrice: product.comparePrice
-      ? Number(product.comparePrice)
-      : undefined,
+    oldPrice: product.comparePrice ? Number(product.comparePrice) : undefined,
     rating: product.ratingAverage,
     reviews: product.ratingCount,
     stock: effectiveStock > 0,

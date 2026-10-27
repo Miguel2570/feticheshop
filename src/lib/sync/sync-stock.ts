@@ -31,7 +31,7 @@ type SyncResult = {
   durationMs: number;
   pagesProcessed: number;
   itemsProcessed: number;
-  variantsUpdated: number;
+  productsUpdated: number;
   notificationsSent: number;
   errors: number;
   message?: string;
@@ -114,12 +114,12 @@ export async function syncStock(): Promise<SyncResult> {
   const startTime = Date.now();
 
   console.log("═══════════════════════════════════════════");
-  console.log("🔄 SYNC STOCK (Variantes) — INÍCIO");
+  console.log("🔄 SYNC STOCK (Produtos Solos) — INÍCIO");
   console.log("═══════════════════════════════════════════\n");
 
   let pagesProcessed = 0;
   let itemsProcessed = 0;
-  let variantsUpdated = 0;
+  let productsUpdated = 0;
   let notificationsSent = 0;
   let errors = 0;
 
@@ -172,89 +172,65 @@ export async function syncStock(): Promise<SyncResult> {
 
     const dreamloveIds = Array.from(stockByProductId.keys());
 
-    // 1. Atualizar as VARIANTES
-    console.log(`\n🔍 A procurar variantes na BD...`);
-    const variants = await prisma.productVariant.findMany({
+    // 1. Atualizar os PRODUTOS diretamente
+    console.log(`\n🔍 A procurar produtos na BD...`);
+    const products = await prisma.product.findMany({
       where: { dreamloveId: { in: dreamloveIds } },
-      select: { id: true, dreamloveId: true, stock: true, productId: true }
+      select: { id: true, dreamloveId: true, stock: true, status: true }
     });
 
-    type VUpdate = { id: string; stock: number };
-    const toUpdate: VUpdate[] = [];
+    type PUpdate = { id: string; stock: number; status: string };
+    const toUpdate: PUpdate[] = [];
     const productIdsThatGotStock = new Set<string>();
+    
+    // Para notificações, guardamos o stock antigo
+    const oldStockMap = new Map<string, number>();
+    products.forEach(p => oldStockMap.set(p.id, p.stock));
 
-    // Para notificações, precisamos de saber o stock do Produto Pai antes
-    const affectedProductIds = Array.from(new Set(variants.map(v => v.productId)));
-    const productsBefore = await prisma.product.findMany({
-      where: { id: { in: affectedProductIds } },
-      select: { id: true, stock: true, status: true }
-    });
-    const oldProductStock = new Map(productsBefore.map(p => [p.id, p.stock]));
+    for (const p of products) {
+      if (p.dreamloveId == null) continue;
+      const newStock = stockByProductId.get(p.dreamloveId);
+      if (newStock === undefined) continue;
 
-    for (const v of variants) {
-      if (v.dreamloveId == null) continue;
-      const newStock = stockByProductId.get(v.dreamloveId);
-      if (newStock !== undefined && v.stock !== newStock) {
-        toUpdate.push({ id: v.id, stock: newStock });
+      let newStatus = p.status;
+      if (newStock > 0 && p.status === "OUT_OF_STOCK") newStatus = "ACTIVE";
+      else if (newStock === 0 && p.status === "ACTIVE") newStatus = "OUT_OF_STOCK";
+
+      if (p.stock !== newStock || p.status !== newStatus) {
+        toUpdate.push({ id: p.id, stock: newStock, status: newStatus });
+        
+        // Se passou de 0 para > 0, adiciona às notificações
+        if (p.stock <= 0 && newStock > 0) {
+           productIdsThatGotStock.add(p.id);
+        }
       }
     }
 
     if (toUpdate.length > 0) {
-      console.log(`🔄 A atualizar ${toUpdate.length} variantes...`);
+      console.log(`🔄 A atualizar ${toUpdate.length} produtos...`);
       for (let i = 0; i < toUpdate.length; i += BATCH_SIZE) {
         const batch = toUpdate.slice(i, i + BATCH_SIZE);
-        await prisma.$transaction(
-          batch.map((u) => prisma.productVariant.update({
-            where: { id: u.id },
-            data: { stock: u.stock }
-          }))
+        const values = batch.map(
+          (u) => Prisma.sql`(${u.id}, ${u.stock}, ${u.status}::"ProductStatus")`
         );
-        variantsUpdated += batch.length;
+        
+        await prisma.$executeRaw`
+          UPDATE "Product" AS p
+          SET stock = v.stock, status = v.status
+          FROM (VALUES ${Prisma.join(values)}) AS v(id, stock, status)
+          WHERE p.id = v.id
+        `;
+        productsUpdated += batch.length;
       }
     }
 
-    // 2. Recalcular Produtos Pais via SQL Rápido
-    console.log(`\n🔄 A recalcular stock dos Produtos Pai...`);
-    await prisma.$executeRaw`
-      UPDATE "Product" AS p
-      SET stock = sub."total_stock"
-      FROM (
-        SELECT "productId", SUM(stock) as "total_stock"
-        FROM "ProductVariant"
-        GROUP BY "productId"
-      ) AS sub
-      WHERE p.id = sub."productId";
-    `;
-
-    // 3. Verificar se algum produto voltou a ter stock (para notificações)
-    const productsAfter = await prisma.product.findMany({
-      where: { id: { in: affectedProductIds }, stock: { gt: 0 } },
-      select: { id: true, status: true }
-    });
-
-    for (const p of productsAfter) {
-      const before = oldProductStock.get(p.id) ?? 0;
-      if (before <= 0) productIdsThatGotStock.add(p.id);
-    }
-
-    // 4. Atualizar status ACTIVE / OUT_OF_STOCK nos Produtos Pai
-    await prisma.$executeRaw`
-      UPDATE "Product"
-      SET status = CASE
-        WHEN stock > 0 AND status = 'OUT_OF_STOCK' THEN 'ACTIVE'::"ProductStatus"
-        WHEN stock = 0 AND status = 'ACTIVE' THEN 'OUT_OF_STOCK'::"ProductStatus"
-        ELSE status
-      END
-      WHERE "id" IN (${Prisma.join(affectedProductIds.map(id => Prisma.sql`${id}`))});
-    `;
-
-    // 5. Fechar sync
+    // 2. Fechar sync
     await prisma.supplierSync.update({
       where: { id: sync.id },
       data: {
         status: errors === 0 ? "SUCCESS" : "FAILED",
         totalProducts: itemsProcessed,
-        updated: variantsUpdated,
+        updated: productsUpdated,
         failed: errors,
         finishedAt: new Date(),
       },
@@ -262,15 +238,16 @@ export async function syncStock(): Promise<SyncResult> {
 
     if (reachedEnd) await setLastSyncAt(startedAt);
 
-    // 6. Notificações de Stock
+    // 3. Notificações de Stock
     if (productIdsThatGotStock.size > 0) {
+      console.log(`\n📧 A processar notificações de stock...`);
       const notificacoes = await prisma.stockNotification.findMany({
         where: { productId: { in: Array.from(productIdsThatGotStock) }, notified: false },
         include: { product: true }
       });
       
       for (const notif of notificacoes) {
-        // await enviarEmail(notif.email, notif.product.name);
+        console.log(`   ✉️ [SIMULADO] Email para ${notif.email} — ${notif.product.name} voltou a ter stock.`);
         await prisma.stockNotification.update({
           where: { id: notif.id },
           data: { notified: true, notifiedAt: new Date() },
@@ -280,7 +257,7 @@ export async function syncStock(): Promise<SyncResult> {
     }
 
     const durationMs = Date.now() - startTime;
-    console.log(`\n✅ SYNC CONCLUÍDO em ${(durationMs / 1000).toFixed(2)}s. Variantes atualizadas: ${variantsUpdated}`);
+    console.log(`\n✅ SYNC CONCLUÍDO em ${(durationMs / 1000).toFixed(2)}s. Produtos atualizados: ${productsUpdated}`);
 
     return {
       success: reachedEnd && errors === 0,
@@ -289,7 +266,7 @@ export async function syncStock(): Promise<SyncResult> {
       durationMs,
       pagesProcessed,
       itemsProcessed,
-      variantsUpdated,
+      productsUpdated,
       notificationsSent,
       errors,
     };
@@ -305,7 +282,7 @@ export async function syncStock(): Promise<SyncResult> {
       startedAt: startedAt.toISOString(),
       finishedAt: new Date().toISOString(),
       durationMs: Date.now() - startTime,
-      pagesProcessed, itemsProcessed, variantsUpdated, notificationsSent,
+      pagesProcessed, itemsProcessed, productsUpdated, notificationsSent,
       errors: errors + 1,
       message,
     };
