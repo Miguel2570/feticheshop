@@ -4,7 +4,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Package, Layers, Ghost, Crown, Video } from "lucide-react"; // ✅ NOVO
+import { Package, Video } from "lucide-react";
 import { ProductStatus } from "@prisma/client";
 
 import { ProductStatusBadge } from "./ProductStatusBadge";
@@ -19,20 +19,10 @@ interface Product {
   stock: number;
   status: ProductStatus;
   isFeatured: boolean;
-  brand: {
-    name: string;
-  } | null;
-  categories: {
-    category: {
-      name: string;
-    };
-  }[];
-  images: {
-    url: string;
-  }[];
-  variantCount?: number;
-  isOrphan?: boolean;
-  hasVideo?: boolean; // ✅ NOVO
+  brand: { name: string } | null;
+  categories: { category: { name: string } }[];
+  images: { url: string }[];
+  hasVideo?: boolean;
 }
 
 interface ProductsMobileProps {
@@ -60,10 +50,6 @@ export function ProductsMobile({ products, returnUrl }: ProductsMobileProps) {
   return (
     <div className="w-full min-w-0 divide-y divide-zinc-100">
       {products.map((product) => {
-        const variantCount = product.variantCount ?? 0;
-        const isOrphan = product.isOrphan ?? false;
-        const isGroup = !isOrphan && variantCount >= 2;
-
         return (
           <div key={product.id} className="w-full min-w-0 p-3 sm:p-5">
             <div className="flex w-full min-w-0 items-start gap-3">
@@ -94,52 +80,12 @@ export function ProductsMobile({ products, returnUrl }: ProductsMobileProps) {
                     {product.name}
                   </p>
 
-                  {/* ✅ NOVO: Ícone de vídeo */}
                   {product.hasVideo && (
                     <span
                       className="inline-flex shrink-0 items-center justify-center rounded-full bg-pink-100 p-0.5 text-pink-600"
                       title="Tem vídeo"
                     >
                       <Video size={10} />
-                    </span>
-                  )}
-
-                  {isOrphan && (
-                    <span
-                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-[10px] font-semibold text-purple-600"
-                      title="Órfão (merged, escondido)"
-                    >
-                      <Ghost size={10} />
-                      Órfão
-                    </span>
-                  )}
-
-                  {isGroup && (
-                    <span
-                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-pink-200 bg-pink-50 px-2 py-0.5 text-[10px] font-semibold text-pink-600"
-                      title={`Produto canónico com ${variantCount} variantes`}
-                    >
-                      <Crown size={10} />
-                      Grupo
-                    </span>
-                  )}
-
-                  {variantCount >= 2 && (
-                    <span
-                      className="inline-flex shrink-0 items-center gap-1 rounded-full border border-pink-200 bg-pink-50 px-2 py-0.5 text-[10px] font-bold text-pink-600"
-                      title={`${variantCount} variantes`}
-                    >
-                      <Layers size={10} />
-                      {variantCount}
-                    </span>
-                  )}
-
-                  {variantCount === 1 && !isOrphan && (
-                    <span
-                      className="inline-flex shrink-0 items-center rounded-full border border-zinc-200 bg-zinc-50 px-2 py-0.5 text-[10px] font-semibold text-zinc-500"
-                      title="Só 1 variante"
-                    >
-                      1
                     </span>
                   )}
                 </div>
@@ -201,28 +147,6 @@ export function ProductsMobile({ products, returnUrl }: ProductsMobileProps) {
                   }}
                 >
                   {product.stock === 0 ? "Sem stock" : `${product.stock} unidades`}
-                </p>
-              </div>
-
-              <div className="min-w-0">
-                <p className="text-[11px] font-medium uppercase tracking-wide" style={{ color: "#a1a1aa" }}>
-                  Variantes
-                </p>
-                <p className="mt-1">
-                  {variantCount === 0 ? (
-                    <span className="text-sm" style={{ color: "#d4d4d8" }}>
-                      —
-                    </span>
-                  ) : variantCount === 1 ? (
-                    <span className="text-sm font-medium" style={{ color: "#71717a" }}>
-                      1
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 rounded-full border border-pink-200 bg-pink-50 px-2.5 py-0.5 text-xs font-bold text-pink-600">
-                      <Layers size={11} />
-                      {variantCount}
-                    </span>
-                  )}
                 </p>
               </div>
             </div>

@@ -10,9 +10,6 @@ import {
   Eye,
   Package,
   Trash2,
-  Layers,
-  Ghost,
-  Crown,
   Video,
 } from "lucide-react";
 
@@ -26,13 +23,8 @@ type ProductTableItem = Omit<
   Prisma.ProductGetPayload<{
     include: {
       brand: true;
-      images: {
-        where: { isPrimary: true };
-        take: 1;
-      };
-      categories: {
-        include: { category: true };
-      };
+      images: { where: { isPrimary: true }; take: 1 };
+      categories: { include: { category: true } };
     };
   }>,
   "price" | "comparePrice" | "costPrice"
@@ -40,8 +32,6 @@ type ProductTableItem = Omit<
   price: number;
   comparePrice: number | null;
   costPrice: number | null;
-  variantCount?: number;
-  isOrphan?: boolean;
   hasVideo?: boolean;
 };
 
@@ -70,7 +60,6 @@ export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
               <th className="min-w-[250px] p-4 text-sm font-semibold" style={{ color: "#52525b" }}>
                 Produto
               </th>
-              {/* ✅ align-middle em todos os outros cabeçalhos */}
               <th className="p-4 text-sm font-semibold align-middle" style={{ color: "#52525b" }}>
                 Marca
               </th>
@@ -85,9 +74,6 @@ export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
               </th>
               <th className="p-4 text-sm font-semibold align-middle" style={{ color: "#52525b" }}>
                 Stock
-              </th>
-              <th className="p-4 text-center text-sm font-semibold align-middle" style={{ color: "#52525b" }}>
-                Variantes
               </th>
               <th className="p-4 text-sm font-semibold align-middle" style={{ color: "#52525b" }}>
                 Estado
@@ -110,15 +96,11 @@ export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
                 ? calculateMargin(product.price, product.costPrice)
                 : null;
 
-              const variantCount = product.variantCount ?? 0;
-              const isOrphan = product.isOrphan ?? false;
-
               return (
                 <tr
                   key={product.id}
                   className="border-b border-zinc-100 hover:bg-pink-50/30 transition"
                 >
-                  {/* Coluna do Produto: Alinhada ao topo */}
                   <td className="p-4 align-top">
                     <div className="flex items-start gap-3">
                       <div className="relative h-12 w-12 overflow-hidden rounded-xl bg-zinc-100 shrink-0 mt-0.5">
@@ -151,26 +133,6 @@ export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
                               <Video size={12} />
                             </span>
                           )}
-
-                          {isOrphan && (
-                            <span
-                              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2 py-0.5 text-[10px] font-semibold text-purple-600 mt-0.5"
-                              title="Órfão (merged, escondido)"
-                            >
-                              <Ghost size={10} />
-                              Órfão
-                            </span>
-                          )}
-
-                          {!isOrphan && variantCount >= 2 && (
-                            <span
-                              className="inline-flex shrink-0 items-center gap-1 rounded-full border border-pink-200 bg-pink-50 px-2 py-0.5 text-[10px] font-semibold text-pink-600 mt-0.5"
-                              title="Produto canónico com variantes"
-                            >
-                              <Crown size={10} />
-                              Grupo
-                            </span>
-                          )}
                         </div>
 
                         <p className="mt-1 text-xs" style={{ color: "#a1a1aa" }}>
@@ -180,7 +142,6 @@ export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
                     </div>
                   </td>
 
-                  {/* ✅ align-middle em todas as restantes células */}
                   <td className="p-4 text-sm align-middle" style={{ color: "#52525b" }}>
                     {product.brand?.name ?? "-"}
                   </td>
@@ -227,29 +188,6 @@ export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
                     ) : (
                       <span className="rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1 text-xs font-semibold text-emerald-600">
                         {product.stock}
-                      </span>
-                    )}
-                  </td>
-
-                  <td className="p-4 text-center align-middle">
-                    {variantCount === 0 ? (
-                      <span className="inline-block text-xs font-medium" style={{ color: "#d4d4d8" }}>
-                        —
-                      </span>
-                    ) : variantCount === 1 ? (
-                      <span
-                        className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-semibold text-zinc-600"
-                        title="Só 1 variante (não é grupo)"
-                      >
-                        1
-                      </span>
-                    ) : (
-                      <span
-                        className="inline-flex items-center gap-1 rounded-full border border-pink-200 bg-pink-50 px-2.5 py-1 text-[11px] font-bold text-pink-600"
-                        title={`${variantCount} variantes`}
-                      >
-                        <Layers size={11} />
-                        {variantCount}
                       </span>
                     )}
                   </td>
@@ -308,7 +246,7 @@ export function ProductsTable({ products, returnUrl }: ProductsTableProps) {
 
             {products.length === 0 && (
               <tr>
-                <td colSpan={11} className="p-10 text-center" style={{ color: "#71717a" }}>
+                <td colSpan={10} className="p-10 text-center" style={{ color: "#71717a" }}>
                   Nenhum produto encontrado.
                 </td>
               </tr>

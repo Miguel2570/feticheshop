@@ -1,6 +1,6 @@
 // app/admin/products/page.tsx
 
-import { Prisma, ProductStatus, StockMode } from "@prisma/client";
+import { Prisma, ProductStatus } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { ProductToolbar } from "@/components/admin/products/ProductToolbar";
 import { ProductsTable } from "@/components/admin/products/ProductsTable";
@@ -18,8 +18,6 @@ type Props = {
     categorySource?: string;
     sort?: string;
     page?: string;
-    type?: string;
-    orphan?: string;
     minPrice?: string;
     maxPrice?: string;
   }>;
@@ -38,13 +36,11 @@ const PAGE_SIZE = 20;
 
 const productInclude = {
   brand: true,
-  // ✅ CORRIGIDO: Removido o select restritivo. O Prisma traz todos os campos.
-  images: { 
-    where: { isPrimary: true, isHidden: false }, 
+  images: {
+    where: { isPrimary: true, isHidden: false },
     take: 1,
   },
   categories: { include: { category: true } },
-  _count: { select: { variants: true } },
 } satisfies Prisma.ProductInclude;
 
 type ProductWithRelations = Prisma.ProductGetPayload<{
@@ -62,26 +58,19 @@ export default async function ProductsPage({ searchParams }: Props) {
   const featured = params.featured ?? "";
   const categorySource = params.categorySource ?? "";
   const sort = params.sort ?? "newest";
-  const type = params.type ?? "all";
-  const orphan = params.orphan ?? "";
 
   const minPriceRaw = params.minPrice ?? "";
   const maxPriceRaw = params.maxPrice ?? "";
   const minPrice =
-    minPriceRaw !== "" && !isNaN(Number(minPriceRaw))
-      ? Number(minPriceRaw)
-      : undefined;
+    minPriceRaw !== "" && !isNaN(Number(minPriceRaw)) ? Number(minPriceRaw) : undefined;
   const maxPrice =
-    maxPriceRaw !== "" && !isNaN(Number(maxPriceRaw))
-      ? Number(maxPriceRaw)
-      : undefined;
+    maxPriceRaw !== "" && !isNaN(Number(maxPriceRaw)) ? Number(maxPriceRaw) : undefined;
 
   const page = Math.max(1, Number(params.page ?? "1"));
 
   // ─── WHERE ───────────────────────────────────────────────
   const where: Prisma.ProductWhereInput = {
     deletedAt: null,
-
     ...(search
       ? {
           OR: [
@@ -91,7 +80,6 @@ export default async function ProductsPage({ searchParams }: Props) {
           ],
         }
       : {}),
-
     ...(category ? { categories: { some: { categoryId: category } } } : {}),
     ...(brand ? { brandId: brand } : {}),
     ...(status ? { status: status as ProductStatus } : {}),
@@ -102,7 +90,6 @@ export default async function ProductsPage({ searchParams }: Props) {
     ...(categorySource === "AUTO" || categorySource === "MANUAL"
       ? { categorySource: categorySource as "AUTO" | "MANUAL" }
       : {}),
-
     ...(minPrice !== undefined || maxPrice !== undefined
       ? {
           price: {
@@ -112,22 +99,6 @@ export default async function ProductsPage({ searchParams }: Props) {
         }
       : {}),
   };
-
-  // Tipo de variantes
-  if (type === "solo") {
-    where.variants = { none: {} };
-  } else if (type === "single") {
-    where.variants = { some: {} };
-  } else if (type === "grouped") {
-    where.variants = { some: {} };
-  }
-
-  // Órfão / canónico
-  if (orphan === "true") {
-    where.canonicalUrl = { not: null };
-  } else if (orphan === "false") {
-    where.canonicalUrl = null;
-  }
 
   // ─── ORDER ───────────────────────────────────────────────
   let orderBy: OrderBy = { createdAt: "desc" };
@@ -139,38 +110,17 @@ export default async function ProductsPage({ searchParams }: Props) {
   if (sort === "name") orderBy = { name: "asc" };
 
   // ─── QUERY ───────────────────────────────────────────────
-  const isGroupedFilter = type === "grouped";
+  const totalProducts = await prisma.product.count({ where });
+  const totalPagesSafe = Math.max(1, Math.ceil(totalProducts / PAGE_SIZE));
+  const currentPageSafe = Math.min(page, totalPagesSafe);
 
-  let totalProducts: number;
-  let pagedProducts: ProductWithRelations[];
-
-  if (isGroupedFilter) {
-    const allCandidates = await prisma.product.findMany({
-      where,
-      orderBy,
-      include: productInclude,
-    });
-
-    const groupedOnly = allCandidates.filter((p) => p._count.variants >= 2);
-    totalProducts = groupedOnly.length;
-    const totalPagesSafe = Math.max(1, Math.ceil(totalProducts / PAGE_SIZE));
-    const currentPageSafe = Math.min(page, totalPagesSafe);
-    pagedProducts = groupedOnly.slice(
-      (currentPageSafe - 1) * PAGE_SIZE,
-      currentPageSafe * PAGE_SIZE
-    );
-  } else {
-    totalProducts = await prisma.product.count({ where });
-    const totalPagesSafe = Math.max(1, Math.ceil(totalProducts / PAGE_SIZE));
-    const currentPageSafe = Math.min(page, totalPagesSafe);
-    pagedProducts = await prisma.product.findMany({
-      where,
-      take: PAGE_SIZE,
-      skip: (currentPageSafe - 1) * PAGE_SIZE,
-      orderBy,
-      include: productInclude,
-    });
-  }
+  const pagedProducts = await prisma.product.findMany({
+    where,
+    take: PAGE_SIZE,
+    skip: (currentPageSafe - 1) * PAGE_SIZE,
+    orderBy,
+    include: productInclude,
+  });
 
   const totalPages = Math.max(1, Math.ceil(totalProducts / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -181,26 +131,8 @@ export default async function ProductsPage({ searchParams }: Props) {
     price: Number(product.price),
     comparePrice: product.comparePrice ? Number(product.comparePrice) : null,
     costPrice: product.costPrice ? Number(product.costPrice) : null,
-    variantCount: product._count.variants,
-    isOrphan: product.canonicalUrl !== null,
     hasVideo: !!product.images[0]?.videoUrl,
   }));
-
-  // ─── MODO DE STOCK DOMINANTE + TOTAL (para o modal) ──────
-  const [stockModeCounts, totalAllProducts] = await Promise.all([
-    prisma.product.groupBy({
-      by: ["stockMode"],
-      where: { deletedAt: null },
-      _count: { stockMode: true },
-      orderBy: { _count: { stockMode: "desc" } },
-    }),
-    prisma.product.count({
-      where: { deletedAt: null },
-    }),
-  ]);
-
-  const currentStockMode: StockMode | null =
-    stockModeCounts[0]?.stockMode ?? null;
 
   // ─── QUERY PARAMS PARA PAGINAÇÃO ─────────────────────────
   const queryParams = new URLSearchParams();
@@ -212,8 +144,6 @@ export default async function ProductsPage({ searchParams }: Props) {
   if (featured) queryParams.set("featured", featured);
   if (categorySource) queryParams.set("categorySource", categorySource);
   if (sort) queryParams.set("sort", sort);
-  if (type && type !== "all") queryParams.set("type", type);
-  if (orphan) queryParams.set("orphan", orphan);
   if (minPrice !== undefined) queryParams.set("minPrice", String(minPrice));
   if (maxPrice !== undefined) queryParams.set("maxPrice", String(maxPrice));
 
@@ -223,7 +153,6 @@ export default async function ProductsPage({ searchParams }: Props) {
     return `/admin/products?${p.toString()}`;
   };
 
-  // ✅ NOVO: Gerar o URL completo atual para passar como returnUrl
   const currentFullUrl = `/admin/products?${queryParams.toString()}`;
   const encodedReturnUrl = encodeURIComponent(currentFullUrl);
 
@@ -240,10 +169,8 @@ export default async function ProductsPage({ searchParams }: Props) {
       </div>
 
       <div className="w-full min-w-0">
-        <ProductToolbar
-          currentStockMode={currentStockMode}
-          totalProducts={totalAllProducts}
-        />
+        {/* ✅ CORRIGIDO: Apenas a prop totalProducts */}
+        <ProductToolbar totalProducts={totalProducts} />
       </div>
 
       <div className="w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm sm:rounded-2xl">
@@ -285,7 +212,6 @@ export default async function ProductsPage({ searchParams }: Props) {
             ‹<span className="hidden sm:inline">&nbsp;Anterior</span>
           </a>
 
-          {/* Input de página manual */}
           <PaginationGoto
             currentPage={currentPage}
             totalPages={totalPages}
@@ -296,13 +222,10 @@ export default async function ProductsPage({ searchParams }: Props) {
           <a
             href={getPageUrl(Math.min(totalPages, currentPage + 1))}
             className={`inline-flex h-10 shrink-0 items-center justify-center rounded-xl px-4 text-sm font-semibold transition-all duration-200 ${
-              currentPage === totalPages
-                ? "pointer-events-none"
-                : "cursor-pointer"
+              currentPage === totalPages ? "pointer-events-none" : "cursor-pointer"
             }`}
             style={{
-              backgroundColor:
-                currentPage === totalPages ? "#f4f4f5" : "#ec4899",
+              backgroundColor: currentPage === totalPages ? "#f4f4f5" : "#ec4899",
               color: currentPage === totalPages ? "#a1a1aa" : "#ffffff",
             }}
           >
@@ -313,13 +236,10 @@ export default async function ProductsPage({ searchParams }: Props) {
           <a
             href={getPageUrl(totalPages)}
             className={`inline-flex h-10 shrink-0 items-center justify-center rounded-xl px-4 text-sm font-semibold transition-all duration-200 ${
-              currentPage === totalPages
-                ? "pointer-events-none"
-                : "cursor-pointer"
+              currentPage === totalPages ? "pointer-events-none" : "cursor-pointer"
             }`}
             style={{
-              backgroundColor:
-                currentPage === totalPages ? "#f4f4f5" : "#000000",
+              backgroundColor: currentPage === totalPages ? "#f4f4f5" : "#000000",
               color: currentPage === totalPages ? "#a1a1aa" : "#ffffff",
             }}
           >

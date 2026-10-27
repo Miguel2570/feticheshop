@@ -158,7 +158,6 @@ export function ProductEditForm({
 
     const data = {
       name: formData.get("name"),
-      slug: formData.get("slug"),
       sku: formData.get("sku") || null,
       ean: formData.get("ean") || null,
       shortDescription: formData.get("shortDescription") || null,
@@ -265,15 +264,21 @@ export function ProductEditForm({
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-zinc-700 mb-2">
-            Slug
+          <label className="block text-sm font-semibold text-zinc-700 mb-2 flex items-center justify-between">
+            <span>Slug (Link do Produto)</span>
+            <span className="text-xs font-normal text-zinc-500">Bloqueado por segurança</span>
           </label>
           <input
             type="text"
             name="slug"
             defaultValue={product.slug}
-            required
-            className="h-10 w-full rounded-xl border-2 border-zinc-200 px-4 text-sm text-zinc-900 focus:border-pink-500 focus:ring-2 focus:ring-pink-200 outline-none"
+            readOnly
+            style={{
+              backgroundColor: "#f4f4f5 !important",
+              color: "#71717a !important",
+              cursor: "not-allowed",
+            }}
+            className="h-10 w-full rounded-xl border-2 border-zinc-200 !bg-zinc-100 px-4 text-sm !text-zinc-500 outline-none"
           />
         </div>
 
