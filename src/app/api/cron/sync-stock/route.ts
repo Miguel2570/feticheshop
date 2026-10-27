@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
         console.log("✅ Sync concluído:", {
           duration: result.durationMs,
           itemsProcessed: result.itemsProcessed,
-          variantsUpdated: result.variantsUpdated,
+          productsUpdated: result.productsUpdated, // ✅ CORRIGIDO AQUI
           errors: result.errors,
         });
       })
