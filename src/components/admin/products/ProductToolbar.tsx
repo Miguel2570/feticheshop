@@ -170,7 +170,7 @@ export function ProductToolbar({ totalProducts = 0 }: ProductToolbarProps) {
     if (loadingAll) return;
 
     const confirmed = window.confirm(
-      "⚠️ Tens a certeza que queres ocultar TODOS os produtos?\n\nNenhum produto vai aparecer na loja!"
+      "Atenção: tens a certeza que queres ocultar TODOS os produtos?\n\nNenhum produto vai aparecer na loja!"
     );
     if (!confirmed) return;
 
@@ -361,11 +361,11 @@ export function ProductToolbar({ totalProducts = 0 }: ProductToolbarProps) {
                 className="h-11 w-full cursor-pointer rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-pink-500 focus:ring-2 focus:ring-pink-200"
               >
                 <option value="">Todos os estados</option>
-                <option value="ACTIVE">✅ Visíveis na loja</option>
-                <option value="DRAFT">📝 Rascunhos</option>
-                <option value="HIDDEN">🙈 Escondidos</option>
-                <option value="OUT_OF_STOCK">📦 Sem stock</option>
-                <option value="ARCHIVED">🗄️ Arquivados</option>
+                <option value="ACTIVE">Visíveis na loja</option>
+                <option value="DRAFT">Rascunhos</option>
+                <option value="HIDDEN">Escondidos</option>
+                <option value="OUT_OF_STOCK">Sem stock</option>
+                <option value="ARCHIVED">Arquivados</option>
               </select>
             </div>
 
@@ -380,7 +380,7 @@ export function ProductToolbar({ totalProducts = 0 }: ProductToolbarProps) {
                 className="h-11 w-full cursor-pointer rounded-xl border-2 border-zinc-200 bg-white px-3 text-sm text-zinc-900 outline-none transition focus:border-pink-500 focus:ring-2 focus:ring-pink-200"
               >
                 <option value="">Todos</option>
-                <option value="true">⭐ Só destacados</option>
+                <option value="true">Só destacados</option>
                 <option value="false">Só não destacados</option>
               </select>
             </div>
@@ -397,8 +397,8 @@ export function ProductToolbar({ totalProducts = 0 }: ProductToolbarProps) {
                 title="Filtrar por quem atribuiu a categoria"
               >
                 <option value="">Todas</option>
-                <option value="MANUAL">✋ Escolhidas por mim</option>
-                <option value="AUTO">🤖 Atribuídas pelo sistema</option>
+                <option value="MANUAL">Escolhidas por mim</option>
+                <option value="AUTO">Atribuídas pelo sistema</option>
               </select>
             </div>
 
