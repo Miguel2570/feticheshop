@@ -1,11 +1,8 @@
 // sync-dreamlove-products.ts
 
 import "dotenv/config";
-
 import { PrismaClient } from "@prisma/client";
-
 import { findMainCategory } from "@/lib/category-mapping";
-import { parseProductName, getProductGroupKey } from "@/utils/product-grouping";
 
 const prisma = new PrismaClient();
 
@@ -27,12 +24,14 @@ type DreamloveProduct = {
   description?: string | null;
   longDescription?: string | null;
   customerPrice?: string | null;
+  suggestedPrice?: string | null;
   price: string;
   stock: string;
   categories?: string[];
   images?: {
     image?: {
-      files?: { url: string }[];
+      relatedVideo?: string | null;
+      files?: { url: string; dimensions?: string }[];
     };
   }[];
   barcodes?: { code: string }[];
@@ -55,16 +54,6 @@ function createSlug(text?: string | null): string {
     .replace(/(^-|-$)/g, "");
 }
 
-function getImages(product: DreamloveProduct): string[] {
-  const images =
-    product.images
-      ?.flatMap((img) => img.image?.files ?? [])
-      ?.map((file) => file.url)
-      ?.filter((url): url is string => Boolean(url)) ?? [];
-
-  return images;
-}
-
 async function loginDreamlove(): Promise<string> {
   const response = await fetch(`${API_URL}/login_check`, {
     method: "POST",
@@ -72,90 +61,48 @@ async function loginDreamlove(): Promise<string> {
       "Content-Type": "application/json",
       Accept: "application/json",
     },
-    body: JSON.stringify({
-      username: USERNAME,
-      password: PASSWORD,
-    }),
+    body: JSON.stringify({ username: USERNAME, password: PASSWORD }),
   });
 
   const text = await response.text();
-
-  if (!response.ok) {
-    throw new Error(
-      `Erro no login Dreamlove: ${response.status} - ${text.substring(0, 300)}`
-    );
-  }
-
-  let data: { token?: string };
-
-  try {
-    data = JSON.parse(text);
-  } catch {
-    throw new Error("Dreamlove devolveu uma resposta que não é JSON no login.");
-  }
-
-  if (!data.token) {
-    throw new Error("Token Dreamlove não recebido.");
-  }
-
+  if (!response.ok) throw new Error(`Erro no login: ${response.status}`);
+  
+  const data = JSON.parse(text);
+  if (!data.token) throw new Error("Token não recebido.");
   return data.token;
 }
 
-async function getAllTranslations(
-  token: string
-): Promise<Map<number, ProductTranslation>> {
+async function getAllTranslations(token: string): Promise<Map<number, ProductTranslation>> {
   const translations = new Map<number, ProductTranslation>();
   let page = 1;
 
-  console.log("📚 A carregar traduções em português...");
+  console.log("📚 A carregar traduções...");
 
   while (true) {
     const response = await fetch(
       `${API_URL}/product_translations?language=/languages/${PORTUGUESE_LANGUAGE_ID}&page=${page}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
-      }
+      { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" } }
     );
 
     if (!response.ok) break;
-
     const data = await response.json();
-
     if (!Array.isArray(data) || data.length === 0) break;
 
     for (const translation of data) {
       const productId = Number(translation.product?.split("/").pop() ?? "0");
-
       if (!productId || isNaN(productId)) continue;
 
-      if (!translations.has(productId)) {
-        translations.set(productId, {});
-      }
-
+      if (!translations.has(productId)) translations.set(productId, {});
       const entry = translations.get(productId)!;
 
-      if (translation.field === "name") {
-        entry.name = translation.value;
-      } else if (translation.field === "description") {
-        entry.description = translation.value;
-      } else if (translation.field === "longDescription") {
-        entry.longDescription = translation.value;
-      }
+      if (translation.field === "name") entry.name = translation.value;
+      else if (translation.field === "description") entry.description = translation.value;
+      else if (translation.field === "longDescription") entry.longDescription = translation.value;
     }
-
     page++;
-
-    if (page % 5 === 0) {
-      console.log(
-        `📚 Traduções: página ${page - 1} carregada (${translations.size} produtos)`
-      );
-    }
   }
 
-  console.log(`📚 Total de traduções carregadas: ${translations.size} produtos`);
+  console.log(`📚 Total de traduções: ${translations.size} produtos`);
   return translations;
 }
 
@@ -164,62 +111,20 @@ async function getProducts(token: string): Promise<DreamloveProduct[]> {
   let page = 1;
 
   while (true) {
-    console.log(`📦 Buscar produtos - página ${page}`);
-
     const response = await fetch(`${API_URL}/products?page=${page}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json",
-      },
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
     });
 
-    const text = await response.text();
-
-    if (!response.ok) {
-      throw new Error(
-        `Erro ao obter produtos página ${page}: ${response.status}`
-      );
-    }
-
-    let data: unknown;
-
-    try {
-      data = JSON.parse(text);
-    } catch {
-      throw new Error(`Dreamlove devolveu resposta não JSON na página ${page}.`);
-    }
-
-    let list: DreamloveProduct[] = [];
-
-    if (Array.isArray(data)) {
-      list = data as DreamloveProduct[];
-    } else if (
-      typeof data === "object" &&
-      data !== null &&
-      "items" in data &&
-      Array.isArray((data as { items: unknown[] }).items)
-    ) {
-      list = (data as { items: DreamloveProduct[] }).items;
-    } else if (
-      typeof data === "object" &&
-      data !== null &&
-      "products" in data &&
-      Array.isArray((data as { products: unknown[] }).products)
-    ) {
-      list = (data as { products: DreamloveProduct[] }).products;
-    } else if (
-      typeof data === "object" &&
-      data !== null &&
-      "data" in data &&
-      Array.isArray((data as { data: unknown[] }).data)
-    ) {
-      list = (data as { data: DreamloveProduct[] }).data;
-    }
+    if (!response.ok) throw new Error(`Erro na página ${page}: ${response.status}`);
+    
+    const data = await response.json();
+    
+    const list: DreamloveProduct[] = Array.isArray(data)
+      ? data
+      : data["hydra:member"] ?? data.items ?? data.data ?? [];
 
     if (list.length === 0) break;
-
     products.push(...list);
-    console.log(`Página ${page}: ${list.length} produtos`);
     page++;
   }
 
@@ -228,517 +133,210 @@ async function getProducts(token: string): Promise<DreamloveProduct[]> {
 
 async function getValidEAN(ean: string | null, dreamloveId: number) {
   if (!ean) return null;
-
-  const exists = await prisma.product.findUnique({
-    where: { ean },
-  });
-
-  if (exists && exists.dreamloveId !== dreamloveId) {
-    return null;
-  }
-
+  const exists = await prisma.product.findUnique({ where: { ean } });
+  if (exists && exists.dreamloveId !== dreamloveId) return null;
   return ean;
 }
 
 async function syncBrand(brand: DreamloveProduct["brand"]) {
   if (!brand?.id) return null;
-
   const name = brand.name?.trim() || `Marca ${brand.id}`;
-
   return prisma.brand.upsert({
     where: { dreamloveId: brand.id },
-    update: {
-      name,
-      slug: createSlug(name),
-    },
-    create: {
-      dreamloveId: brand.id,
-      name,
-      slug: createSlug(name),
-    },
+    update: { name, slug: createSlug(name) },
+    create: { dreamloveId: brand.id, name, slug: createSlug(name) },
   });
 }
 
-async function syncMainCategory(
-  productId: string,
-  productName: string,
-  productDescription: string | null | undefined
-) {
-  const text = `${productName} ${productDescription ?? ""}`;
-  const categorySlug = findMainCategory(text);
-
-  if (!categorySlug) return null;
-
-  const category = await prisma.category.findUnique({
-    where: { slug: categorySlug },
-  });
-
-  if (!category) return null;
-
-  await prisma.productCategory.upsert({
-    where: {
-      productId_categoryId: {
-        productId,
-        categoryId: category.id,
-      },
-    },
-    update: {},
-    create: {
-      productId,
-      categoryId: category.id,
-    },
-  });
-
-  return category;
-}
-
-async function syncDreamloveCategories(
-  productId: string,
-  categories?: string[]
-) {
+async function syncCategories(productId: string, categories?: string[]) {
   if (!categories?.length) return;
-
   for (const categoryUrl of categories) {
     const id = Number(categoryUrl.split("/").pop());
-
     if (isNaN(id)) continue;
-
-    const category = await prisma.category.findUnique({
-      where: { dreamloveId: id },
-    });
-
+    const category = await prisma.category.findUnique({ where: { dreamloveId: id } });
     if (!category) continue;
 
     await prisma.productCategory.upsert({
-      where: {
-        productId_categoryId: {
-          productId,
-          categoryId: category.id,
-        },
-      },
+      where: { productId_categoryId: { productId, categoryId: category.id } },
       update: {},
-      create: {
-        productId,
-        categoryId: category.id,
-      },
+      create: { productId, categoryId: category.id },
     });
   }
 }
 
-/**
- * Resolve o ID de um AttributeValue, criando-o se necessário.
- * Ex: "Vermelho/Preto" (cor) é criado como novo AttributeValue.
- */
-async function resolveAttributeValueId(
-  attributeSlug: string,
-  value: string
-): Promise<string | null> {
-  const attribute = await prisma.attribute.findUnique({
-    where: { slug: attributeSlug },
-  });
-  if (!attribute) {
-    console.warn(`⚠️ Attribute "${attributeSlug}" não existe na BD`);
-    return null;
-  }
-
-  let attrValue = await prisma.attributeValue.findFirst({
-    where: {
-      attributeId: attribute.id,
-      value: value,
-    },
-  });
-
-  if (!attrValue) {
-    const slug = value
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/(^-|-$)/g, "");
-
-    attrValue = await prisma.attributeValue.create({
-      data: {
-        attributeId: attribute.id,
-        value: value,
-        slug: slug,
-      },
-    });
-    console.log(`➕ AttributeValue criado: ${attributeSlug}=${value}`);
-  }
-
-  return attrValue.id;
-}
-
-/**
- * Sincroniza um "grupo" de produtos (mesmo modelo + cor)
- * que se tornam 1 produto pai + N variantes (uma por tamanho).
- */
-async function syncProductGroup(
-  groupItems: DreamloveProduct[],
+async function processProduct(
+  item: DreamloveProduct,
   translations: Map<number, ProductTranslation>,
   supplierId: string
 ) {
-  // 1. Escolher o "pai" — preferir o que tem stock > 0, senão o primeiro
-  const parentItem =
-    groupItems.find((it) => Number(it.stock) > 0) ?? groupItems[0];
+  const translation = translations.get(item.id);
+  const finalName = translation?.name || item.name;
+  const finalDesc = translation?.longDescription || translation?.description || item.longDescription || item.description;
 
-  const parentTranslation = translations.get(parentItem.id);
-  const parentRawName = parentTranslation?.name || parentItem.name;
-  const parentParsed = parseProductName(parentRawName);
+  const brand = await syncBrand(item.brand);
+  const costPrice = parseFloat(item.customerPrice || "0");
+  const salePrice = parseFloat(item.suggestedPrice || item.price || "0");
+  const stock = parseInt(item.stock || "0", 10);
+  
+  const ean = await getValidEAN(item.barcodes?.find((b) => b.code.length === 13)?.code ?? null, item.id);
 
-  // Nome do produto pai = base + cor (sem tamanho)
-  const parentDisplayName = parentParsed.color
-    ? `${parentParsed.base} - ${parentParsed.color}`
-    : parentParsed.base;
+  const exists = await prisma.product.findUnique({ where: { dreamloveId: item.id } });
 
-  const parentDescription =
-    parentTranslation?.longDescription ||
-    parentTranslation?.description ||
-    parentItem.longDescription ||
-    parentItem.description;
-
-  const parentImages = getImages(parentItem);
-  const parentBrand = await syncBrand(parentItem.brand);
-
-  const parentCostPrice = Number(parentItem.price);
-  const parentSalePrice = Number(parentItem.customerPrice ?? parentItem.price);
-  const parentStock = Number(parentItem.stock);
-
-  const parentRawEan =
-    parentItem.barcodes?.find((b) => b.code.length === 13)?.code ?? null;
-  const parentEan = await getValidEAN(parentRawEan, parentItem.id);
-
-  const exists = await prisma.product.findUnique({
-    where: { dreamloveId: parentItem.id },
-  });
-
-  // 2. Upsert do produto pai
-  const parentProduct = await prisma.product.upsert({
-    where: { dreamloveId: parentItem.id },
+  // 1. Criar ou atualizar o Produto
+  const product = await prisma.product.upsert({
+    where: { dreamloveId: item.id },
     update: {
-      name: parentDisplayName,
-      description: parentDescription,
-      stock: parentStock,
-      price: parentSalePrice,
-      costPrice: parentCostPrice,
-      ean: parentEan,
-      brandId: parentBrand?.id,
-      status: "ACTIVE",
-      images:
-        parentImages.length > 0
-          ? {
-              deleteMany: {},
-              create: parentImages.map((url, index) => ({
-                url,
-                isPrimary: index === 0,
-                position: index,
-              })),
-            }
-          : undefined,
+      name: finalName,
+      description: finalDesc,
+      stock,
+      price: salePrice,
+      costPrice,
+      ean,
+      brandId: brand?.id,
+      status: stock > 0 ? "ACTIVE" : "OUT_OF_STOCK",
     },
     create: {
-      dreamloveId: parentItem.id,
-      slug: createSlug(parentDisplayName),
-      sku: parentItem.sku,
-      name: parentDisplayName,
-      description: parentDescription,
-      stock: parentStock,
-      price: parentSalePrice,
-      costPrice: parentCostPrice,
-      status: "ACTIVE",
-      ean: parentEan,
-      brandId: parentBrand?.id,
-      images:
-        parentImages.length > 0
-          ? {
-              create: parentImages.map((url, index) => ({
-                url,
-                isPrimary: index === 0,
-                position: index,
-              })),
-            }
-          : undefined,
+      dreamloveId: item.id,
+      slug: `${createSlug(finalName)}-${item.id}`,
+      sku: item.sku,
+      name: finalName,
+      description: finalDesc,
+      stock,
+      price: salePrice,
+      costPrice,
+      status: stock > 0 ? "ACTIVE" : "OUT_OF_STOCK",
+      ean,
+      brandId: brand?.id,
     },
   });
 
-  // 3. Categorias do pai
-  const mainCategory = await syncMainCategory(
-    parentProduct.id,
-    parentDisplayName,
-    parentDescription
-  );
-
-  if (mainCategory) {
-    console.log(`📂 ${parentDisplayName} → ${mainCategory.name}`);
-  }
-
-  await syncDreamloveCategories(parentProduct.id, parentItem.categories);
-
-  // 4. Apagar variantes antigas e recriar
-  await prisma.productVariant.deleteMany({
-    where: { productId: parentProduct.id },
-  });
-
-  for (const groupItem of groupItems) {
-    const itemTranslation = translations.get(groupItem.id);
-    const itemRawName = itemTranslation?.name || groupItem.name;
-    const itemParsed = parseProductName(itemRawName);
-
-    const variantSize = itemParsed.size || null;
-    const variantColor = itemParsed.color || null;
-    const variantVolume = itemParsed.volume || null;
-
-    // Nome da variante: cor + tamanho + volume (os que existirem)
-    const nameParts: string[] = [];
-    if (variantColor) nameParts.push(variantColor);
-    if (variantSize) nameParts.push(variantSize);
-    if (variantVolume) nameParts.push(variantVolume);
-    const variantName = nameParts.join(" / ") || "Único";
-
-    const itemPrice = Number(groupItem.customerPrice ?? groupItem.price);
-    const itemCostPrice = Number(groupItem.price);
-    const itemStock = Number(groupItem.stock);
-
-    const itemRawEan =
-      groupItem.barcodes?.find((b) => b.code.length === 13)?.code ?? null;
-    const itemEan = await getValidEAN(itemRawEan, groupItem.id);
-
-    // ✅ Resolver AttributeValueIds antes de criar a variante
-    const attrValueIds: string[] = [];
-
-    if (variantColor) {
-      const id = await resolveAttributeValueId("cor", variantColor);
-      if (id) attrValueIds.push(id);
-    }
-    if (variantSize) {
-      const id = await resolveAttributeValueId("tamanho", variantSize);
-      if (id) attrValueIds.push(id);
-    }
-    if (variantVolume) {
-      const id = await resolveAttributeValueId("volume", variantVolume);
-      if (id) attrValueIds.push(id);
-    }
-
-    // ✅ Criar variante COM attributeValues ligados
-    await prisma.productVariant.create({
-      data: {
-        productId: parentProduct.id,
-        name: variantName,
-        sku: groupItem.sku,
-        ean: itemEan,
-        price: itemPrice,
-        costPrice: itemCostPrice,
-        comparePrice:
-          groupItem.customerPrice && Number(groupItem.price) !== itemPrice
-            ? Number(groupItem.price)
-            : null,
-        stock: itemStock,
-        isActive: true,
-        attributeValues: {
-          create: attrValueIds.map((id) => ({
-            attributeValue: { connect: { id } },
-          })),
-        },
-      },
-    });
-
-    // 5. Arquivar produtos que NÃO são o pai
-    if (groupItem.id !== parentItem.id) {
-      await prisma.product.updateMany({
-        where: { dreamloveId: groupItem.id },
-        data: { status: "ARCHIVED" },
+  // 2. Categorias
+  const categorySlug = findMainCategory(`${finalName} ${finalDesc ?? ""}`);
+  if (categorySlug) {
+    const cat = await prisma.category.findUnique({ where: { slug: categorySlug } });
+    if (cat) {
+      await prisma.productCategory.upsert({
+        where: { productId_categoryId: { productId: product.id, categoryId: cat.id } },
+        update: {},
+        create: { productId: product.id, categoryId: cat.id },
       });
     }
   }
+  await syncCategories(product.id, item.categories);
 
-  // 6. Registar supplierProduct do pai
+  // 3. Imagens e Vídeos
+  const apiImages = item.images || [];
+  if (apiImages.length > 0) {
+    await prisma.productImage.deleteMany({ where: { productId: product.id } });
+    
+    const imagesToCreate = [];
+    for (const img of apiImages) {
+      const file = img.image?.files?.[0];
+      if (!file || !file.url) continue;
+
+      let videoUrl = null;
+      const rawVideo = img.image?.relatedVideo;
+      if (rawVideo) {
+        const match = rawVideo.match(/src="([^"]+)"/) || rawVideo.match(/(https?:\/\/[^\s"']+)/);
+        if (match) videoUrl = match[1].replace(/&amp;/g, "&");
+      }
+
+      let width = null, height = null;
+      if (file.dimensions) {
+        const parts = file.dimensions.split("x");
+        if (parts.length === 2) { width = parseInt(parts[0], 10); height = parseInt(parts[1], 10); }
+      }
+
+      imagesToCreate.push({
+        productId: product.id,
+        url: file.url,
+        videoUrl,
+        alt: finalName,
+        isPrimary: imagesToCreate.length === 0,
+        position: imagesToCreate.length,
+        width,
+        height,
+      });
+    }
+
+    if (imagesToCreate.length > 0) {
+      await prisma.productImage.createMany({ data: imagesToCreate });
+    }
+  }
+
+  // 4. SupplierProduct
   await prisma.supplierProduct.upsert({
-    where: {
-      supplierId_supplierProductId: {
-        supplierId,
-        supplierProductId: String(parentItem.id),
-      },
-    },
+    where: { supplierId_supplierProductId: { supplierId, supplierProductId: String(item.id) } },
     update: {
-      productId: parentProduct.id,
-      supplierSku: parentItem.sku,
-      supplierEan: parentEan,
-      supplierPrice: parentCostPrice,
-      supplierComparePrice: parentSalePrice,
-      supplierStock: parentStock,
+      productId: product.id,
+      supplierSku: item.sku,
+      supplierEan: ean,
+      supplierPrice: costPrice,
+      supplierStock: stock,
       supplierUpdatedAt: new Date(),
       lastSyncAt: new Date(),
       isActive: true,
-      rawData: JSON.parse(JSON.stringify(parentItem)),
     },
     create: {
       supplierId,
-      productId: parentProduct.id,
-      supplierProductId: String(parentItem.id),
-      supplierSku: parentItem.sku,
-      supplierEan: parentEan,
-      supplierPrice: parentCostPrice,
-      supplierComparePrice: parentSalePrice,
-      supplierStock: parentStock,
+      productId: product.id,
+      supplierProductId: String(item.id),
+      supplierSku: item.sku,
+      supplierEan: ean,
+      supplierPrice: costPrice,
+      supplierStock: stock,
       supplierUpdatedAt: new Date(),
       lastSyncAt: new Date(),
       isActive: true,
-      rawData: JSON.parse(JSON.stringify(parentItem)),
     },
   });
 
-  return {
-    exists: !!exists,
-    variantsCount: groupItems.length,
-  };
+  return { exists: !!exists };
 }
 
 async function sync() {
-  console.log(
-    JSON.stringify({
-      type: "progress",
-      progress: 2,
-      step: "Autenticação Dreamlove...",
-    })
-  );
-
+  console.log(JSON.stringify({ type: "progress", progress: 2, step: "Autenticação..." }));
   const token = await loginDreamlove();
 
-  console.log(
-    JSON.stringify({
-      type: "progress",
-      progress: 5,
-      step: "A carregar traduções em português...",
-    })
-  );
-
+  console.log(JSON.stringify({ type: "progress", progress: 5, step: "Traduções..." }));
   const translations = await getAllTranslations(token);
 
-  console.log(
-    JSON.stringify({
-      type: "progress",
-      progress: 10,
-      step: "A obter produtos...",
-    })
-  );
-
+  console.log(JSON.stringify({ type: "progress", progress: 10, step: "Produtos..." }));
   const products = await getProducts(token);
 
-  console.log(
-    JSON.stringify({
-      type: "log",
-      message: `Encontrados ${products.length} produtos.`,
-    })
-  );
-
   const supplier = await prisma.supplier.findFirst({
-    where: {
-      OR: [
-        { slug: "dreamlove" },
-        { name: { equals: "Dreamlove", mode: "insensitive" } },
-      ],
-    },
+    where: { OR: [{ slug: "dreamlove" }, { name: { equals: "Dreamlove", mode: "insensitive" } }] },
   });
 
-  if (!supplier) {
-    throw new Error("Fornecedor Dreamlove não existe na BD.");
-  }
+  if (!supplier) throw new Error("Fornecedor não existe.");
 
   const syncRecord = await prisma.supplierSync.create({
-    data: {
-      supplierId: supplier.id,
-      status: "RUNNING",
-      totalProducts: products.length,
-    },
+    data: { supplierId: supplier.id, status: "RUNNING", totalProducts: products.length },
   });
 
-  // Agrupar produtos por "modelo + cor"
-  const groups = new Map<string, DreamloveProduct[]>();
+  let imported = 0, updated = 0, failed = 0;
 
-  for (const item of products) {
-    const translation = translations.get(item.id);
-    const finalName = translation?.name || item.name;
-    const groupKey = getProductGroupKey(finalName);
-
-    if (!groups.has(groupKey)) {
-      groups.set(groupKey, []);
-    }
-
-    groups.get(groupKey)!.push(item);
-  }
-
-  console.log(
-    JSON.stringify({
-      type: "log",
-      message: `📦 ${products.length} produtos → ${groups.size} grupos`,
-    })
-  );
-
-  let imported = 0;
-  let updated = 0;
-  let failed = 0;
-  const skipped = 0;
-  let processed = 0;
-
-  for (const [groupKey, groupItems] of groups) {
+  for (let i = 0; i < products.length; i++) {
+    const item = products[i];
+    
     try {
-      const result = await syncProductGroup(
-        groupItems,
-        translations,
-        supplier.id
-      );
+      const result = await processProduct(item, translations, supplier.id);
+      
+      if (result.exists) updated++;
+      else imported++;
 
-      if (result.exists) {
-        updated++;
-      } else {
-        imported++;
-      }
-
-      processed++;
-
-      const progress = 10 + Math.round((processed / groups.size) * 35);
-
-      console.log(
-        JSON.stringify({
+      if (i % 10 === 0) {
+        const progress = 10 + Math.round((i / products.length) * 70);
+        console.log(JSON.stringify({
           type: "progress",
           progress,
-          step: `${processed}/${groups.size} • ${groupKey} (${result.variantsCount} variantes)`,
-        })
-      );
-
-      console.log(
-        JSON.stringify({
-          type: "count",
-          imported,
-          updated,
-          failed,
-          skipped,
-        })
-      );
-
-      await prisma.supplierLog.create({
-        data: {
-          syncId: syncRecord.id,
-          level: "INFO",
-          code: result.exists ? "PRODUCT_UPDATED" : "PRODUCT_IMPORTED",
-          message: `${result.exists ? "Grupo atualizado" : "Grupo importado"}: ${groupKey} (${result.variantsCount} variantes)`,
-        },
-      });
+          step: `${i}/${products.length} • ${item.name.substring(0, 30)}`,
+        }));
+        console.log(JSON.stringify({ type: "count", imported, updated, failed, skipped: 0 }));
+      }
     } catch (error) {
       failed++;
-
-      const message = error instanceof Error ? error.message : String(error);
-
-      console.error(`❌ Erro grupo ${groupKey}:`, message);
-
-      await prisma.supplierLog.create({
-        data: {
-          syncId: syncRecord.id,
-          level: "ERROR",
-          code: "PRODUCT_SYNC_ERROR",
-          message,
-        },
-      });
+      console.error(`❌ Erro produto ${item.id}:`, error);
     }
   }
 
@@ -746,33 +344,14 @@ async function sync() {
     where: { id: syncRecord.id },
     data: {
       status: failed > 0 ? "FAILED" : "SUCCESS",
-      totalProducts: products.length,
-      imported,
-      updated,
-      skipped,
-      failed,
+      imported, updated, failed,
       finishedAt: new Date(),
-      message:
-        failed > 0
-          ? `Sincronização terminada com ${failed} erro(s).`
-          : `Sincronização concluída com sucesso. ${groups.size} grupos processados.`,
     },
   });
 
-  console.log(
-    JSON.stringify({
-      type: "progress",
-      progress: 85,
-      step: `Sincronização concluída. ${groups.size} grupos processados.`,
-    })
-  );
+  console.log(JSON.stringify({ type: "progress", progress: 85, step: "Concluído." }));
 }
 
 sync()
-  .catch(async (error) => {
-    console.error(error);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .catch(console.error)
+  .finally(() => prisma.$disconnect());
