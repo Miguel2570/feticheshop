@@ -8,9 +8,10 @@ import { MAIN_CATEGORY_SLUGS, getAllActiveSlugs } from "@/lib/categories";
 import { ToggleCategoryStatusButton } from "@/components/admin/categories/ToggleCategoryStatusButton";
 import { ToggleFeaturedCategoryButton } from "@/components/admin/categories/ToggleFeaturedCategoryButton";
 import { AddCategoryButton } from "@/components/admin/categories/AddCategoryButton";
+import { EditCategoryButton } from "@/components/admin/categories/EditCategoryButton";
+import { DeleteCategoryButton } from "@/components/admin/categories/DeleteCategoryButton";
 
 export default async function CategoriesPage() {
-  // ✅ Slugs ativos (raízes + subcategorias) — vêm da BD
   const allActiveSlugs = await getAllActiveSlugs();
 
   const mainCategories = await prisma.category.findMany({
@@ -60,24 +61,16 @@ export default async function CategoriesPage() {
             Categorias
           </h1>
 
-          <p
-            className="mt-1 text-sm sm:text-base"
-            style={{ color: "#71717a" }}
-          >
+          <p className="mt-1 text-sm sm:text-base" style={{ color: "#71717a" }}>
             {mainCategories.length} categorias principais · {totalActive} ativas ·{" "}
             {supplierCategories.length} do fornecedor
           </p>
         </div>
 
-        {/* ✅ Botão para criar categoria raiz */}
         <div className="shrink-0">
           <AddCategoryButton variant="primary" label="Nova categoria" />
         </div>
       </div>
-
-      {/* =========================================================
-          CATEGORIAS PRINCIPAIS
-      ========================================================= */}
 
       <section className="min-w-0">
         <div className="mb-3 sm:mb-4">
@@ -133,12 +126,15 @@ export default async function CategoriesPage() {
                     Ver produtos
                   </Link>
 
-                  {/* ✅ Botão para adicionar subcategoria a esta raiz */}
                   <AddCategoryButton
                     parentId={cat.id}
                     parentName={cat.name}
                     variant="ghost"
                     label="Adicionar subcategoria"
+                  />
+
+                  <EditCategoryButton
+                    category={{ id: cat.id, name: cat.name, slug: cat.slug }}
                   />
 
                   <ToggleFeaturedCategoryButton
@@ -147,6 +143,13 @@ export default async function CategoriesPage() {
                   />
 
                   <ToggleCategoryStatusButton id={cat.id} active={cat.isActive} />
+
+                  <DeleteCategoryButton
+                    categoryId={cat.id}
+                    categoryName={cat.name}
+                    productCount={cat._count.products}
+                    childrenCount={cat.children.length}
+                  />
                 </div>
               </div>
 
@@ -159,31 +162,31 @@ export default async function CategoriesPage() {
                       <thead className="border-b border-zinc-100 bg-zinc-50/50">
                         <tr className="text-left">
                           <th
-                            className="w-[40%] p-3 text-xs font-semibold"
+                            className="w-[34%] p-3 text-xs font-semibold"
                             style={{ color: "#52525b" }}
                           >
                             Subcategoria
                           </th>
                           <th
-                            className="w-[15%] p-3 text-center text-xs font-semibold"
+                            className="w-[12%] p-3 text-center text-xs font-semibold"
                             style={{ color: "#52525b" }}
                           >
                             Produtos
                           </th>
                           <th
-                            className="w-[15%] p-3 text-center text-xs font-semibold"
+                            className="w-[12%] p-3 text-center text-xs font-semibold"
                             style={{ color: "#52525b" }}
                           >
                             Visível
                           </th>
                           <th
-                            className="w-[15%] p-3 text-center text-xs font-semibold"
+                            className="w-[12%] p-3 text-center text-xs font-semibold"
                             style={{ color: "#52525b" }}
                           >
                             Destaque
                           </th>
                           <th
-                            className="w-[15%] p-3 text-right text-xs font-semibold"
+                            className="w-[30%] p-3 text-right text-xs font-semibold"
                             style={{ color: "#52525b" }}
                           >
                             Ações
@@ -251,9 +254,23 @@ export default async function CategoriesPage() {
                                   Ver produtos
                                 </Link>
 
+                                <EditCategoryButton
+                                  category={{
+                                    id: sub.id,
+                                    name: sub.name,
+                                    slug: sub.slug,
+                                  }}
+                                />
+
                                 <ToggleCategoryStatusButton
                                   id={sub.id}
                                   active={sub.isActive}
+                                />
+
+                                <DeleteCategoryButton
+                                  categoryId={sub.id}
+                                  categoryName={sub.name}
+                                  productCount={sub._count.products}
                                 />
                               </div>
                             </td>
@@ -337,6 +354,22 @@ export default async function CategoriesPage() {
                               active={sub.isActive}
                             />
                           </div>
+                        </div>
+
+                        {/* Editar / Eliminar no mobile */}
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <EditCategoryButton
+                            category={{
+                              id: sub.id,
+                              name: sub.name,
+                              slug: sub.slug,
+                            }}
+                          />
+                          <DeleteCategoryButton
+                            categoryId={sub.id}
+                            categoryName={sub.name}
+                            productCount={sub._count.products}
+                          />
                         </div>
                       </div>
                     ))}
