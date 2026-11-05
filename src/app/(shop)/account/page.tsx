@@ -1,7 +1,10 @@
+// app/(shop)/account/page.tsx
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { AccountHeader } from "@/components/account/AccountHeader";
 import { AccountSidebar } from "@/components/account/AccountSidebar";
+
+export const dynamic = "force-dynamic";
 
 export default async function AccountPage() {
   const user = await getCurrentUser();
